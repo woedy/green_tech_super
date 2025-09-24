@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Eco-Construction Specification - {{ request.title }}</title>
+    <style>
+        /* Base styles */
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 20px;
+        }
+        
+        .logo {
+            max-width: 200px;
+            margin-bottom: 10px;
+        }
+        
+        .document-title {
+            color: #2E7D32;
+            margin: 10px 0 5px;
+        }
+        
+        .document-subtitle {
+            color: #666;
+            margin: 0 0 20px;
+            font-size: 1.1em;
+        }
+        
+        /* Sections */
+        .section {
+            margin-bottom: 25px;
+            page-break-inside: avoid;
+        }
+        
+        h2.section-title {
+            color: #2E7D50;
+            border-bottom: 1px solid #E0E0E0;
+            padding-bottom: 5px;
+            margin: 25px 0 15px;
+        }
+        
+        /* Project Info */
+        .project-info {
+            display: flex;
+            flex-wrap: wrap;
+            margin: 0 -15px 20px;
+        }
+        
+        .info-group {
+            flex: 1;
+            min-width: 200px;
+            margin: 0 15px 15px;
+            padding: 15px;
+            background-color: #F5F5F5;
+            border-radius: 4px;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+        
+        .info-value {
+            font-size: 1.1em;
+        }
+        
+        /* Features Table */
+        .feature-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.9em;
+        }
+        
+        .feature-table th, 
+        .feature-table td {
+            border: 1px solid #E0E0E0;
+            padding: 10px 12px;
+            text-align: left;
+            vertical-align: top;
+        }
+        
+        .feature-table th {
+            background-color: #4CAF50;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .feature-table tr:nth-child(even) {
+            background-color: #F9F9F9;
+        }
+        
+        .feature-table tr:hover {
+            background-color: #F1F8E9;
+        }
+        
+        /* Cost Summary */
+        .cost-summary {
+            background-color: #F1F8E9;
+            padding: 20px;
+            border-left: 4px solid #4CAF50;
+            margin: 30px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        
+        .cost-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed #C8E6C9;
+        }
+        
+        .cost-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        
+        /* Customizations */
+        .customization {
+            font-size: 0.9em;
+            color: #555;
+            margin-top: 5px;
+            font-style: italic;
+        }
+        
+        /* Footer */
+        .footer {
+            margin-top: 50px;
+            padding-top: 15px;
+            border-top: 1px solid #E0E0E0;
+            font-size: 0.8em;
+            color: #777;
+            text-align: center;
+        }
+        
+        /* Page breaks */
+        @media print {
+            .page-break {
+                page-break-before: always;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <img src="{{ logo_url }}" alt="GreenTech Africa Logo" class="logo">
+        <h1 class="document-title">Eco-Construction Specification</h1>
+        <p class="document-subtitle">Project: {{ request.title }}</p>
+    </div>
+    
+    <!-- Project Information -->
+    <div class="section">
+        <h2 class="section-title">Project Information</h2>
+        <div class="project-info">
+            <div class="info-group">
+                <div class="info-label">Project Title</div>
+                <div class="info-value">{{ request.title }}</div>
+            </div>
+            <div class="info-group">
+                <div class="info-label">Construction Type</div>
+                <div class="info-value">{{ request.get_construction_type_display }}</div>
+            </div>
+            <div class="info-group">
+                <div class="info-label">Status</div>
+                <div class="info-value">{{ request.get_status_display }}</div>
+            </div>
+        </div>
+        
+        <div class="project-info">
+            <div class="info-group">
+                <div class="info-label">Location</div>
+                <div class="info-value">
+                    {% if request.property %}
+                        {{ request.property.address }}, {{ request.property.city }}
+                    {% else %}
+                        {{ request.address }}, {{ request.city }}
+                    {% endif %}
+                    <br>{{ request.region }}, Ghana
+                </div>
+            </div>
+            <div class="info-group">
+                <div class="info-label">Client</div>
+                <div class="info-value">
+                    {{ request.client.get_full_name|default:request.client.email }}
+                </div>
+            </div>
+            <div class="info-group">
+                <div class="info-label">Project Manager</div>
+                <div class="info-value">
+                    {% if request.project_manager %}
+                        {{ request.project_manager.get_full_name|default:request.project_manager.email }}
+                    %}
+                    {% else %}
+                        Not assigned
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Project Timeline -->
+    <div class="section">
+        <h2 class="section-title">Project Timeline</h2>
+        <div class="project-info">
+            <div class="info-group">
+                <div class="info-label">Start Date</div>
+                <div class="info-value">
+                    {% if request.start_date %}
+                        {{ request.start_date|date:"F j, Y" }}
+                    {% else %}
+                        To be determined
+                    {% endif %}
+                </div>
+            </div>
+            <div class="info-group">
+                <div class="info-label">Estimated Completion</div>
+                <div class="info-value">
+                    {% if request.estimated_end_date %}
+                        {{ request.estimated_end_date|date:"F j, Y" }}
+                    {% else %}
+                        To be determined
+                    {% endif %}
+                </div>
+            </div>
+            <div class="info-group">
+                <div class="info-label">Duration</div>
+                <div class="info-value">
+                    {% if request.start_date and request.estimated_end_date %}
+                        {{ request.start_date|timesince:request.estimated_end_date }}
+                    {% else %}
+                        Not specified
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Eco-Features -->
+    <div class="section">
+        <h2 class="section-title">Selected Eco-Features</h2>
+        
+        {% for category in eco_features|groupby:"eco_feature.category.name" %}
+            <h3 style="color: #2E7D50; margin: 20px 0 10px;">{{ category.grouper }}</h3>
+            <table class="feature-table">
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>Description</th>
+                        <th>Quantity</th>
+                        <th>Unit Cost (GHS)</th>
+                        <th>Total Cost (GHS)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for feature in category.list %}
+                        <tr>
+                            <td>{{ feature.eco_feature.name }}</td>
+                            <td>{{ feature.eco_feature.description }}</td>
+                            <td>{{ feature.quantity }}</td>
+                            <td>{{ feature.eco_feature.base_cost|floatformat:2 }}</td>
+                            <td>{{ feature.estimated_cost|floatformat:2 }}</td>
+                        </tr>
+                        {% if feature.customizations %}
+                            <tr>
+                                <td colspan="5" class="customization">
+                                    <strong>Customizations:</strong>
+                                    <ul style="margin: 5px 0 0 20px; padding: 0;">
+                                        {% for key, value in feature.customizations.items %}
+                                            <li>{{ key|title }}: {{ value }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endfor %}
+    </div>
+    
+    <!-- Cost Summary -->
+    <div class="section">
+        <h2 class="section-title">Cost Summary</h2>
+        <div class="cost-summary">
+            <div class="cost-item">
+                <span>Base Construction Cost:</span>
+                <span>GHS {{ request.budget|floatformat:2 }}</span>
+            </div>
+            <div class="cost-item">
+                <span>Eco-Features Subtotal:</span>
+                <span>GHS {{ total_cost|floatformat:2 }}</span>
+            </div>
+            {% if region %}
+                <div class="cost-item">
+                    <span>Regional Adjustment ({{ region.name }}):</span>
+                    <span>{% if region.cost_multipliers.SOLAR %}{{ region.cost_multipliers.SOLAR }}x{% else %}N/A{% endif %}</span>
+                </div>
+            {% endif %}
+            <div class="cost-item">
+                <span><strong>Total Estimated Cost:</strong></span>
+                <span><strong>GHS {{ total_cost|floatformat:2 }}</strong></span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sustainability Impact -->
+    <div class="section">
+        <h2 class="section-title">Sustainability Impact</h2>
+        <p>This project is estimated to have the following annual environmental impact:</p>
+        <ul>
+            <li>Reduced CO2 emissions: [Calculated metric tons]</li>
+            <li>Water savings: [Calculated liters]</li>
+            <li>Energy savings: [Calculated kWh]</li>
+            <li>Waste reduction: [Calculated kg]</li>
+        </ul>
+    </div>
+    
+    <!-- Notes and Approvals -->
+    <div class="section">
+        <h2 class="section-title">Notes</h2>
+        <div style="min-height: 100px; border: 1px solid #E0E0E0; padding: 15px; border-radius: 4px;">
+            {% if request.notes %}
+                {{ request.notes|linebreaks }}
+            {% else %}
+                No additional notes provided.
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <div class="footer">
+        <p>Document generated on {{ generated_date }} | GreenTech Africa | {{ request.client.email }}</p>
+        <p>This is a computer-generated document. No signature is required.</p>
+    </div>
+</body>
+</html>

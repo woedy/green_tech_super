@@ -1,0 +1,74 @@
+[
+  {
+    "model": "construction.ghanapricing",
+    "pk": 1,
+    "fields": {
+      "region": 1,
+      "eco_feature": 1,
+      "base_price": "5000.00",
+      "currency": "GHS",
+      "is_active": true,
+      "notes": "Solar panel installation in Greater Accra"
+    }
+  },
+  {
+    "model": "construction.ghanapricing",
+    "pk": 2,
+    "fields": {
+      "region": 1,
+      "eco_feature": 2,
+      "base_price": "2500.00",
+      "currency": "GHS",
+      "is_active": true,
+      "notes": "Rainwater harvesting in Greater Accra"
+    }
+  },
+  {
+    "model": "construction.ghanapricing",
+    "pk": 3,
+    "fields": {
+      "region": 2,
+      "eco_feature": 1,
+      "base_price": "4800.00",
+      "currency": "GHS",
+      "is_active": true,
+      "notes": "Solar panel installation in Ashanti"
+    }
+  },
+  {
+    "model": "construction.ghanapricing",
+    "pk": 4,
+    "fields": {
+      "region": 2,
+      "eco_feature": 2,
+      "base_price": "2300.00",
+      "currency": "GHS",
+      "is_active": true,
+      "notes": "Rainwater harvesting in Ashanti"
+    }
+  },
+  {
+    "model": "construction.ghanapricing",
+    "pk": 5,
+    "fields": {
+      "region": 1,
+      "eco_feature": 3,
+      "base_price": "150.00",
+      "currency": "GHS",
+      "is_active": true,
+      "notes": "Bamboo flooring per square meter in Greater Accra"
+    }
+  },
+  {
+    "model": "construction.ghanapricing",
+    "pk": 6,
+    "fields": {
+      "region": 1,
+      "eco_feature": 7,
+      "base_price": "3500.00",
+      "currency": "GHS",
+      "is_active": true,
+      "notes": "Basic smart home system in Greater Accra"
+    }
+  }
+]

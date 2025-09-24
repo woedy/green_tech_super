@@ -1,0 +1,162 @@
+[
+  {
+    "model": "construction.ghanaregion",
+    "pk": 1,
+    "fields": {
+      "name": "GREATER_ACCRA",
+      "capital": "Accra",
+      "cost_multiplier": "1.30",
+      "is_active": true
+    }
+  },
+  {
+    "model": "construction.ghanaregion",
+    "pk": 2,
+    "fields": {
+      "name": "ASHANTI",
+      "capital": "Kumasi",
+      "cost_multiplier": "1.15",
+      "is_active": true
+    }
+  },
+  {
+    "model": "construction.ghanaregion",
+    "pk": 3,
+    "fields": {
+      "name": "WESTERN",
+      "capital": "Takoradi",
+      "cost_multiplier": "1.10",
+      "is_active": true
+    }
+  },
+  {
+    "model": "construction.ghanaregion",
+    "pk": 4,
+    "fields": {
+      "name": "CENTRAL",
+      "capital": "Cape Coast",
+      "cost_multiplier": "1.05",
+      "is_active": true
+    }
+  },
+  {
+    "model": "construction.ghanaregion",
+    "pk": 5,
+    "fields": {
+      "name": "EASTERN",
+      "capital": "Koforidua",
+      "cost_multiplier": "1.08",
+      "is_active": true
+    }
+  },
+  {
+    "model": "construction.ghanaregion",
+    "pk": 6,
+    "fields": {
+      "name": "VOLTA",
+      "capital": "Ho",
+      "cost_multiplier": "1.00",
+      "is_active": true
+    }
+  },
+  {
+    "model": "construction.ghanaregion",
+    "pk": 7,
+    "fields": {
+      "name": "NORTHERN",
+      "capital": "Tamale",
+      "cost_multiplier": "0.95",
+      "is_active": true
+    }
+  },
+  {
+    "model": "construction.ghanaregion",
+    "pk": 8,
+    "fields": {
+      "name": "UPPER_EAST",
+      "capital": "Bolgatanga",
+      "cost_multiplier": "0.90",
+      "is_active": true
+    }
+  },
+  {
+    "model": "construction.ghanaregion",
+    "pk": 9,
+    "fields": {
+      "name": "UPPER_WEST",
+      "capital": "Wa",
+      "cost_multiplier": "0.88",
+      "is_active": true
+    }
+  },
+  {
+    "model": "construction.ghanaregion",
+    "pk": 10,
+    "fields": {
+      "name": "BRONG_AHAFO",
+      "capital": "Sunyani",
+      "cost_multiplier": "1.00",
+      "is_active": true
+    }
+  },
+  {
+    "model": "construction.ghanaregion",
+    "pk": 11,
+    "fields": {
+      "name": "OTI",
+      "capital": "Dambai",
+      "cost_multiplier": "0.95",
+      "is_active": true
+    }
+  },
+  {
+    "model": "construction.ghanaregion",
+    "pk": 12,
+    "fields": {
+      "name": "SAVANNAH",
+      "capital": "Damongo",
+      "cost_multiplier": "0.92",
+      "is_active": true
+    }
+  },
+  {
+    "model": "construction.ghanaregion",
+    "pk": 13,
+    "fields": {
+      "name": "NORTH_EAST",
+      "capital": "Nalerigu",
+      "cost_multiplier": "0.90",
+      "is_active": true
+    }
+  },
+  {
+    "model": "construction.ghanaregion",
+    "pk": 14,
+    "fields": {
+      "name": "WESTERN_NORTH",
+      "capital": "Sefwi Wiawso",
+      "cost_multiplier": "1.02",
+      "is_active": true
+    }
+  },
+  {
+    "model": "construction.ghanaregion",
+    "pk": 15,
+    "fields": {
+      "name": "AHAFO",
+      "capital": "Goaso",
+      "cost_multiplier": "0.98",
+      "is_active": true
+    }
+  },
+  {
+    "model": "construction.ghanaregion",
+    "pk": 16,
+    "fields": {
+      "name": "BONO_EAST",
+      "capital": "Techiman",
+      "cost_multiplier": "0.96",
+      "is_active": true
+    }
+  }
+]

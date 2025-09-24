@@ -1,0 +1,86 @@
+[
+  {
+    "model": "construction.ecofeature",
+    "pk": 1,
+    "fields": {
+      "name": "Solar Panel Installation",
+      "description": "Installation of solar panels for electricity generation",
+      "category": "SOLAR",
+      "icon": "solar-panel",
+      "is_available": true,
+      "requires_specialist": true
+    }
+  },
+  {
+    "model": "construction.ecofeature",
+    "pk": 2,
+    "fields": {
+      "name": "Rainwater Harvesting System",
+      "description": "System to collect and store rainwater for household use",
+      "category": "WATER",
+      "icon": "water",
+      "is_available": true,
+      "requires_specialist": true
+    }
+  },
+  {
+    "model": "construction.ecofeature",
+    "pk": 3,
+    "fields": {
+      "name": "Bamboo Flooring",
+      "description": "Sustainable bamboo flooring material",
+      "category": "MATERIALS",
+      "icon": "floor-wood",
+      "is_available": true,
+      "requires_specialist": false
+    }
+  },
+  {
+    "model": "construction.ecofeature",
+    "pk": 4,
+    "fields": {
+      "name": "Composting Toilet",
+      "description": "Waterless toilet that composts waste",
+      "category": "WASTE",
+      "icon": "toilet",
+      "is_available": true,
+      "requires_specialist": true
+    }
+  },
+  {
+    "model": "construction.ecofeature",
+    "pk": 5,
+    "fields": {
+      "name": "Drought-Resistant Landscaping",
+      "description": "Landscaping with native, drought-resistant plants",
+      "category": "LANDSCAPING",
+      "icon": "tree",
+      "is_available": true,
+      "requires_specialist": false
+    }
+  },
+  {
+    "model": "construction.ecofeature",
+    "pk": 6,
+    "fields": {
+      "name": "Thermal Insulation",
+      "description": "High-quality insulation for temperature regulation",
+      "category": "INSULATION",
+      "icon": "snowflake",
+      "is_available": true,
+      "requires_specialist": true
+    }
+  },
+  {
+    "model": "construction.ecofeature",
+    "pk": 7,
+    "fields": {
+      "name": "Smart Home System",
+      "description": "Automated system for energy and resource management",
+      "category": "SMART_HOME",
+      "icon": "home-automation",
+      "is_available": true,
+      "requires_specialist": true
+    }
+  }
+]
