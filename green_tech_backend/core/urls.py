@@ -24,4 +24,6 @@ urlpatterns = [
     # Public APIs consumed by the frontends
     path('api/', include(('plans.urls', 'plans'), namespace='plans')),  # /api/plans, /api/build-requests
     path('api/', include(('properties.urls', 'properties'), namespace='properties')),
+    path('api/', include(('leads.urls', 'leads'), namespace='leads')),
+    path('api/', include(('quotes.urls', 'quotes'), namespace='quotes')),
 ]

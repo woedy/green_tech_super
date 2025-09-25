@@ -5,46 +5,86 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
-import { AGENT_QUOTES_SEED, type AgentQuote } from "@/mocks/agent";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { QuoteStatus, QuoteSummary } from "@/types/quote";
+import { toast } from "@/components/ui/use-toast";
 
-const STORAGE_KEY = 'agent_quotes';
+const STATUS_FILTERS: { value: QuoteStatus | "all"; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "draft", label: "Draft" },
+  { value: "sent", label: "Sent" },
+  { value: "viewed", label: "Viewed" },
+  { value: "accepted", label: "Accepted" },
+  { value: "declined", label: "Declined" },
+];
 
-const label = (s: AgentQuote["status"]) => {
-  switch (s) {
-    case "sent": return { label: "Sent", variant: "secondary" as const };
-    case "accepted": return { label: "Accepted", variant: "default" as const };
-    case "expired": return { label: "Expired", variant: "secondary" as const };
-    default: return { label: "Draft", variant: "outline" as const };
-  }
+const STATUS_BADGES: Record<QuoteStatus, { label: string; variant: "default" | "outline" | "secondary" | "destructive" }> = {
+  draft: { label: "Draft", variant: "outline" },
+  sent: { label: "Sent", variant: "secondary" },
+  viewed: { label: "Viewed", variant: "secondary" },
+  accepted: { label: "Accepted", variant: "default" },
+  declined: { label: "Declined", variant: "destructive" },
 };
 
 export default function AgentQuotes() {
-  const [status, setStatus] = useState<string>('all');
-  const [quotes, setQuotes] = useState<AgentQuote[]>([]);
+  const [status, setStatus] = useState<QuoteStatus | "all">("all");
+  const [quotes, setQuotes] = useState<QuoteSummary[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchQuotes = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const query = status === "all" ? "" : `&status=${status}`;
+      const response = await fetch(`/api/quotes/?page_size=200${query}`);
+      if (!response.ok) {
+        throw new Error(`Failed to load quotes (${response.status})`);
+      }
+      const data = await response.json();
+      setQuotes((data.results ?? []) as QuoteSummary[]);
+      setError(null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to load quotes";
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [status]);
 
   useEffect(() => {
+    fetchQuotes();
+  }, [fetchQuotes]);
+
+  const formatTotal = useCallback((quote: QuoteSummary) => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      const local = raw ? (JSON.parse(raw) as AgentQuote[]) : [];
-      setQuotes([...local, ...AGENT_QUOTES_SEED]);
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: quote.currency_code || "USD",
+        maximumFractionDigits: 0,
+      }).format(quote.total_amount);
     } catch {
-      setQuotes([...AGENT_QUOTES_SEED]);
+      return `${quote.currency_code} ${quote.total_amount.toLocaleString()}`;
     }
   }, []);
 
-  const rows = useMemo(() => quotes.filter(q => status === 'all' ? true : q.status === (status as any)), [quotes, status]);
+  const handleSend = async (quoteId: string) => {
+    try {
+      const response = await fetch(`/api/quotes/${quoteId}/send/`, { method: "POST" });
+      if (!response.ok) {
+        throw new Error(`Unable to send quote (${response.status})`);
+      }
+      toast({ title: "Quote sent", description: "Customer has been notified." });
+      fetchQuotes();
+    } catch (err) {
+      toast({
+        title: "Failed to send quote",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      });
+    }
+  };
 
-  const send = (id: string) => setQuotes(qs => qs.map(q => q.id === id ? ({ ...q, status: 'sent', sentAt: new Date().toISOString().slice(0,10) }) : q));
-  const duplicate = (id: string) => setQuotes(qs => {
-    const orig = qs.find(q => q.id === id);
-    if (!orig) return qs;
-    const dup: AgentQuote = { ...orig, id: `QUO-${Math.floor(Math.random()*900+100)}`, status: 'draft', sentAt: undefined };
-    const next = [dup, ...qs];
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch {}
-    return next;
-  });
-  const download = () => alert('Download started (demo)');
+  const filtered = useMemo(() => quotes, [quotes]);
 
   return (
     <AgentShell>
@@ -53,14 +93,12 @@ export default function AgentQuotes() {
           <h1 className="text-2xl font-bold">Quotes</h1>
           <div className="flex items-center gap-2">
             <Button asChild size="sm"><Link to="/quotes/new">New Quote</Link></Button>
-            <Select value={status} onValueChange={setStatus}>
+            <Select value={status} onValueChange={(value) => setStatus(value as QuoteStatus | "all")}>
               <SelectTrigger className="w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="sent">Sent</SelectItem>
-                <SelectItem value="accepted">Accepted</SelectItem>
-                <SelectItem value="expired">Expired</SelectItem>
+                {STATUS_FILTERS.map((filter) => (
+                  <SelectItem key={filter.value} value={filter.value}>{filter.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -73,30 +111,70 @@ export default function AgentQuotes() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Request</TableHead>
+                    <TableHead>Reference</TableHead>
+                    <TableHead>Plan</TableHead>
                     <TableHead>Total</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Customer</TableHead>
                     <TableHead>Sent</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rows.map((q) => (
-                    <TableRow key={q.id}>
-                      <TableCell>{q.id}</TableCell>
-                      <TableCell>{q.requestId ?? '—'}</TableCell>
-                      <TableCell>{q.currency} {q.total.toLocaleString()}</TableCell>
-                      <TableCell><Badge variant={label(q.status).variant}>{label(q.status).label}</Badge></TableCell>
-                      <TableCell className="text-muted-foreground text-sm">{q.sentAt ?? '—'}</TableCell>
-                      <TableCell className="text-right space-x-2">
-                        <Button asChild variant="outline" size="sm"><Link to={`/quotes/${q.id}`}>Open</Link></Button>
-                        <Button variant="outline" size="sm" onClick={() => send(q.id)}>Send</Button>
-                        <Button variant="outline" size="sm" onClick={() => duplicate(q.id)}>Duplicate</Button>
-                        <Button variant="outline" size="sm" onClick={download}>Download</Button>
+                  {isLoading && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="py-6 text-center text-sm text-muted-foreground">
+                        Loading quotes…
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )}
+                  {!isLoading && error && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="py-6 text-center text-sm text-destructive">
+                        {error}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {!isLoading && !error && filtered.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="py-6 text-center text-sm text-muted-foreground">
+                        No quotes yet.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {!isLoading && !error && filtered.map((quote) => {
+                    const badge = STATUS_BADGES[quote.status];
+                    return (
+                      <TableRow key={quote.id}>
+                        <TableCell>{quote.reference}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{quote.plan_name}</span>
+                            <span className="text-xs text-muted-foreground">Lead • {quote.build_request_summary.contact.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{formatTotal(quote)}</TableCell>
+                        <TableCell>
+                          <Badge variant={badge.variant}>{badge.label}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span>{quote.customer_name}</span>
+                            <span className="text-xs text-muted-foreground">{quote.customer_email}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {quote.sent_at ? new Date(quote.sent_at).toLocaleDateString() : '—'}
+                        </TableCell>
+                        <TableCell className="text-right space-x-2">
+                          <Button asChild variant="outline" size="sm"><Link to={`/quotes/${quote.id}`}>Open</Link></Button>
+                          {(quote.status === 'draft' || quote.status === 'viewed') && (
+                            <Button variant="outline" size="sm" onClick={() => handleSend(quote.id)}>Send</Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </CardContent>

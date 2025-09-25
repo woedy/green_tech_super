@@ -1,15 +1,56 @@
-﻿import AgentShell from "@/components/layout/AgentShell";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { LEADS, AGENT_QUOTES_SEED, AGENT_PROJECTS_SEED, EVENTS } from "@/mocks/agent";
+
+import AgentShell from "@/components/layout/AgentShell";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AGENT_PROJECTS_SEED, EVENTS } from "@/mocks/agent";
+import { Lead } from "@/types/lead";
+import { QuoteSummary } from "@/types/quote";
 
 const Dashboard = () => {
+  const [leadCount, setLeadCount] = useState(0);
+  const [recentLeads, setRecentLeads] = useState<Lead[]>([]);
+  const [recentQuotes, setRecentQuotes] = useState<QuoteSummary[]>([]);
+
+  useEffect(() => {
+    const loadLeads = async () => {
+      try {
+        const response = await fetch("/api/leads/?page_size=5");
+        if (!response.ok) return;
+        const payload = await response.json();
+        const results: Lead[] = payload.results ?? payload;
+        setLeadCount(payload.count ?? results.length ?? 0);
+        setRecentLeads(results);
+      } catch (err) {
+        console.error("Failed to load recent leads", err);
+      }
+    };
+    loadLeads();
+  }, []);
+
+  useEffect(() => {
+    const loadQuotes = async () => {
+      try {
+        const response = await fetch("/api/quotes/?page_size=5");
+        if (!response.ok) return;
+        const payload = await response.json();
+        const results: QuoteSummary[] = payload.results ?? [];
+        const sorted = results.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        setRecentQuotes(sorted);
+      } catch (err) {
+        console.error("Failed to load recent quotes", err);
+      }
+    };
+    loadQuotes();
+  }, []);
+
+  const quotesSent = recentQuotes.filter((quote) => quote.status === "sent" || quote.status === "viewed").length;
+
   const kpis = {
-    leads: LEADS.length,
-    quotesDraft: 0, // drafts are created via builder and stored; shown on list
-    quotesSent: AGENT_QUOTES_SEED.filter(q => q.status === 'sent').length,
-    activeProjects: AGENT_PROJECTS_SEED.filter(p => p.status === 'in_progress').length,
+    leads: leadCount,
+    quotesSent,
+    activeProjects: AGENT_PROJECTS_SEED.filter(p => p.status === "in_progress").length,
     events: EVENTS.length,
   };
 
@@ -42,29 +83,36 @@ const Dashboard = () => {
           <Card>
             <CardHeader><CardTitle>Recent Leads</CardTitle></CardHeader>
             <CardContent className="space-y-2 text-sm">
-              {LEADS.slice(0,5).map((l) => (
-                <div key={l.id} className="flex items-center justify-between p-3 rounded-md bg-muted/30">
+              {recentLeads.map((lead) => (
+                <div key={lead.id} className="flex items-center justify-between p-3 rounded-md bg-muted/30">
                   <div>
-                    <div className="font-medium">{l.title}</div>
-                    <div className="text-muted-foreground text-xs">{l.id} • {l.from} • {l.receivedAt}</div>
+                    <div className="font-medium">{lead.title}</div>
+                    <div className="text-muted-foreground text-xs">
+                      {lead.contact_name} • {lead.contact_email}
+                    </div>
+                    <div className="text-muted-foreground text-xs">
+                      Updated {lead.last_activity_at ? new Date(lead.last_activity_at).toLocaleString() : "—"}
+                    </div>
                   </div>
-                  <Button asChild variant="outline" size="sm"><Link to={`/leads/${l.id}`}>Open</Link></Button>
+                  <Button asChild variant="outline" size="sm"><Link to={`/leads/${lead.id}`}>Open</Link></Button>
                 </div>
               ))}
+              {!recentLeads.length && <div className="text-muted-foreground text-sm">No recent leads yet.</div>}
             </CardContent>
           </Card>
           <Card>
             <CardHeader><CardTitle>Recent Quotes</CardTitle></CardHeader>
             <CardContent className="space-y-2 text-sm">
-              {[...AGENT_QUOTES_SEED].slice(0,5).map((q) => (
-                <div key={q.id} className="flex items-center justify-between p-3 rounded-md bg-muted/30">
+              {recentQuotes.map((quote) => (
+                <div key={quote.id} className="flex items-center justify-between p-3 rounded-md bg-muted/30">
                   <div>
-                    <div className="font-medium">{q.id} • {q.currency} {q.total.toLocaleString()}</div>
-                    <div className="text-muted-foreground text-xs">{q.status}{q.sentAt ? ` • sent ${q.sentAt}` : ''}</div>
+                    <div className="font-medium">{quote.reference} • {quote.currency_code} {quote.total_amount.toLocaleString()}</div>
+                    <div className="text-muted-foreground text-xs">{quote.status_display}{quote.sent_at ? ` • sent ${new Date(quote.sent_at).toLocaleDateString()}` : ""}</div>
                   </div>
-                  <Button asChild variant="outline" size="sm"><Link to={`/quotes/${q.id}`}>Open</Link></Button>
+                  <Button asChild variant="outline" size="sm"><Link to={`/quotes/${quote.id}`}>Open</Link></Button>
                 </div>
               ))}
+              {!recentQuotes.length && <div className="text-muted-foreground text-sm">No quotes yet.</div>}
             </CardContent>
           </Card>
         </div>

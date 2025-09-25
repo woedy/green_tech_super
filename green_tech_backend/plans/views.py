@@ -29,6 +29,8 @@ from .tasks import (
     dispatch_build_request_confirmation,
     dispatch_build_request_internal_alert,
 )
+from leads.services import sync_lead_from_build_request
+
 from .realtime import notify_new_build_request
 
 
@@ -92,8 +94,8 @@ class PlanViewSet(viewsets.ReadOnlyModelViewSet):
         )
 
 
-class BuildRequestViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
-    queryset = BuildRequest.objects.select_related('plan', 'region').prefetch_related('attachments')
+class BuildRequestViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+    queryset = BuildRequest.objects.select_related('plan', 'region').prefetch_related('attachments', 'plan__options')
     serializer_class = BuildRequestSerializer
     permission_classes = (AllowAny,)
 
@@ -105,6 +107,7 @@ class BuildRequestViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
         dispatch_build_request_confirmation.delay(str(instance.id))
         dispatch_build_request_internal_alert.delay(str(instance.id))
         notify_new_build_request(instance)
+        sync_lead_from_build_request(instance)
         headers = self.get_success_headers(serializer.data)
         return Response(self.get_serializer(instance).data, status=status.HTTP_201_CREATED, headers=headers)
 
@@ -173,12 +176,14 @@ class BuildRequestUploadView(APIView):
 
     def _direct_upload_fallback(self, filename: str):
         upload_url = reverse('plans:build-request-direct-upload')
-        return {
-            'upload_mode': 'direct',
-            'upload_url': upload_url,
-            'storage_key': None,
-            'original_name': filename,
-        }
+        return Response(
+            {
+                'upload_mode': 'direct',
+                'upload_url': upload_url,
+                'storage_key': None,
+                'original_name': filename,
+            }
+        )
 
 
 class BuildRequestDirectUploadView(APIView):

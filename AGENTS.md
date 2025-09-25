@@ -151,12 +151,12 @@ Backend
     - Inquiry/viewing form creates `Inquiry` + `ViewingAppointment`, sends confirmation email/SMS, and populates agent calendar.
 
 ### Phase 2 — Agent & Admin Enablement (Weeks 6-10)
-- [ ] **US2.1 – As an agent,** I want a lead inbox and qualification workflow so that I can triage customer interest efficiently.
+- [x] **US2.1 – As an agent,** I want a lead inbox and qualification workflow so that I can triage customer interest efficiently.
   - Acceptance criteria:
     - Agent dashboard lists assigned leads with status chips, priority sorting, and unread indicators.
     - Leads support status transitions with activity log and internal notes persisted via API.
     - Real-time updates when new leads arrive or when another teammate updates a shared lead.
-- [ ] **US2.2 – As an agent,** I want to generate and send quotes with regional pricing so that customers receive accurate estimates.
+- [x] **US2.2 – As an agent,** I want to generate and send quotes with regional pricing so that customers receive accurate estimates.
   - Acceptance criteria:
     - Quote builder calculates line items, allowances, and regional multipliers using backend pricing service.
     - Generated quotes render customer-facing PDF/HTML with e-sign CTA; status tracked (sent, viewed, accepted, declined).

@@ -122,6 +122,8 @@ class BuildRequestSerializer(serializers.ModelSerializer):
     plan = serializers.SlugRelatedField(slug_field='slug', queryset=Plan.objects.filter(is_published=True))
     region = serializers.SlugRelatedField(slug_field='slug', queryset=Region.objects.active())
     options = serializers.ListField(child=serializers.CharField(), required=False)
+    plan_details = serializers.SerializerMethodField()
+    region_details = serializers.SerializerMethodField()
 
     class Meta:
         model = BuildRequest
@@ -129,6 +131,8 @@ class BuildRequestSerializer(serializers.ModelSerializer):
             'id',
             'plan',
             'region',
+            'plan_details',
+            'region_details',
             'contact_name',
             'contact_email',
             'contact_phone',
@@ -142,7 +146,7 @@ class BuildRequestSerializer(serializers.ModelSerializer):
             'attachments',
             'submitted_at',
         )
-        read_only_fields = ('id', 'submitted_at', 'attachments')
+        read_only_fields = ('id', 'submitted_at', 'attachments', 'plan_details', 'region_details')
 
     def validate(self, attrs: dict[str, Any]):
         min_budget = attrs.get('budget_min')
@@ -155,6 +159,33 @@ class BuildRequestSerializer(serializers.ModelSerializer):
         user = self.context['request'].user if self.context['request'].user.is_authenticated else None
         validated_data['user'] = user
         return super().create(validated_data)
+
+    def get_plan_details(self, obj: BuildRequest) -> dict[str, object]:
+        plan = obj.plan
+        return {
+            'name': plan.name,
+            'slug': plan.slug,
+            'base_price': str(plan.base_price),
+            'currency': plan.base_currency,
+            'options': [
+                {
+                    'id': option.id,
+                    'name': option.name,
+                    'price_delta': str(option.price_delta),
+                }
+                for option in plan.options.all()
+            ],
+        }
+
+    def get_region_details(self, obj: BuildRequest) -> dict[str, object]:
+        region = obj.region
+        return {
+            'name': region.name,
+            'slug': region.slug,
+            'country': region.country,
+            'currency_code': region.currency_code,
+            'cost_multiplier': str(region.cost_multiplier),
+        }
 
 
 class PresignedUploadSerializer(serializers.Serializer):

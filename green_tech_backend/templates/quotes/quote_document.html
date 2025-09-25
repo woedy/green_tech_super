@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Quote {{ quote.reference }}</title>
+  <style>
+    body { font-family: 'Inter', Arial, sans-serif; color: #0f172a; margin: 0; padding: 24px; background: #f8fafc; }
+    h1 { font-size: 24px; margin-bottom: 8px; }
+    .section { background: #ffffff; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08); }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+    th { text-transform: uppercase; font-size: 12px; letter-spacing: 0.05em; color: #64748b; }
+    .totals td { font-weight: 600; }
+    .cta { background: #10b981; color: #ffffff; padding: 12px 18px; border-radius: 999px; text-align: center; font-weight: 600; margin-top: 12px; }
+    .meta { font-size: 14px; color: #475569; }
+    .badge { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: #0f172a; background: #e0f2fe; padding: 6px 10px; border-radius: 999px; }
+    .timeline { padding-left: 16px; }
+    .timeline li { margin-bottom: 6px; font-size: 14px; color: #475569; }
+  </style>
+</head>
+<body>
+  <div class="section">
+    <div class="badge">Quote • {{ quote.reference }}</div>
+    <h1>{{ plan.name }}</h1>
+    <p class="meta">
+      Prepared for {{ quote.recipient_name|default:build_request.contact_name }} · {{ quote.recipient_email|default:build_request.contact_email }}<br />
+      Region: {{ region.name }} • Multiplier ×{{ quote.regional_multiplier }} • Valid until {{ quote.valid_until|date:"d M Y" }}
+    </p>
+    <p class="meta">Prepared by {{ quote.prepared_by_name|default:"Green Tech Africa" }}{% if quote.prepared_by_email %} • {{ quote.prepared_by_email }}{% endif %}</p>
+  </div>
+
+  <div class="section">
+    <h2 style="margin-top: 0;">Scope & Pricing</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th>Qty</th>
+          <th>Unit Cost ({{ quote.currency_code }})</th>
+          <th>Total ({{ quote.currency_code }})</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+          <tr>
+            <td>{{ item.label }}{% if item.kind == 'allowance' %} (Allowance){% elif item.kind == 'adjustment' %} (Adjustment){% endif %}</td>
+            <td>{{ item.quantity }}</td>
+            <td>{{ item.unit_cost }}</td>
+            <td>{{ item.calculated_total }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr class="totals">
+          <td colspan="3">Subtotal</td>
+          <td>{{ totals.subtotal }}</td>
+        </tr>
+        <tr class="totals">
+          <td colspan="3">Allowances</td>
+          <td>{{ totals.allowances }}</td>
+        </tr>
+        <tr class="totals">
+          <td colspan="3">Adjustments</td>
+          <td>{{ totals.adjustments }}</td>
+        </tr>
+        <tr class="totals">
+          <td colspan="3">Grand Total</td>
+          <td>{{ totals.total }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  {% if quote.notes %}
+    <div class="section">
+      <h2 style="margin-top: 0;">Notes</h2>
+      <p class="meta">{{ quote.notes }}</p>
+    </div>
+  {% endif %}
+
+  {% if quote.terms %}
+    <div class="section">
+      <h2 style="margin-top: 0;">Terms & Conditions</h2>
+      <p class="meta">{{ quote.terms }}</p>
+    </div>
+  {% endif %}
+
+  <div class="section">
+    <h2 style="margin-top: 0;">Timeline</h2>
+    <ul class="timeline">
+      {% for entry in timeline %}
+        <li>{{ entry.timestamp|date:"d M Y H:i" }} – {{ entry.label }}</li>
+      {% endfor %}
+    </ul>
+    <div class="cta">Approve & Sign to kick off your sustainable build</div>
+  </div>
+</body>
+</html>

@@ -41,8 +41,10 @@ INSTALLED_APPS = [
     'accounts.apps.AccountsConfig',
     'locations.apps.LocationsConfig',
     'plans.apps.PlansConfig',
+    'leads.apps.LeadsConfig',
     'properties.apps.PropertiesConfig',
     'notifications.apps.NotificationsConfig',
+    'quotes.apps.QuotesConfig',
 ]
 
 MIDDLEWARE = [

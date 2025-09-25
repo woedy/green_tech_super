@@ -9,6 +9,6 @@ router = DefaultRouter()
 router.register('properties', PropertyViewSet, basename='property')
 
 urlpatterns = [
-    path('', include(router.urls)),
     path('properties/inquiries/', PropertyInquiryView.as_view(), name='property-inquiry'),
+    path('', include(router.urls)),
 ]

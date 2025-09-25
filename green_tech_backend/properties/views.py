@@ -9,6 +9,8 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from leads.services import sync_lead_from_property_inquiry
+
 from .models import Property, PropertyInquiry
 from .serializers import PropertyDetailSerializer, PropertyInquirySerializer, PropertyListSerializer
 from .tasks import send_inquiry_notifications
@@ -55,4 +57,5 @@ class PropertyInquiryView(APIView):
         serializer.is_valid(raise_exception=True)
         inquiry = serializer.save()
         send_inquiry_notifications.delay(str(inquiry.id))
+        sync_lead_from_property_inquiry(inquiry)
         return Response(PropertyInquirySerializer(inquiry).data, status=status.HTTP_201_CREATED)
