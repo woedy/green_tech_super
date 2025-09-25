@@ -1,235 +1,158 @@
+from __future__ import annotations
+
+from decimal import Decimal
+from uuid import uuid4
+
+from django.conf import settings
+from django.core.validators import MinValueValidator
 from django.db import models
+from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
-from django.core.validators import MinValueValidator, MaxValueValidator
-from accounts.models import User
 
 
 class PropertyType(models.TextChoices):
-    """Types of properties available."""
-    RESIDENTIAL = 'RESIDENTIAL', _('Residential')
-    COMMERCIAL = 'COMMERCIAL', _('Commercial')
-    LAND = 'LAND', _('Land')
-    INDUSTRIAL = 'INDUSTRIAL', _('Industrial')
-    MIXED_USE = 'MIXED_USE', _('Mixed Use')
+    APARTMENT = 'apartment', _('Apartment')
+    HOUSE = 'house', _('House')
+    VILLA = 'villa', _('Villa')
+    TOWNHOUSE = 'townhouse', _('Townhouse')
+    COMMERCIAL = 'commercial', _('Commercial')
+
+
+class ListingType(models.TextChoices):
+    SALE = 'sale', _('For Sale')
+    RENT = 'rent', _('For Rent')
 
 
 class PropertyStatus(models.TextChoices):
-    """Current status of the property."""
-    DRAFT = 'DRAFT', _('Draft')
-    PUBLISHED = 'PUBLISHED', _('Published')
-    UNDER_OFFER = 'UNDER_OFFER', _('Under Offer')
-    SOLD = 'SOLD', _('Sold')
-    RENTED = 'RENTED', _('Rented')
-    WITHDRAWN = 'WITHDRAWN', _('Withdrawn')
-
-
-class SustainabilityRating(models.IntegerChoices):
-    """Energy and water efficiency ratings."""
-    A = 5, 'A (Most Efficient)'
-    B = 4, 'B'
-    C = 3, 'C'
-    D = 2, 'D'
-    E = 1, 'E (Least Efficient)'
-    NOT_RATED = 0, 'Not Rated'
+    DRAFT = 'draft', _('Draft')
+    PUBLISHED = 'published', _('Published')
+    UNDER_OFFER = 'under_offer', _('Under Offer')
+    SOLD = 'sold', _('Sold')
+    RENTED = 'rented', _('Rented')
 
 
 class Property(models.Model):
-    """Main property model for listings with sustainability features."""
+    slug = models.SlugField(_('slug'), max_length=120, unique=True)
     title = models.CharField(_('title'), max_length=200)
+    summary = models.CharField(_('summary'), max_length=255, blank=True)
     description = models.TextField(_('description'), blank=True)
-    
-    # Sustainability Fields
-    energy_rating = models.PositiveSmallIntegerField(
-        _('energy rating'),
-        choices=SustainabilityRating.choices,
-        default=SustainabilityRating.NOT_RATED,
-        help_text=_('Energy efficiency rating (A-E)')
-    )
-    water_rating = models.PositiveSmallIntegerField(
-        _('water rating'),
-        choices=SustainabilityRating.choices,
-        default=SustainabilityRating.NOT_RATED,
-        help_text=_('Water efficiency rating (A-E)')
-    )
-    sustainability_score = models.PositiveSmallIntegerField(
-        _('sustainability score'),
-        default=0,
-        validators=[MinValueValidator(0), MaxValueValidator(100)],
-        help_text=_('Overall sustainability score (0-100)')
-    )
-    property_certifications = models.ManyToManyField(
-        'sustainability.CertificationStandard',
-        related_name='certified_properties',
-        blank=True,
-        verbose_name=_('property certifications')
-    )
-    
-    property_type = models.CharField(
-        _('property type'),
-        max_length=20,
-        choices=PropertyType.choices,
-        default=PropertyType.RESIDENTIAL
-    )
-    status = models.CharField(
-        _('status'),
-        max_length=20,
-        choices=PropertyStatus.choices,
-        default=PropertyStatus.DRAFT
-    )
-    price = models.DecimalField(
-        _('price'),
-        max_digits=12,
-        decimal_places=2,
-        validators=[MinValueValidator(0)]
-    )
-    currency = models.CharField(
-        _('currency'),
-        max_length=3,
-        default='GHS'
-    )
-    area = models.DecimalField(
-        _('area'),
-        max_digits=10,
-        decimal_places=2,
-        help_text=_('Area in square meters'),
-        validators=[MinValueValidator(0)]
-    )
-    bedrooms = models.PositiveIntegerField(_('bedrooms'), null=True, blank=True)
-    bathrooms = models.PositiveIntegerField(_('bathrooms'), null=True, blank=True)
+    property_type = models.CharField(_('property type'), max_length=32, choices=PropertyType.choices)
+    listing_type = models.CharField(_('listing type'), max_length=10, choices=ListingType.choices)
+    status = models.CharField(_('status'), max_length=20, choices=PropertyStatus.choices, default=PropertyStatus.PUBLISHED)
+    price = models.DecimalField(_('price'), max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal('0'))])
+    currency = models.CharField(_('currency'), max_length=3, default='USD')
+    bedrooms = models.PositiveSmallIntegerField(_('bedrooms'), default=0)
+    bathrooms = models.PositiveSmallIntegerField(_('bathrooms'), default=0)
+    area_sq_m = models.DecimalField(_('internal area (sqm)'), max_digits=8, decimal_places=2)
+    plot_sq_m = models.DecimalField(_('plot size (sqm)'), max_digits=8, decimal_places=2, null=True, blank=True)
     year_built = models.PositiveIntegerField(_('year built'), null=True, blank=True)
-    
-    # Location
-    address = models.TextField(_('address'))
+    hero_image_url = models.URLField(_('hero image url'), blank=True)
+    sustainability_score = models.PositiveSmallIntegerField(_('sustainability score'), default=60)
+    energy_rating = models.PositiveSmallIntegerField(_('energy rating'), default=3)
+    water_rating = models.PositiveSmallIntegerField(_('water rating'), default=3)
+    eco_features = models.JSONField(_('eco features'), default=list, blank=True)
+    amenities = models.JSONField(_('amenities'), default=list, blank=True)
+    highlights = models.JSONField(_('highlights'), default=list, blank=True)
     city = models.CharField(_('city'), max_length=100)
-    region = models.CharField(_('region'), max_length=100)
-    postal_code = models.CharField(_('postal code'), max_length=20, blank=True)
-    latitude = models.DecimalField(
-        _('latitude'),
-        max_digits=9,
-        decimal_places=6,
-        null=True,
-        blank=True
-    )
-    longitude = models.DecimalField(
-        _('longitude'),
-        max_digits=9,
-        decimal_places=6,
-        null=True,
-        blank=True
-    )
-    
-    # Sustainability Features
-    energy_efficiency_rating = models.PositiveSmallIntegerField(
-        _('energy efficiency rating'),
-        validators=[MinValueValidator(1), MaxValueValidator(5)],
-        null=True,
-        blank=True
-    )
-    water_efficiency_rating = models.PositiveSmallIntegerField(
-        _('water efficiency rating'),
-        validators=[MinValueValidator(1), MaxValueValidator(5)],
-        null=True,
-        blank=True
-    )
-    
-    # Ownership and Management
-    owner = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='owned_properties',
-        verbose_name=_('owner'),
-        help_text=_('The user who owns this property')
-    )
-    managers = models.ManyToManyField(
-        User,
-        related_name='managed_properties',
-        verbose_name=_('managers'),
-        help_text=_('Users who can manage this property'),
-        blank=True
-    )
-    is_rental = models.BooleanField(
-        _('is rental'),
-        default=False,
-        help_text=_('Whether this property is available for rent')
-    )
-    
-    # Metadata
-    created_by = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='properties_created',
-        verbose_name=_('created by')
-    )
+    country = models.CharField(_('country'), max_length=100, default='Ghana')
+    region = models.ForeignKey('locations.Region', related_name='properties', on_delete=models.PROTECT)
+    address = models.CharField(_('address'), max_length=255, blank=True)
+    latitude = models.DecimalField(_('latitude'), max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(_('longitude'), max_digits=9, decimal_places=6, null=True, blank=True)
+    featured = models.BooleanField(_('featured'), default=False)
     created_at = models.DateTimeField(_('created at'), auto_now_add=True)
     updated_at = models.DateTimeField(_('updated at'), auto_now=True)
-    published_at = models.DateTimeField(_('published at'), null=True, blank=True)
-    
+    listed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name='listed_properties',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+
     class Meta:
-        verbose_name = _('property')
-        verbose_name_plural = _('properties')
-        ordering = ['-created_at']
-    
+        ordering = ('-created_at',)
+        indexes = [
+            models.Index(fields=('property_type', 'listing_type')),
+            models.Index(fields=('region', 'featured')),
+            models.Index(fields=('price',)),
+        ]
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.title)
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.title
-        
-    def update_sustainability_score(self):
-        """Calculate and update the sustainability score based on features and ratings."""
-        from django.db.models import Avg
-        
-        # Start with base score from energy and water ratings (40% weight each)
-        score = (self.energy_rating + self.water_rating) * 8  # Max 80 points
-        
-        # Add points for eco-friendly features (20% weight)
-        eco_features = self.features.filter(is_eco_friendly=True).count()
-        score += min(eco_features * 2, 20)  # Max 20 points
-        
-        # Ensure score is within 0-100 range
-        self.sustainability_score = max(0, min(100, score))
-        self.save(update_fields=['sustainability_score'])
-        return self.sustainability_score
+
+    @property
+    def primary_image(self):
+        image = self.images.filter(is_primary=True).first()
+        return image.image_url if image else self.hero_image_url
 
 
 class PropertyImage(models.Model):
-    """Images associated with a property."""
-    property = models.ForeignKey(
-        Property,
-        on_delete=models.CASCADE,
-        related_name='images',
-        verbose_name=_('property')
-    )
-    image = models.ImageField(
-        _('image'),
-        upload_to='properties/images/'
-    )
-    caption = models.CharField(_('caption'), max_length=255, blank=True)
+    property = models.ForeignKey(Property, related_name='images', on_delete=models.CASCADE)
+    image_url = models.URLField(_('image url'))
+    caption = models.CharField(_('caption'), max_length=200, blank=True)
     is_primary = models.BooleanField(_('is primary'), default=False)
-    order = models.PositiveIntegerField(_('order'), default=0)
-    
+    order = models.PositiveSmallIntegerField(_('order'), default=0)
+
     class Meta:
-        ordering = ['order', 'id']
-        verbose_name = _('property image')
-        verbose_name_plural = _('property images')
-    
+        ordering = ('order', 'id')
+
     def __str__(self):
-        return f"Image for {self.property.title}"
+        return f"{self.property.title} image"
 
 
-class PropertyFeature(models.Model):
-    """Features and amenities of a property."""
-    property = models.ForeignKey(
-        Property,
-        on_delete=models.CASCADE,
-        related_name='features',
-        verbose_name=_('property')
-    )
-    name = models.CharField(_('name'), max_length=100)
-    description = models.TextField(_('description'), blank=True)
-    is_eco_friendly = models.BooleanField(_('is eco friendly'), default=False)
-    
+class PropertyInquiryStatus(models.TextChoices):
+    NEW = 'new', _('New')
+    IN_PROGRESS = 'in_progress', _('In progress')
+    CLOSED = 'closed', _('Closed')
+
+
+class PropertyInquiry(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    property = models.ForeignKey(Property, related_name='inquiries', on_delete=models.CASCADE)
+    name = models.CharField(_('name'), max_length=120)
+    email = models.EmailField(_('email'))
+    phone = models.CharField(_('phone'), max_length=50, blank=True)
+    message = models.TextField(_('message'), blank=True)
+    status = models.CharField(_('status'), max_length=20, choices=PropertyInquiryStatus.choices, default=PropertyInquiryStatus.NEW)
+    created_at = models.DateTimeField(_('created at'), auto_now_add=True)
+    updated_at = models.DateTimeField(_('updated at'), auto_now=True)
+
     class Meta:
-        verbose_name = _('property feature')
-        verbose_name_plural = _('property features')
-    
+        ordering = ('-created_at',)
+
     def __str__(self):
-        return f"{self.name} - {self.property.title}"
+        return f"Inquiry for {self.property} by {self.name}"
+
+
+class ViewingStatus(models.TextChoices):
+    PENDING = 'pending', _('Pending')
+    CONFIRMED = 'confirmed', _('Confirmed')
+    COMPLETED = 'completed', _('Completed')
+    CANCELLED = 'cancelled', _('Cancelled')
+
+
+class ViewingAppointment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    inquiry = models.ForeignKey(PropertyInquiry, related_name='appointments', on_delete=models.CASCADE)
+    property = models.ForeignKey(Property, related_name='appointments', on_delete=models.CASCADE)
+    agent = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='viewing_appointments', on_delete=models.SET_NULL, null=True, blank=True)
+    scheduled_for = models.DateTimeField(_('scheduled for'))
+    notes = models.TextField(_('notes'), blank=True)
+    status = models.CharField(_('status'), max_length=20, choices=ViewingStatus.choices, default=ViewingStatus.PENDING)
+    created_at = models.DateTimeField(_('created at'), auto_now_add=True)
+    updated_at = models.DateTimeField(_('updated at'), auto_now=True)
+
+    class Meta:
+        ordering = ('scheduled_for',)
+        indexes = [
+            models.Index(fields=('agent', 'scheduled_for')),
+        ]
+
+    def __str__(self):
+        return f"Viewing for {self.property} on {self.scheduled_for}"

@@ -4,29 +4,35 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
-import { setUser } from "@/lib/demoAuth";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
+    try {
+      await login({ email, password });
+      toast({ title: "Welcome back", description: email });
+      const redirectTo = (location.state as { from?: string } | null)?.from ?? "/account";
+      navigate(redirectTo, { replace: true });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to sign in.";
+      toast({ title: "Login failed", description: message, variant: "destructive" });
+    } finally {
       setLoading(false);
-      // Persist a demo user for header state
-      setUser({ id: crypto.randomUUID(), email, name: email.split("@")[0] });
-      toast({ title: "Logged in (placeholder)", description: `Welcome back, ${email}` });
-      navigate("/account");
-    }, 700);
+    }
   };
 
   return (

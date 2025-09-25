@@ -6,10 +6,12 @@ import { Link } from "react-router-dom";
 
 export type PropertyCardProps = {
   id: number | string;
+  slug?: string;
   title: string;
   type: string;
   location: { city: string; country: string } | string;
   price: string;
+  currency?: string;
   beds: number;
   baths: number;
   area: string;
@@ -29,10 +31,12 @@ function formatLocation(loc: PropertyCardProps["location"]) {
 
 export default function PropertyCard({
   id,
+  slug,
   title,
   type,
   location,
   price,
+  currency,
   beds,
   baths,
   area,
@@ -77,7 +81,9 @@ export default function PropertyCard({
           </Button>
         </div>
         <div className="absolute bottom-4 left-4">
-          <div className="text-2xl font-bold text-white drop-shadow-lg">{price}</div>
+          <div className="text-2xl font-bold text-white drop-shadow-lg">
+            {currency ? `${currency} ` : ""}{Number(price).toLocaleString()}
+          </div>
         </div>
       </div>
 
@@ -124,7 +130,7 @@ export default function PropertyCard({
 
         <div className="flex gap-2">
           <Button variant="outline" size="sm" className="flex-1" asChild>
-            <Link to={`/properties/${id}`}>View Details</Link>
+            <Link to={`/properties/${slug ?? id}`}>View Details</Link>
           </Button>
           <Button variant="hero" size="sm" className="flex-1" asChild>
             <Link to="/account/messages">Contact Agent</Link>

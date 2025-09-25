@@ -7,21 +7,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { PLANS } from "@/mocks/plans";
+import { usePlan } from "@/hooks/usePlans";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
-
-type FormState = {
-  contactName: string;
-  contactEmail: string;
-  contactPhone: string;
-  region: string;
-  budget: string;
-  timeline: string;
-  options: string[];
-  customizations: string;
-  files: string[];
-};
+import { uploadBuildRequestFile, UploadedFileMeta } from "@/lib/uploads";
+import { api } from "@/lib/api";
+import { useMutation } from "@tanstack/react-query";
 
 const steps = [
   "Contact",
@@ -34,29 +25,73 @@ const steps = [
 ] as const;
 
 const RequestBuild = () => {
-  const { slug } = useParams();
-  const plan = PLANS.find((p) => p.slug === slug) ?? PLANS[0];
+  const { slug = "" } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { data: plan, isLoading } = usePlan(slug, { enabled: Boolean(slug) });
   const [step, setStep] = useState(0);
-  const [form, setForm] = useState<FormState>({
+  const [attachments, setAttachments] = useState<UploadedFileMeta[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [form, setForm] = useState({
     contactName: "",
     contactEmail: "",
     contactPhone: "",
-    region: plan.regionsAvailable[0] ?? "",
-    budget: "",
+    region: "",
+    budgetMin: "",
+    budgetMax: "",
     timeline: "",
-    options: [],
+    options: [] as string[],
     customizations: "",
-    files: [],
+  });
+
+  const buildRequestMutation = useMutation({
+    mutationFn: async () => {
+      if (!plan) throw new Error("Plan not found");
+      const payload = {
+        plan: plan.slug,
+        region: form.region || plan.regional_estimates[0]?.region_slug,
+        contact_name: form.contactName,
+        contact_email: form.contactEmail,
+        contact_phone: form.contactPhone,
+        budget_currency: plan.base_currency,
+        budget_min: form.budgetMin || undefined,
+        budget_max: form.budgetMax || undefined,
+        timeline: form.timeline,
+        customizations: form.customizations,
+        options: form.options,
+        attachments,
+      };
+      return api.post("/api/build-requests/", payload);
+    },
+    onSuccess: () => {
+      toast({ title: "Request submitted", description: "Our team will contact you shortly." });
+      navigate("/account/requests");
+    },
+    onError: (error: Error) => {
+      toast({ title: "Submission failed", description: error.message, variant: "destructive" });
+    },
   });
 
   const next = () => setStep((s) => Math.min(s + 1, steps.length - 1));
   const prev = () => setStep((s) => Math.max(s - 1, 0));
 
-  const onFilePick = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const list = Array.from(e.target.files ?? []).map((f) => f.name);
-    setForm((f) => ({ ...f, files: list }));
+  const onFilePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+    try {
+      setUploading(true);
+      const uploaded = [] as UploadedFileMeta[];
+      for (const file of files) {
+        const result = await uploadBuildRequestFile(file);
+        uploaded.push(result);
+      }
+      setAttachments((existing) => [...existing, ...uploaded]);
+      toast({ title: "Files uploaded", description: `${uploaded.length} file(s) ready` });
+    } catch (err) {
+      toast({ title: "Upload failed", description: (err as Error).message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
   };
 
   const onToggleOption = (name: string, checked: boolean) => {
@@ -66,10 +101,17 @@ const RequestBuild = () => {
     }));
   };
 
-  const submit = () => {
-    toast({ title: "Request submitted (placeholder)", description: `${plan.name} • ${form.region}` });
-    navigate("/account/requests");
-  };
+  if (isLoading || !plan) {
+    return (
+      <Layout>
+        <section className="py-12 text-center text-muted-foreground">Loading plan...</section>
+      </Layout>
+    );
+  }
+
+  const regionOptions = plan.regional_estimates.length
+    ? plan.regional_estimates.map((estimate) => ({ slug: estimate.region_slug, label: estimate.region_name }))
+    : [{ slug: "", label: "Any region" }];
 
   return (
     <Layout>
@@ -89,7 +131,6 @@ const RequestBuild = () => {
 
       <section className="py-8">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Stepper */}
           <div className="flex items-center justify-between mb-6">
             {steps.map((s, i) => (
               <div key={s} className={`flex-1 h-1 mx-1 rounded-full ${i <= step ? "bg-primary" : "bg-muted"}`} />
@@ -122,11 +163,14 @@ const RequestBuild = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label>Region</Label>
-                    <Select value={form.region} onValueChange={(v) => setForm({ ...form, region: v })}>
+                    <Select
+                      value={form.region || plan.regional_estimates[0]?.region_slug}
+                      onValueChange={(value) => setForm({ ...form, region: value })}
+                    >
                       <SelectTrigger><SelectValue placeholder="Select region" /></SelectTrigger>
                       <SelectContent>
-                        {plan.regionsAvailable.map((r) => (
-                          <SelectItem key={r} value={r}>{r}</SelectItem>
+                        {regionOptions.map((option) => (
+                          <SelectItem key={option.slug} value={option.slug}>{option.label}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -137,8 +181,12 @@ const RequestBuild = () => {
               {step === 2 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="budget">Budget range</Label>
-                    <Input id="budget" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} placeholder="USD 100,000 - 150,000" />
+                    <Label htmlFor="budgetMin">Budget min</Label>
+                    <Input id="budgetMin" type="number" value={form.budgetMin} onChange={(e) => setForm({ ...form, budgetMin: e.target.value })} placeholder="150000" />
+                  </div>
+                  <div>
+                    <Label htmlFor="budgetMax">Budget max</Label>
+                    <Input id="budgetMax" type="number" value={form.budgetMax} onChange={(e) => setForm({ ...form, budgetMax: e.target.value })} placeholder="220000" />
                   </div>
                 </div>
               )}
@@ -155,10 +203,10 @@ const RequestBuild = () => {
               {step === 4 && (
                 <div className="space-y-3">
                   <div className="text-sm text-muted-foreground">Select options</div>
-                  {plan.options.map((o) => (
-                    <div key={o.name} className="flex items-center space-x-2">
-                      <Checkbox id={o.name} checked={form.options.includes(o.name)} onCheckedChange={(v) => onToggleOption(o.name, Boolean(v))} />
-                      <Label htmlFor={o.name}>{o.name} <span className="text-muted-foreground">(+ ${o.priceDelta.toLocaleString()})</span></Label>
+                  {plan.options.map((option) => (
+                    <div key={option.id} className="flex items-center space-x-2">
+                      <Checkbox id={option.name} checked={form.options.includes(option.name)} onCheckedChange={(v) => onToggleOption(option.name, Boolean(v))} />
+                      <Label htmlFor={option.name}>{option.name} <span className="text-muted-foreground">(+ {plan.base_currency} {Number(option.price_delta).toLocaleString()})</span></Label>
                     </div>
                   ))}
                   <div className="pt-2">
@@ -170,9 +218,11 @@ const RequestBuild = () => {
 
               {step === 5 && (
                 <div className="space-y-3">
-                  <Label htmlFor="files">Upload reference files (not uploaded in demo)</Label>
-                  <Input id="files" type="file" multiple onChange={onFilePick} />
-                  <div className="text-sm text-muted-foreground">Selected: {form.files.length > 0 ? form.files.join(", ") : "None"}</div>
+                  <Label htmlFor="files">Upload reference files</Label>
+                  <Input id="files" type="file" multiple onChange={onFilePick} disabled={uploading} />
+                  <div className="text-sm text-muted-foreground">
+                    {attachments.length > 0 ? attachments.map((file) => file.original_name).join(", ") : "No files uploaded"}
+                  </div>
                 </div>
               )}
 
@@ -180,13 +230,13 @@ const RequestBuild = () => {
                 <div className="space-y-3 text-sm">
                   <div className="font-medium">Review</div>
                   <div>Plan: {plan.name}</div>
-                  <div>Contact: {form.contactName} • {form.contactEmail} • {form.contactPhone}</div>
-                  <div>Region: {form.region}</div>
-                  <div>Budget: {form.budget}</div>
-                  <div>Timeline: {form.timeline}</div>
+                  <div>Contact: {form.contactName || "-"} • {form.contactEmail || "-"} • {form.contactPhone || "-"}</div>
+                  <div>Region: {regionOptions.find((r) => r.slug === form.region)?.label ?? regionOptions[0]?.label}</div>
+                  <div>Budget: {plan.base_currency} {form.budgetMin || "-"} - {form.budgetMax || "-"}</div>
+                  <div>Timeline: {form.timeline || "-"}</div>
                   <div>Options: {form.options.join(", ") || "None"}</div>
                   <div>Customizations: {form.customizations || "None"}</div>
-                  <div>Files: {form.files.join(", ") || "None"}</div>
+                  <div>Files: {attachments.map((file) => file.original_name).join(", ") || "None"}</div>
                 </div>
               )}
 
@@ -195,7 +245,9 @@ const RequestBuild = () => {
                 {step < steps.length - 1 ? (
                   <Button onClick={next}>Next</Button>
                 ) : (
-                  <Button onClick={submit}>Submit Request</Button>
+                  <Button onClick={() => buildRequestMutation.mutate()} disabled={buildRequestMutation.isLoading || uploading}>
+                    {buildRequestMutation.isLoading ? "Submitting..." : "Submit Request"}
+                  </Button>
                 )}
               </div>
             </CardContent>
@@ -207,4 +259,3 @@ const RequestBuild = () => {
 };
 
 export default RequestBuild;
-

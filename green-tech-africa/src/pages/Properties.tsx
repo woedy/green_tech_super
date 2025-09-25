@@ -29,7 +29,7 @@ const Properties = () => {
     region: selectedRegion,
     eco: ecoFeatures,
   });
-  const filteredProperties = data ?? [];
+  const filteredProperties = data?.results ?? [];
 
   const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
   useEffect(() => setFavoriteIds(getFavorites()), []);
@@ -42,16 +42,18 @@ const Properties = () => {
   };
 
   const CardWrapper = ({ property }: { property: typeof filteredProperties[0] }) => (
-    <PropertyCard
-      id={property.id}
-      title={property.title}
-      type={property.type}
-      location={property.location}
-      price={property.price}
-      beds={property.beds}
-      baths={property.baths}
-      area={property.area}
-      image={property.image}
+        <PropertyCard
+          id={property.id}
+          slug={property.slug}
+          title={property.title}
+          type={property.type}
+          location={property.location}
+        price={property.price}
+        currency={property.currency}
+        beds={property.beds}
+        baths={property.baths}
+        area={property.area}
+        image={property.image}
       featured={property.featured}
       status={property.status}
       description={property.description}
@@ -148,7 +150,7 @@ const Properties = () => {
             <div>
               <h2 className="text-3xl font-bold mb-2">Available Properties</h2>
               <p className="text-muted-foreground">
-                {filteredProperties.length} properties found
+                {data?.count ?? filteredProperties.length} properties found
               </p>
             </div>
           </div>

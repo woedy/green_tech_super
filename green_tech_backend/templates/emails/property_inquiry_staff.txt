@@ -1,0 +1,7 @@
+New property inquiry received.
+
+Property: {{ inquiry.property.title }} ({{ inquiry.property.region.name }})
+Prospect: {{ inquiry.name }} ({{ inquiry.email }} / {{ inquiry.phone }})
+Message: {{ inquiry.message|default:'No additional message provided.' }}
+
+Review the lead in the admin portal to follow up.

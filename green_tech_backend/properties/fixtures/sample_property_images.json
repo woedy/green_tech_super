@@ -1,0 +1,17 @@
+[
+  {
+    "model": "properties.propertyimage",
+    "pk": 1,
+    "fields": {"property": 1, "image_url": "https://images.unsplash.com/photo-1600585154340-0ef3c08bfdb1", "caption": "Front elevation", "is_primary": true, "order": 0}
+  },
+  {
+    "model": "properties.propertyimage",
+    "pk": 2,
+    "fields": {"property": 1, "image_url": "https://images.unsplash.com/photo-1600585154526-990dced4db0d", "caption": "Living area", "is_primary": false, "order": 1}
+  },
+  {
+    "model": "properties.propertyimage",
+    "pk": 3,
+    "fields": {"property": 2, "image_url": "https://images.unsplash.com/photo-1580587771525-78b9dba3b914", "caption": "Townhome exterior", "is_primary": true, "order": 0}
+  }
+]

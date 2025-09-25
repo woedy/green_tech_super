@@ -1,0 +1,1 @@
+Thanks {{ inquiry.name }}! We received your request about {{ inquiry.property.title }}. We'll call you soon to schedule a viewing.

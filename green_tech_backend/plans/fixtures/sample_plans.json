@@ -1,0 +1,56 @@
+[
+  {
+    "model": "plans.plan",
+    "pk": 1,
+    "fields": {
+      "slug": "solar-haven",
+      "name": "Solar Haven Villa",
+      "summary": "Four-bedroom villa optimized for solar gain and natural ventilation.",
+      "description": "A modern sustainable villa featuring passive cooling, solar roof tiles, and rainwater harvesting.",
+      "style": "villa",
+      "bedrooms": 4,
+      "bathrooms": 3,
+      "floors": 2,
+      "area_sq_m": "280.00",
+      "base_price": "180000.00",
+      "base_currency": "USD",
+      "has_garage": true,
+      "energy_rating": 5,
+      "water_rating": 4,
+      "sustainability_score": 88,
+      "hero_image_url": "https://images.unsplash.com/photo-1505691723518-36a5ac3be353",
+      "specs": {"garage": "2-car", "ceiling_height": "3.2m", "solar_capacity_kw": 12},
+      "tags": ["solar", "villa", "family"],
+      "is_published": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "plans.plan",
+    "pk": 2,
+    "fields": {
+      "slug": "bamboo-court",
+      "name": "Bamboo Court Bungalow",
+      "summary": "Compact bungalow using locally sourced bamboo composites.",
+      "description": "One-level plan with flexible spaces, grey-water recycling, and rooftop garden.",
+      "style": "bungalow",
+      "bedrooms": 3,
+      "bathrooms": 2,
+      "floors": 1,
+      "area_sq_m": "165.00",
+      "base_price": "95000.00",
+      "base_currency": "USD",
+      "has_garage": false,
+      "energy_rating": 4,
+      "water_rating": 5,
+      "sustainability_score": 82,
+      "hero_image_url": "https://images.unsplash.com/photo-1523217582562-09d0def993a6",
+      "specs": {"roof": "green roof", "materials": ["bamboo", "rammed earth"]},
+      "tags": ["bungalow", "compact"],
+      "is_published": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  }
+]

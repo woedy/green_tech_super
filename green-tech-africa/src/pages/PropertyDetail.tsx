@@ -2,82 +2,42 @@ import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { 
-  MapPin, 
-  Bed, 
-  Bath, 
-  Square, 
-  Heart, 
-  Share2,
-  ArrowLeft,
-  Phone,
-  Mail,
-  MessageCircle,
-  Calendar,
-  CheckCircle,
-  Car,
-  Shield,
-  Wifi,
-  Dumbbell
-} from "lucide-react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { useToast } from "@/components/ui/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
+import { MapPin, Bed, Bath, Square, ArrowLeft, Leaf } from "lucide-react";
+import { Link, useParams } from "react-router-dom";
+import { useProperty } from "@/hooks/useProperties";
 
 const PropertyDetail = () => {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  
-  // Mock property data - in real app, this would come from API
-  const property = {
-    id: 1,
-    title: "Luxury Waterfront Villa",
-    type: "Villa",
-    location: "Victoria Island, Lagos, Nigeria",
-    price: "$850,000",
-    beds: 4,
-    baths: 3,
-    area: "350 sqm",
-    images: [
-      "/src/assets/property-luxury.jpg",
-      "/src/assets/hero-construction.jpg",
-      "/src/assets/project-commercial.jpg",
-      "/src/assets/team-construction.jpg"
-    ],
-    featured: true,
-    status: "For Sale",
-    description: "This stunning waterfront villa offers an unparalleled luxury living experience with panoramic ocean views, premium finishes, and exceptional attention to detail. Located in the prestigious Victoria Island, this property represents the pinnacle of modern coastal living.",
-    features: [
-      "Ocean Views",
-      "Private Pool", 
-      "Modern Kitchen",
-      "Master Suite",
-      "Guest Rooms",
-      "Landscaped Garden",
-      "Security System",
-      "Parking Garage"
-    ],
-    amenities: [
-      { icon: Car, name: "2 Car Garage" },
-      { icon: Shield, name: "24/7 Security" },
-      { icon: Wifi, name: "High-Speed Internet" },
-      { icon: Dumbbell, name: "Home Gym" }
-    ],
-    agent: {
-      name: "Sarah Johnson",
-      title: "Senior Property Consultant",
-      phone: "+234 801 234 5678",
-      email: "sarah@greentechafrica.com",
-      image: "/src/assets/team-construction.jpg"
-    }
-  };
+  const { id = "" } = useParams();
+  const { data: property, isLoading, isError } = useProperty(id);
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <section className="py-10">
+          <div className="max-w-6xl mx-auto px-4 space-y-6">
+            <Skeleton className="h-10 w-2/3" />
+            <Skeleton className="h-96 w-full" />
+            <Skeleton className="h-48 w-full" />
+          </div>
+        </section>
+      </Layout>
+    );
+  }
+
+  if (isError || !property) {
+    return (
+      <Layout>
+        <section className="py-16 text-center text-destructive">Failed to load property.</section>
+      </Layout>
+    );
+  }
+
+  const hero = property.images?.find((img: any) => img.is_primary)?.image_url ?? property.hero_image_url;
+  const formattedPrice = `${property.currency} ${Number(property.price).toLocaleString()}`;
 
   return (
     <Layout>
-      {/* Breadcrumb */}
       <section className="py-4 bg-accent/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center space-x-2 text-sm">
@@ -90,7 +50,6 @@ const PropertyDetail = () => {
         </div>
       </section>
 
-      {/* Property Header */}
       <section className="py-8 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row items-start justify-between gap-6">
@@ -102,55 +61,52 @@ const PropertyDetail = () => {
                     Back to Properties
                   </Button>
                 </Link>
-                <Badge variant={property.status === "For Sale" ? "default" : "secondary"}>
-                  {property.status}
-                </Badge>
+                <Badge variant="secondary">{property.status?.toUpperCase()}</Badge>
                 {property.featured && (
                   <Badge variant="secondary">Featured</Badge>
                 )}
               </div>
-              
+
               <h1 className="text-3xl md:text-4xl font-bold mb-2">{property.title}</h1>
               <div className="flex items-center space-x-1 text-muted-foreground mb-4">
                 <MapPin className="w-4 h-4" />
-                <span>{property.location}</span>
+                <span>{property.city}, {property.region.name}</span>
               </div>
-              
+
               <div className="text-3xl md:text-4xl font-bold text-primary mb-6">
-                {property.price}
+                {formattedPrice}
               </div>
             </div>
-            
+
             <div className="flex gap-2">
-              <Button variant="outline" size="icon">
-                <Heart className="w-4 h-4" />
+              <Button variant="outline" size="sm" asChild>
+                <Link to={`/properties/${property.slug}/inquiry`}>Schedule Viewing</Link>
               </Button>
-              <Button variant="outline" size="icon">
-                <Share2 className="w-4 h-4" />
+              <Button variant="default" size="sm" asChild>
+                <Link to="/account/messages">Contact Agent</Link>
               </Button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Property Images */}
       <section className="py-8 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
             <div className="lg:col-span-3">
-              <img 
-                src={property.images[0]} 
+              <img
+                src={hero}
                 alt={property.title}
                 className="w-full h-96 lg:h-[500px] object-cover rounded-lg"
               />
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
-              {property.images.slice(1, 4).map((image, index) => (
-                <img 
+              {property.images?.filter((img: any) => !img.is_primary).slice(0, 3).map((image: any, index: number) => (
+                <img
                   key={index}
-                  src={image} 
+                  src={image.image_url}
                   alt={`${property.title} ${index + 2}`}
-                  className="w-full h-24 lg:h-[160px] object-cover rounded-lg cursor-pointer hover:opacity-80 smooth-transition"
+                  className="w-full h-24 lg:h-[160px] object-cover rounded-lg"
                 />
               ))}
             </div>
@@ -158,209 +114,69 @@ const PropertyDetail = () => {
         </div>
       </section>
 
-      {/* Property Details */}
       <section className="py-8 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main Content */}
             <div className="lg:col-span-2 space-y-8">
-              {/* Key Details */}
               <Card>
                 <CardHeader>
                   <CardTitle>Property Details</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    {property.beds > 0 && (
-                      <div className="text-center">
-                        <Bed className="w-8 h-8 mx-auto mb-2 text-primary" />
-                        <div className="font-semibold">{property.beds}</div>
-                        <div className="text-sm text-muted-foreground">Bedrooms</div>
-                      </div>
-                    )}
-                    <div className="text-center">
-                      <Bath className="w-8 h-8 mx-auto mb-2 text-primary" />
-                      <div className="font-semibold">{property.baths}</div>
-                      <div className="text-sm text-muted-foreground">Bathrooms</div>
-                    </div>
-                    <div className="text-center">
-                      <Square className="w-8 h-8 mx-auto mb-2 text-primary" />
-                      <div className="font-semibold">{property.area}</div>
-                      <div className="text-sm text-muted-foreground">Total Area</div>
-                    </div>
-                    <div className="text-center">
-                      <Badge variant="outline" className="w-8 h-8 mx-auto mb-2 flex items-center justify-center">
-                        <span className="text-xs">{property.type[0]}</span>
-                      </Badge>
-                      <div className="font-semibold">{property.type}</div>
-                      <div className="text-sm text-muted-foreground">Property Type</div>
-                    </div>
-                  </div>
+                  <p className="text-muted-foreground whitespace-pre-line">{property.description}</p>
                 </CardContent>
               </Card>
 
-              {/* Description */}
               <Card>
                 <CardHeader>
-                  <CardTitle>About This Property</CardTitle>
+                  <CardTitle>Sustainability Highlights</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground leading-relaxed">
-                    {property.description}
-                  </p>
+                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                  {property.eco_features?.map((feature: string) => (
+                    <div key={feature} className="flex items-start gap-2">
+                      <Leaf className="w-4 h-4 text-success mt-0.5" />
+                      <span>{feature}</span>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
 
-              {/* Features */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Property Features</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {property.features.map((feature, index) => (
-                      <div key={index} className="flex items-center space-x-2">
-                        <CheckCircle className="w-4 h-4 text-success" />
-                        <span className="text-sm">{feature}</span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Amenities */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Amenities</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    {property.amenities.map((amenity, index) => {
-                      const IconComponent = amenity.icon;
-                      return (
-                        <div key={index} className="text-center">
-                          <div className="flex items-center justify-center w-12 h-12 bg-accent rounded-lg mb-2 mx-auto">
-                            <IconComponent className="w-6 h-6 text-primary" />
-                          </div>
-                          <div className="text-sm font-medium">{amenity.name}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
+              {property.amenities?.length ? (
+                <Card>
+                  <CardHeader><CardTitle>Amenities</CardTitle></CardHeader>
+                  <CardContent>
+                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                      {property.amenities.map((amenity: string) => (
+                        <li key={amenity}>• {amenity}</li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              ) : null}
             </div>
 
-            {/* Sidebar */}
             <div className="space-y-6">
-              {/* Agent Card */}
               <Card>
-                <CardHeader>
-                  <CardTitle>Contact Agent</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center space-x-3">
-                    <img 
-                      src={property.agent.image} 
-                      alt={property.agent.name}
-                      className="w-12 h-12 rounded-full object-cover"
-                    />
-                    <div>
-                      <div className="font-semibold">{property.agent.name}</div>
-                      <div className="text-sm text-muted-foreground">{property.agent.title}</div>
-                    </div>
-                  </div>
-                  
-                <div className="space-y-2">
-                  <Button variant="hero" className="w-full">
-                    <Phone className="w-4 h-4 mr-2" />
-                    Call Agent
-                  </Button>
-                  <Button variant="outline" className="w-full">
-                    <Mail className="w-4 h-4 mr-2" />
-                    Email Agent
-                  </Button>
-                  <Button variant="success" className="w-full">
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    WhatsApp
-                  </Button>
-                  <Button variant="outline" className="w-full" asChild>
-                    <Link to={`/properties/${property.id}/inquire`}>
-                      Send Inquiry
-                    </Link>
-                  </Button>
-                </div>
+                <CardHeader><CardTitle>Key Specs</CardTitle></CardHeader>
+                <CardContent className="grid grid-cols-2 gap-3 text-sm">
+                  <div><span className="text-muted-foreground">Type</span><div>{property.property_type}</div></div>
+                  <div><span className="text-muted-foreground">Bedrooms</span><div>{property.bedrooms}</div></div>
+                  <div><span className="text-muted-foreground">Bathrooms</span><div>{property.bathrooms}</div></div>
+                  <div><span className="text-muted-foreground">Internal area</span><div>{property.area_sq_m} sqm</div></div>
+                  {property.plot_sq_m && (
+                    <div><span className="text-muted-foreground">Plot</span><div>{property.plot_sq_m} sqm</div></div>
+                  )}
+                  <div><span className="text-muted-foreground">Energy</span><div>{property.energy_rating}/5</div></div>
+                  <div><span className="text-muted-foreground">Water</span><div>{property.water_rating}/5</div></div>
                 </CardContent>
               </Card>
 
-              {/* Schedule Viewing */}
               <Card>
-                <CardHeader>
-                  <CardTitle>Schedule a Viewing</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label htmlFor="date">Preferred Date</Label>
-                      <Input type="date" id="date" />
-                    </div>
-                    <div>
-                      <Label htmlFor="time">Time</Label>
-                      <Input type="time" id="time" />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input id="name" placeholder="Your name" />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input id="phone" placeholder="Your phone number" />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="message">Message (Optional)</Label>
-                    <Textarea id="message" placeholder="Any specific requirements..." rows={3} />
-                  </div>
-                  
-                  <Button className="w-full" onClick={() => { toast({ title: "Viewing requested (demo)" }); navigate("/account/appointments"); }}>
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Request Viewing
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Mortgage Calculator */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Mortgage Calculator</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="price">Property Price</Label>
-                    <Input id="price" value="$850,000" readOnly />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="downpayment">Down Payment (%)</Label>
-                    <Input id="downpayment" placeholder="20" />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="term">Loan Term (Years)</Label>
-                    <Input id="term" placeholder="30" />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="rate">Interest Rate (%)</Label>
-                    <Input id="rate" placeholder="3.5" />
-                  </div>
-                  
-                  <Button variant="outline" className="w-full">
-                    Calculate Payment
-                  </Button>
+                <CardHeader><CardTitle>Region</CardTitle></CardHeader>
+                <CardContent className="space-y-2 text-sm">
+                  <div><strong>{property.region.name}</strong></div>
+                  <div className="text-muted-foreground">Cost multiplier: {property.region.cost_multiplier}</div>
+                  <div className="text-muted-foreground">Country: {property.country}</div>
                 </CardContent>
               </Card>
             </div>

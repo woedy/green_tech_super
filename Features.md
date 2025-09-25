@@ -124,19 +124,19 @@ Settings
 
 API & Auth
 - [~] Django project scaffolded (`../green_tech_backend/core`)
-- [ ] DRF installed and base API structure (`/api/...`)
-- [ ] Auth (JWT or session) + email verification
+- [x] DRF installed and base API structure (`/api/...`)
+- [x] Auth (JWT or session) + email verification
 - [ ] Roles/permissions (customer/agent/builder/admin)
 
 Domain Services
-- [ ] Plans, Properties, Inquiries, BuildRequests, Quotes, Projects endpoints
-- [ ] Pricing engine (base price + options + regional multipliers)
-- [ ] Search/filters with Postgres indexes (GIN/trigram)
+- [x] Plans, Properties, Inquiries, BuildRequests, Quotes, Projects endpoints
+- [~] Pricing engine (base price + options + regional multipliers)
+- [~] Search/filters with Postgres indexes (GIN/trigram)
 - [ ] Media storage (S3‑compatible) with signed URLs
 
 Realtime & Async
-- [ ] Channels (WebSocket) for chat and live updates
-- [ ] Celery + Redis for emails/SMS, media processing, digests
+- [x] Channels (WebSocket) for chat and live updates
+- [x] Celery + Redis for emails/SMS, media processing, digests
 
 Integrations & Ops
 - [ ] Email provider (SendGrid/Mailgun)
@@ -156,8 +156,8 @@ Quality & Tooling
 ## Phase Tracking
 
 Phase 1 (MVP)
-- [ ] Plans catalog + request‑to‑build + email notifications
-- [ ] Property listing search + detail + inquiry/viewing scheduler
+- [x] Plans catalog + request‑to‑build + email notifications
+- [x] Property listing search + detail + inquiry/viewing scheduler
 
 Phase 2
 - [ ] Quote generation + customer dashboard + live chat

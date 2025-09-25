@@ -9,14 +9,18 @@ export default function ProtectedRoute({
   children: React.ReactElement;
   allowedRoles?: Role[];
 }) {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, isLoading } = useAuth();
   const location = useLocation();
+
+  if (isLoading) {
+    return null;
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/auth/login" state={{ from: location.pathname }} replace />;
   }
 
-  if (allowedRoles && user?.role && !allowedRoles.includes(user.role)) {
+  if (allowedRoles && user?.user_type && !allowedRoles.includes(user.user_type as Role)) {
     return <Navigate to="/" replace />;
   }
 

@@ -2,6 +2,8 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { ChartBar, Home, Layers, Map, Megaphone, Package, Users, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { useState } from 'react';
+import { useBuildRequestFeed } from '../hooks/useBuildRequestFeed';
 
 const navItems = [
   { to: '/admin', label: 'Dashboard', icon: Home },
@@ -15,6 +17,9 @@ const navItems = [
 
 export default function AdminLayout() {
   const navigate = useNavigate();
+  const [leadCount, setLeadCount] = useState(0);
+
+  useBuildRequestFeed(() => setLeadCount((count) => count + 1));
   const logout = () => {
     localStorage.removeItem('adminAuthed');
     navigate('/admin/login');
@@ -31,14 +36,26 @@ export default function AdminLayout() {
               key={to}
               to={to}
               className={({ isActive }) =>
-                `flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground ${
+                `flex items-center justify-between gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground ${
                   isActive ? 'bg-accent text-accent-foreground' : ''
                 }`
               }
               end={to === '/admin'}
+              onClick={() => {
+                if (label === 'Dashboard') {
+                  setLeadCount(0);
+                }
+              }}
             >
-              <Icon className="h-4 w-4" />
-              <span>{label}</span>
+              <span className="flex items-center gap-2">
+                <Icon className="h-4 w-4" />
+                <span>{label}</span>
+              </span>
+              {label === 'Dashboard' && leadCount > 0 && (
+                <span className="ml-auto text-xs rounded-full bg-primary text-primary-foreground px-2 py-0.5">
+                  {leadCount}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>

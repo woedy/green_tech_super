@@ -6,29 +6,53 @@ import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Register = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "", confirm: "" });
+  const { register } = useAuth();
+  const [form, setForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    password: "",
+    confirm: "",
+  });
   const [loading, setLoading] = useState(false);
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((f) => ({ ...f, [e.target.id]: e.target.value }));
   };
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (form.password !== form.confirm) {
       toast({ title: "Passwords do not match", variant: "destructive" });
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      toast({ title: "Account created (placeholder)", description: `Verification email sent to ${form.email}` });
+    try {
+      await register({
+        email: form.email,
+        password: form.password,
+        confirmPassword: form.confirm,
+        firstName: form.firstName,
+        lastName: form.lastName,
+        phoneNumber: form.phone,
+      });
+      toast({
+        title: "Account created",
+        description: `We sent a verification email to ${form.email}.`,
+      });
       navigate(`/auth/verify?email=${encodeURIComponent(form.email)}`);
-    }, 800);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to create account.";
+      toast({ title: "Registration failed", description: message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -41,9 +65,13 @@ const Register = () => {
             </CardHeader>
             <CardContent>
               <form className="grid grid-cols-1 md:grid-cols-2 gap-4" onSubmit={onSubmit}>
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input id="name" placeholder="Jane Doe" value={form.name} onChange={onChange} required />
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input id="firstName" placeholder="Jane" value={form.firstName} onChange={onChange} required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input id="lastName" placeholder="Doe" value={form.lastName} onChange={onChange} required />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
@@ -80,4 +108,3 @@ const Register = () => {
 };
 
 export default Register;
-

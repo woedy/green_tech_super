@@ -1,0 +1,9 @@
+Hi {{ inquiry.name }},
+
+Thanks for your interest in {{ inquiry.property.title }}. A member of our team will contact you shortly to confirm next steps.
+
+Property: {{ inquiry.property.title }}
+Location: {{ inquiry.property.city }}, {{ inquiry.property.region.name }}
+Price: {{ inquiry.property.currency }} {{ inquiry.property.price }}
+
+We appreciate your interest in sustainable living.

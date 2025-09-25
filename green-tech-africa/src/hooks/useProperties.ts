@@ -12,6 +12,7 @@ export type BackendProperty = {
   country?: string;
   region?: string;
   price: string;
+  currency?: string;
   beds: number;
   baths: number;
   area: string;
@@ -32,6 +33,7 @@ export type Property = {
   location: { city: string; country: string };
   region?: string;
   price: string;
+  currency?: string;
   beds: number;
   baths: number;
   area: string;
@@ -56,6 +58,7 @@ function mapBackendProperty(p: BackendProperty): Property {
     location: { city, country },
     region,
     price: p.price,
+    currency: p.currency,
     beds: p.beds,
     baths: p.baths,
     area: p.area,
@@ -100,9 +103,20 @@ export function useProperties(params: {
     queryKey: ["properties", normalized],
     queryFn: async () => {
       const qs = toQueryString(normalized);
-      const data = await api.get<BackendProperty[]>(`/api/properties${qs}`);
-      return data.map(mapBackendProperty);
+      const data = await api.get<{ count: number; results: BackendProperty[] }>(`/api/properties/${qs}`);
+      return {
+        count: data.count,
+        results: data.results.map(mapBackendProperty),
+      };
     },
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useProperty(slug: string) {
+  return useQuery({
+    queryKey: ["property", slug],
+    queryFn: () => api.get(`/api/properties/${slug}/`),
+    enabled: Boolean(slug),
   });
 }

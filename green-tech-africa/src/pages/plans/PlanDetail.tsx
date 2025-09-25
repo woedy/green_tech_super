@@ -2,12 +2,44 @@ import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useParams, Link } from "react-router-dom";
-import { PLANS } from "@/mocks/plans";
+import { usePlan } from "@/hooks/usePlans";
 
 const PlanDetail = () => {
-  const { slug } = useParams();
-  const plan = PLANS.find((p) => p.slug === slug) ?? PLANS[0];
+  const { slug = "" } = useParams();
+  const { data: plan, isLoading, isError } = usePlan(slug, { enabled: Boolean(slug) });
+
+  const heroImage = plan?.images.find((img) => img.is_primary)?.image_url ?? plan?.hero_image ?? "";
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <section className="py-10">
+          <div className="max-w-5xl mx-auto px-4 space-y-6">
+            <Skeleton className="h-10 w-2/3" />
+            <Skeleton className="h-80 w-full" />
+            <Skeleton className="h-40 w-full" />
+          </div>
+        </section>
+      </Layout>
+    );
+  }
+
+  if (isError || !plan) {
+    return (
+      <Layout>
+        <section className="py-16 text-center text-destructive">
+          Failed to load plan.
+        </section>
+      </Layout>
+    );
+  }
+
+  const regionalEstimates = plan.regional_estimates.map((estimate) => ({
+    label: `${estimate.region_name}`,
+    value: `${estimate.currency} ${Number(estimate.estimated_cost).toLocaleString()}`,
+  }));
 
   return (
     <Layout>
@@ -16,11 +48,16 @@ const PlanDetail = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl md:text-4xl font-bold">{plan.name}</h1>
-              <div className="text-muted-foreground">{plan.style} • {plan.beds} beds • {plan.baths} baths • {plan.areaSqm} sqm</div>
+              <div className="text-muted-foreground flex flex-wrap gap-2">
+                <Badge variant="outline">{plan.style}</Badge>
+                <span>{plan.bedrooms} beds</span>
+                <span>{plan.bathrooms} baths</span>
+                <span>{plan.area_sq_m} sqm</span>
+              </div>
             </div>
             <div className="text-right">
               <div className="text-sm text-muted-foreground">Starting at</div>
-              <div className="text-2xl font-semibold">${plan.basePrice.toLocaleString()}</div>
+              <div className="text-2xl font-semibold">{plan.base_currency} {Number(plan.base_price).toLocaleString()}</div>
               <Button asChild className="mt-2"><Link to={`/plans/${plan.slug}/request`}>Request to Build</Link></Button>
             </div>
           </div>
@@ -32,47 +69,67 @@ const PlanDetail = () => {
           <div className="space-y-6 lg:col-span-2">
             <Card>
               <CardContent className="p-0">
-                <img src={plan.images[0]} alt={plan.name} className="w-full h-80 object-cover rounded-t-lg" />
+                <img src={heroImage} alt={plan.name} className="w-full h-80 object-cover rounded-t-lg" />
               </CardContent>
             </Card>
             <Card>
               <CardHeader><CardTitle>About this plan</CardTitle></CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">{plan.description}</p>
+                <p className="text-muted-foreground whitespace-pre-line">{plan.description}</p>
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader><CardTitle>Options</CardTitle></CardHeader>
-              <CardContent className="space-y-2">
-                {plan.options.map((o, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 rounded-md bg-muted/30 text-sm">
-                    <div>{o.name}</div>
-                    <div>+ ${o.priceDelta.toLocaleString()}</div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+            {plan.options.length > 0 && (
+              <Card>
+                <CardHeader><CardTitle>Options</CardTitle></CardHeader>
+                <CardContent className="space-y-2">
+                  {plan.options.map((option) => (
+                    <div key={option.id} className="flex items-center justify-between p-3 rounded-md bg-muted/30 text-sm">
+                      <div>{option.name}</div>
+                      <div>+ {plan.base_currency} {Number(option.price_delta).toLocaleString()}</div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
           </div>
           <div className="space-y-6">
             <Card>
               <CardHeader><CardTitle>Specs</CardTitle></CardHeader>
               <CardContent className="grid grid-cols-2 gap-3 text-sm">
                 <div><span className="text-muted-foreground">Style</span><div>{plan.style}</div></div>
-                <div><span className="text-muted-foreground">Bedrooms</span><div>{plan.beds}</div></div>
-                <div><span className="text-muted-foreground">Bathrooms</span><div>{plan.baths}</div></div>
+                <div><span className="text-muted-foreground">Bedrooms</span><div>{plan.bedrooms}</div></div>
+                <div><span className="text-muted-foreground">Bathrooms</span><div>{plan.bathrooms}</div></div>
                 <div><span className="text-muted-foreground">Floors</span><div>{plan.floors}</div></div>
-                <div><span className="text-muted-foreground">Area</span><div>{plan.areaSqm} sqm</div></div>
-                <div><span className="text-muted-foreground">Garage</span><div>{plan.hasGarage ? "Yes" : "No"}</div></div>
+                <div><span className="text-muted-foreground">Area</span><div>{plan.area_sq_m} sqm</div></div>
+                <div><span className="text-muted-foreground">Garage</span><div>{plan.has_garage ? "Yes" : "No"}</div></div>
+                <div><span className="text-muted-foreground">Energy rating</span><div>{plan.energy_rating}/5</div></div>
+                <div><span className="text-muted-foreground">Water rating</span><div>{plan.water_rating}/5</div></div>
               </CardContent>
             </Card>
             <Card>
-              <CardHeader><CardTitle>Regions</CardTitle></CardHeader>
-              <CardContent className="flex flex-wrap gap-2">
-                {plan.regionsAvailable.map((r) => (
-                  <Badge key={r} variant="secondary">{r}</Badge>
+              <CardHeader><CardTitle>Regions & estimated cost</CardTitle></CardHeader>
+              <CardContent className="space-y-2">
+                {regionalEstimates.map((estimate) => (
+                  <div key={estimate.label} className="flex items-center justify-between text-sm">
+                    <span>{estimate.label}</span>
+                    <span className="font-medium">{estimate.value}</span>
+                  </div>
                 ))}
               </CardContent>
             </Card>
+            {plan.features.length > 0 && (
+              <Card>
+                <CardHeader><CardTitle>Sustainability features</CardTitle></CardHeader>
+                <CardContent className="space-y-2 text-sm">
+                  {plan.features.map((feature) => (
+                    <div key={feature.id}>
+                      <div className="font-medium">{feature.name}</div>
+                      <div className="text-muted-foreground">{feature.description}</div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </section>
@@ -81,4 +138,3 @@ const PlanDetail = () => {
 };
 
 export default PlanDetail;
-

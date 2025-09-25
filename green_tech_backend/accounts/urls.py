@@ -1,30 +1,22 @@
 from django.urls import path
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-    TokenVerifyView,
+from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
+
+from .views import (
+    LoginView,
+    UserProfileUpdateView,
+    UserProfileView,
+    UserRegistrationView,
+    VerifyEmailView,
 )
-from . import views
 
 app_name = 'accounts'
 
 urlpatterns = [
-    # JWT Authentication
-    path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('register/', UserRegistrationView.as_view(), name='register'),
+    path('login/', LoginView.as_view(), name='login'),
+    path('verify-email/', VerifyEmailView.as_view(), name='verify-email'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('token/verify/', TokenVerifyView.as_view(), name='token_verify'),
-    
-    # User Registration
-    path('register/', views.UserRegistrationView.as_view(), name='user_register'),
-    
-    # User Profile
-    path('profile/', views.UserProfileView.as_view(), name='user_profile'),
-    path('profile/update/', views.UserProfileUpdateView.as_view(), name='user_profile_update'),
-    
-    # Password Management
-    path('password/change/', views.PasswordChangeView.as_view(), name='password_change'),
-    path('password/reset/', views.PasswordResetView.as_view(), name='password_reset'),
-    path('password/reset/confirm/<uidb64>/<token>/', 
-         views.PasswordResetConfirmView.as_view(), 
-         name='password_reset_confirm'),
+    path('profile/', UserProfileView.as_view(), name='profile'),
+    path('profile/update/', UserProfileUpdateView.as_view(), name='profile_update'),
 ]

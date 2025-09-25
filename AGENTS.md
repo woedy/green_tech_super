@@ -119,4 +119,72 @@ Backend
 - Ghana marketplaces: meQasa, Tonaton, Jiji Ghana.
 - Global UX: Zillow, Redfin.
 
+## Implementation Tasklist – Investor Demo Readiness
 
+### Phase 0 — Platform Foundations (Weeks 0-2)
+- [x] **US0.1 – As an engineer,** I want a reproducible dev/staging environment so that frontend and backend teams can iterate without configuration drift.
+  - Acceptance criteria:
+    - `.env.example` files documented for React and Django with required secrets.
+    - Docker Compose (or equivalent) spins up Postgres, Redis, backend API, and frontend with one command.
+    - CI pipeline runs lint/tests for all workspaces on each PR.
+- [x] **US0.2 – As an admin,** I want secure authentication/authorization so that dashboards stay protected.
+  - Acceptance criteria:
+    - Django custom user model with roles (customer, agent, admin) and email verification via Celery task.
+    - DRF JWT/session endpoints consumed by React auth hooks; localStorage demo auth fully removed.
+    - Role-based route guards in each frontend enforce 403 redirects and show helpful messaging.
+
+### Phase 1 — Customer Vertical Slice (Weeks 2-6)
+- [x] **US1.1 – As a prospective customer,** I want to browse sustainable building plans with intuitive filters so that I can shortlist designs that fit my needs.
+  - Acceptance criteria:
+    - `/api/plans` supports filtering by style, bedrooms, bathrooms, floors, area, and budget with Postgres indexes.
+    - React catalog grid shows skeleton states, empty results messaging, and saves filter state to query params.
+    - Plan detail page displays media gallery, specs, and regional cost estimate sourced from backend pricing rules.
+- [x] **US1.2 – As a customer,** I want to submit a request-to-build with my requirements so that an agent can follow up.
+  - Acceptance criteria:
+    - Multi-step intake form validates required fields, file uploads (S3 presigned URLs), and confirms submission.
+    - DRF endpoint creates `BuildRequest`, stores customizations JSON, and queues Celery email to staff + confirmation email to customer.
+    - Admin portal receives new lead in real time (toast + badge) via WebSocket notification.
+- [x] **US1.3 – As a property seeker,** I want to discover listings and schedule viewings so that I can evaluate available homes.
+  - Acceptance criteria:
+    - `/api/properties` provides search (price, type, beds, baths, area, location) and pagination.
+    - Property detail page renders gallery, map embed, agent card, and related listings carousel.
+    - Inquiry/viewing form creates `Inquiry` + `ViewingAppointment`, sends confirmation email/SMS, and populates agent calendar.
+
+### Phase 2 — Agent & Admin Enablement (Weeks 6-10)
+- [ ] **US2.1 – As an agent,** I want a lead inbox and qualification workflow so that I can triage customer interest efficiently.
+  - Acceptance criteria:
+    - Agent dashboard lists assigned leads with status chips, priority sorting, and unread indicators.
+    - Leads support status transitions with activity log and internal notes persisted via API.
+    - Real-time updates when new leads arrive or when another teammate updates a shared lead.
+- [ ] **US2.2 – As an agent,** I want to generate and send quotes with regional pricing so that customers receive accurate estimates.
+  - Acceptance criteria:
+    - Quote builder calculates line items, allowances, and regional multipliers using backend pricing service.
+    - Generated quotes render customer-facing PDF/HTML with e-sign CTA; status tracked (sent, viewed, accepted, declined).
+    - Customer dashboard surfaces quote timeline, allows acceptance with digital signature, and triggers notifications.
+- [ ] **US2.3 – As an admin,** I want to manage catalogs, regions, and notification templates so that the platform stays current.
+  - Acceptance criteria:
+    - Admin portal provides CRUD tables/forms for plans, properties, regions, pricing rules, and notification templates with audit trail.
+    - Draft/publish workflow prevents incomplete content from going live; media uploads handled via shared asset library.
+    - Global settings (legal pages, contact info) editable with preview and version history.
+
+### Phase 3 — Project Delivery & Engagement (Weeks 10-14)
+- [ ] **US3.1 – As a customer with an active project,** I want to track milestones, documents, and updates so that I stay informed.
+  - Acceptance criteria:
+    - Project dashboard shows milestone timeline, progress bar, recent updates, and outstanding tasks/documents.
+    - File uploads support versioning and secure download links; activity feed records changes.
+    - Notifications delivered via email/SMS/push when milestones change or documents are requested.
+- [ ] **US3.2 – As an agent/project manager,** I want real-time collaboration tools so that I can coordinate with customers and teammates.
+  - Acceptance criteria:
+    - Channels-powered chat rooms per project and quote with typing indicators and read receipts.
+    - Task assignments with due dates sync to calendar; overdue tasks trigger escalations.
+    - Analytics dashboard summarizes pipeline KPIs (lead-to-quote conversion, quote acceptance, project status breakdown) with exportable CSV.
+- [ ] **US3.3 – As an executive stakeholder,** I want demo-ready storytelling assets so that investors understand traction and vision.
+  - Acceptance criteria:
+    - Seed data/fixtures populate sandbox with realistic plans, properties, leads, and project scenarios.
+    - Guided demo script with checkpoints (customer journey, agent workflow, admin oversight) documented in `Features.md`.
+    - Pitch-ready dashboards/screens recorded as Loom/video plus static screenshots stored in `/docs`.
+
+### Continuous Quality Gates
+- [ ] Automated tests (unit + integration + end-to-end smoke) cover critical journeys and run in CI with coverage thresholds.
+- [ ] Observability stack captures API/worker logs, error reporting, and performance metrics with alerting on failure states.
+- [ ] Accessibility, responsiveness, and performance audits (Lighthouse/axe) meet agreed-upon benchmarks before release.

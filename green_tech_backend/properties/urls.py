@@ -1,20 +1,14 @@
-from django.urls import path, include
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
-from . import api_views
 
-# Main router for property-related endpoints
+from .views import PropertyInquiryView, PropertyViewSet
+
+app_name = 'properties'
+
 router = DefaultRouter()
-router.register(r'properties', api_views.PropertyViewSet, basename='property')
+router.register('properties', PropertyViewSet, basename='property')
 
 urlpatterns = [
-    # Property management endpoints
     path('', include(router.urls)),
-    
-    # Property search suggestions
-    path('properties/search/suggestions/', 
-         api_views.PropertyViewSet.as_view({'get': 'search_suggestions'}), 
-         name='property-search-suggestions'),
-    
-    # Rental management endpoints
-    path('rentals/', include('properties.rentals.urls', namespace='rentals')),
+    path('properties/inquiries/', PropertyInquiryView.as_view(), name='property-inquiry'),
 ]

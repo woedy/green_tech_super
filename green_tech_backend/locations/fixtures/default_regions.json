@@ -1,0 +1,47 @@
+[
+  {
+    "model": "locations.region",
+    "pk": 1,
+    "fields": {
+      "slug": "greater-accra",
+      "name": "Greater Accra",
+      "country": "Ghana",
+      "currency_code": "GHS",
+      "cost_multiplier": "1.20",
+      "timezone": "Africa/Accra",
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "locations.region",
+    "pk": 2,
+    "fields": {
+      "slug": "ashanti",
+      "name": "Ashanti",
+      "country": "Ghana",
+      "currency_code": "GHS",
+      "cost_multiplier": "1.05",
+      "timezone": "Africa/Accra",
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "locations.region",
+    "pk": 3,
+    "fields": {
+      "slug": "western",
+      "name": "Western",
+      "country": "Ghana",
+      "currency_code": "GHS",
+      "cost_multiplier": "0.95",
+      "timezone": "Africa/Accra",
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  }
+]

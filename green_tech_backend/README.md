@@ -33,26 +33,63 @@ This is the backend for the Green Tech Africa platform, built with Django and Dj
    ```
 
 4. **Set up environment variables**
-   Create a `.env` file in the project root with the following variables:
+   Copy the example configuration and tweak values as needed:
+   ```bash
+   cp .env.example .env
    ```
-   DJANGO_SECRET_KEY=your-secret-key-here
-   DJANGO_DEBUG=True
-   ```
+   The `.env.example` file documents required settings such as the Django secret key,
+   PostgreSQL credentials, Redis URL, and allowed frontend origins.
 
 5. **Run migrations**
    ```bash
    python manage.py migrate
    ```
 
-6. **Create a superuser**
+6. **Load demo fixtures (optional but recommended for the investor demo)**
+   ```bash
+   python manage.py loaddata \
+     locations/fixtures/default_regions.json \
+     plans/fixtures/sample_plans.json \
+     plans/fixtures/sample_plan_assets.json \
+     properties/fixtures/sample_properties.json \
+     properties/fixtures/sample_property_images.json
+   ```
+
+7. **Create a superuser**
    ```bash
    python manage.py createsuperuser
    ```
 
-7. **Run the development server**
+8. **Run the development server**
    ```bash
-   python manage.py runserver
+   python manage.py runserver 0.0.0.0:8000
    ```
+
+8. **Test the authentication flow**
+   ```bash
+   # Register a user (returns a success message and triggers an email via Celery)
+   http POST http://localhost:8000/api/v1/accounts/register/ \
+     email==user@example.com password==Testpass123! confirm_password==Testpass123! \
+     first_name==Demo last_name==User
+
+   # Use the uid/token from the console email to verify the account
+   http POST http://localhost:8000/api/v1/accounts/verify-email/ uid==<uid> token==<token>
+
+   # Exchange credentials for JWTs
+   http POST http://localhost:8000/api/v1/accounts/login/ email==user@example.com password==Testpass123!
+   ```
+
+## Docker (recommended for local dev)
+
+The repository includes a `docker-compose.yml` that wires up PostgreSQL, Redis, the
+Django API, and the React frontend.
+
+```bash
+docker compose up --build
+```
+
+Environment variables can be overridden by creating a `.env` file (copied from
+`.env.example`) before running the command.
 
 ## Project Structure
 

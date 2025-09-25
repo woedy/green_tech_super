@@ -71,7 +71,17 @@ export default function PropertyFilters({
 
       <div className={orientation === 'row' ? 'flex items-center gap-3 flex-wrap' : 'flex items-center gap-4 flex-wrap'}>
         {availableEcoFeatures.map((f) => (
-          <label key={f} className="flex items-center gap-2 text-sm">
+          <label
+            key={f}
+            className="flex items-center gap-2 text-sm"
+            onClick={(event) => {
+              const target = event.target as HTMLElement;
+              if (target.closest('button')) {
+                return;
+              }
+              toggleFeature(f);
+            }}
+          >
             <Checkbox
               checked={selectedEcoFeatures.includes(f)}
               onCheckedChange={() => toggleFeature(f)}

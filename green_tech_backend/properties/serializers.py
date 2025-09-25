@@ -1,101 +1,125 @@
+from __future__ import annotations
+
+from typing import Any
+
+from django.utils import timezone
 from rest_framework import serializers
-from .models import Property, PropertyImage, PropertyFeature
-from construction.ghana.models import GhanaRegion
-from construction.models import EcoFeature
 
-
-class PropertyFeatureSerializer(serializers.ModelSerializer):
-    """Serializer for PropertyFeature model."""
-    class Meta:
-        model = PropertyFeature
-        fields = ['id', 'name', 'description', 'is_eco_friendly']
-        read_only_fields = ['id']
+from locations.models import Region
+from .models import Property, PropertyImage, PropertyInquiry, ViewingAppointment
 
 
 class PropertyImageSerializer(serializers.ModelSerializer):
-    """Serializer for PropertyImage model."""
-    image_url = serializers.SerializerMethodField()
-
     class Meta:
         model = PropertyImage
-        fields = ['id', 'image', 'image_url', 'caption', 'is_primary', 'order']
-        read_only_fields = ['id', 'image_url']
-        extra_kwargs = {
-            'image': {'write_only': True}
-        }
-    
-    def get_image_url(self, obj):
-        if obj.image:
-            return self.context['request'].build_absolute_uri(obj.image.url)
-        return None
+        fields = ('id', 'image_url', 'caption', 'is_primary', 'order')
 
 
-class PropertySerializer(serializers.ModelSerializer):
-    """Main serializer for Property model."""
-    images = PropertyImageSerializer(many=True, read_only=True)
-    features = PropertyFeatureSerializer(many=True, required=False)
-    region_name = serializers.SerializerMethodField()
-    eco_features = serializers.PrimaryKeyRelatedField(
-        many=True,
-        queryset=EcoFeature.objects.all(),
-        required=False
-    )
-    
+class RegionSummarySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Region
+        fields = ('slug', 'name', 'country', 'currency_code', 'cost_multiplier')
+
+
+class PropertyListSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+    location = serializers.SerializerMethodField()
+    eco_features = serializers.ListField(child=serializers.CharField(), source='eco_features', read_only=True)
+
     class Meta:
         model = Property
-        fields = [
-            'id', 'title', 'description', 'property_type', 'status',
-            'price', 'currency', 'area', 'bedrooms', 'bathrooms', 'year_built',
-            'address', 'city', 'region', 'region_name', 'postal_code',
-            'latitude', 'longitude', 'energy_efficiency_rating',
-            'water_efficiency_rating', 'sustainability_score',
-            'created_at', 'updated_at', 'published_at',
-            'images', 'features', 'eco_features'
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at', 'published_at', 'created_by']
-    
-    def get_region_name(self, obj):
-        try:
-            return GhanaRegion.objects.get(name=obj.region).get_name_display()
-        except GhanaRegion.DoesNotExist:
-            return obj.region
-    
-    def create(self, validated_data):
-        features_data = validated_data.pop('features', [])
-        eco_features = validated_data.pop('eco_features', [])
-        
-        # Set the created_by user
-        validated_data['created_by'] = self.context['request'].user
-        
-        # Create the property
-        property = Property.objects.create(**validated_data)
-        
-        # Add features
-        for feature_data in features_data:
-            PropertyFeature.objects.create(property=property, **feature_data)
-        
-        # Add eco features
-        property.eco_features.set(eco_features)
-        
-        return property
-    
-    def update(self, instance, validated_data):
-        features_data = validated_data.pop('features', None)
-        eco_features = validated_data.pop('eco_features', None)
-        
-        # Update the property
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        
-        # Update features if provided
-        if features_data is not None:
-            instance.features.all().delete()
-            for feature_data in features_data:
-                PropertyFeature.objects.create(property=instance, **feature_data)
-        
-        # Update eco features if provided
-        if eco_features is not None:
-            instance.eco_features.set(eco_features)
-        
-        return instance
+        fields = (
+            'id',
+            'slug',
+            'title',
+            'summary',
+            'property_type',
+            'listing_type',
+            'status',
+            'price',
+            'currency',
+            'bedrooms',
+            'bathrooms',
+            'area_sq_m',
+            'sustainability_score',
+            'eco_features',
+            'featured',
+            'image',
+            'location',
+        )
+
+    def get_image(self, obj: Property):
+        return obj.primary_image
+
+    def get_location(self, obj: Property):
+        return {
+            'city': obj.city,
+            'country': obj.country,
+            'region': obj.region.name,
+        }
+
+
+class PropertyDetailSerializer(serializers.ModelSerializer):
+    images = PropertyImageSerializer(many=True)
+    region = RegionSummarySerializer()
+    eco_features = serializers.ListField(child=serializers.CharField())
+    amenities = serializers.ListField(child=serializers.CharField())
+
+    class Meta:
+        model = Property
+        fields = (
+            'id',
+            'slug',
+            'title',
+            'summary',
+            'description',
+            'property_type',
+            'listing_type',
+            'status',
+            'price',
+            'currency',
+            'bedrooms',
+            'bathrooms',
+            'area_sq_m',
+            'plot_sq_m',
+            'year_built',
+            'hero_image_url',
+            'sustainability_score',
+            'energy_rating',
+            'water_rating',
+            'eco_features',
+            'amenities',
+            'highlights',
+            'city',
+            'country',
+            'region',
+            'address',
+            'latitude',
+            'longitude',
+            'featured',
+            'images',
+        )
+
+
+class PropertyInquirySerializer(serializers.ModelSerializer):
+    scheduled_viewing = serializers.DateTimeField(write_only=True, required=False)
+
+    class Meta:
+        model = PropertyInquiry
+        fields = ('id', 'property', 'name', 'email', 'phone', 'message', 'scheduled_viewing', 'status', 'created_at')
+        read_only_fields = ('id', 'status', 'created_at')
+        extra_kwargs = {
+            'property': {'write_only': True},
+        }
+
+    def create(self, validated_data: dict[str, Any]):
+        scheduled = validated_data.pop('scheduled_viewing', None)
+        inquiry = super().create(validated_data)
+        if scheduled:
+            ViewingAppointment.objects.create(
+                inquiry=inquiry,
+                property=inquiry.property,
+                scheduled_for=scheduled,
+                agent=inquiry.property.listed_by,
+            )
+        return inquiry

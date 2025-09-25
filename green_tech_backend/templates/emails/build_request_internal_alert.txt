@@ -1,0 +1,9 @@
+New build request submitted for {{ request.plan.name }}.
+
+Contact: {{ request.contact_name }} ({{ request.contact_email }} / {{ request.contact_phone }})
+Region: {{ request.region.name }}
+Budget: {{ request.budget_currency }} {{ request.budget_min }} - {{ request.budget_max }}
+Timeline: {{ request.timeline|default:'Not provided' }}
+Options: {{ request.options|join:', ' }}
+
+Review the request in the admin portal to assign an agent and schedule a discovery call.

@@ -1,0 +1,13 @@
+Hi {{ request.contact_name }},
+
+Thank you for requesting the {{ request.plan.name }} plan in {{ request.region.name }}. Our team will review your requirements and contact you at {{ request.contact_email }} or {{ request.contact_phone }} within one business day.
+
+Summary:
+- Plan: {{ request.plan.name }} ({{ request.plan.bedrooms }} beds / {{ request.plan.bathrooms }} baths)
+- Region: {{ request.region.name }}
+- Preferred timeline: {{ request.timeline|default:'Not provided' }}
+- Budget: {{ request.budget_currency }} {{ request.budget_min }} - {{ request.budget_max }}
+
+If you have any updates, simply reply to this email.
+
+Green Tech Africa Team

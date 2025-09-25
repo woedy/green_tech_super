@@ -1,0 +1,62 @@
+[
+  {
+    "model": "plans.planimage",
+    "pk": 1,
+    "fields": {"plan": 1, "image_url": "https://images.unsplash.com/photo-1505691723518-36a5ac3be353", "caption": "Courtyard", "is_primary": true, "order": 0}
+  },
+  {
+    "model": "plans.planimage",
+    "pk": 2,
+    "fields": {"plan": 1, "image_url": "https://images.unsplash.com/photo-1505691938895-1758d7feb511", "caption": "Living room", "is_primary": false, "order": 1}
+  },
+  {
+    "model": "plans.planimage",
+    "pk": 3,
+    "fields": {"plan": 2, "image_url": "https://images.unsplash.com/photo-1493666438817-866a91353ca9", "caption": "Exterior", "is_primary": true, "order": 0}
+  },
+  {
+    "model": "plans.planfeature",
+    "pk": 1,
+    "fields": {"plan": 1, "name": "Solar roof tiles", "description": "12kW photovoltaic array", "category": "Energy", "is_sustainable": true}
+  },
+  {
+    "model": "plans.planfeature",
+    "pk": 2,
+    "fields": {"plan": 1, "name": "Rainwater harvesting", "description": "30,000L storage", "category": "Water", "is_sustainable": true}
+  },
+  {
+    "model": "plans.planfeature",
+    "pk": 3,
+    "fields": {"plan": 2, "name": "Bamboo composite panels", "description": "Locally sourced", "category": "Materials", "is_sustainable": true}
+  },
+  {
+    "model": "plans.planoption",
+    "pk": 1,
+    "fields": {"plan": 1, "name": "Smart home automation", "description": "Lighting + HVAC", "price_delta": "7500.00"}
+  },
+  {
+    "model": "plans.planoption",
+    "pk": 2,
+    "fields": {"plan": 2, "name": "Outdoor pergola", "description": "Shaded lounge area", "price_delta": "4200.00"}
+  },
+  {
+    "model": "plans.planregionalpricing",
+    "pk": 1,
+    "fields": {"plan": 1, "region": 1, "cost_multiplier": "1.30", "currency_code": "GHS"}
+  },
+  {
+    "model": "plans.planregionalpricing",
+    "pk": 2,
+    "fields": {"plan": 1, "region": 2, "cost_multiplier": "1.10", "currency_code": "GHS"}
+  },
+  {
+    "model": "plans.planregionalpricing",
+    "pk": 3,
+    "fields": {"plan": 2, "region": 2, "cost_multiplier": "1.00", "currency_code": "GHS"}
+  },
+  {
+    "model": "plans.planregionalpricing",
+    "pk": 4,
+    "fields": {"plan": 2, "region": 3, "cost_multiplier": "0.92", "currency_code": "GHS"}
+  }
+]

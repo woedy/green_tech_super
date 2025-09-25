@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Leaf, Bell } from "lucide-react";
@@ -10,11 +10,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { getUser, clearUser } from "@/lib/demoAuth";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [authUser, setAuthUser] = useState(getUser());
+  const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -29,19 +29,8 @@ const Navbar = () => {
 
   const isActive = (path: string) => location.pathname === path;
 
-  useEffect(() => {
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === "gta_auth") setAuthUser(getUser());
-    };
-    window.addEventListener("storage", onStorage);
-    // Also poll once on mount in case of same-tab updates
-    setAuthUser(getUser());
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
-
   const onSignOut = () => {
-    clearUser();
-    setAuthUser(null);
+    logout();
     navigate("/");
   };
 
@@ -83,7 +72,7 @@ const Navbar = () => {
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center space-x-4">
-            {!authUser ? (
+            {!isAuthenticated ? (
               <>
                 <Button variant="ghost" size="sm" asChild>
                   <Link to="/auth/login">Sign In</Link>
@@ -107,9 +96,16 @@ const Navbar = () => {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold">
-                        {authUser.name?.[0]?.toUpperCase() || authUser.email[0].toUpperCase()}
+                        {(
+                          user?.first_name?.[0]?.toUpperCase() ||
+                          user?.last_name?.[0]?.toUpperCase() ||
+                          user?.email?.[0]?.toUpperCase() ||
+                          "?"
+                        )}
                       </div>
-                      <span className="hidden md:inline-block">{authUser.name || authUser.email}</span>
+                      <span className="hidden md:inline-block">
+                        {user?.first_name ? `${user.first_name} ${user.last_name ?? ""}`.trim() : user?.email}
+                      </span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -188,7 +184,7 @@ const Navbar = () => {
                 </Link>
               ))}
               <div className="pt-4 pb-2 space-y-2">
-                {!authUser ? (
+                {!isAuthenticated ? (
                   <>
                     <Button variant="ghost" className="w-full" asChild>
                       <Link to="/auth/login" onClick={() => setIsOpen(false)}>
