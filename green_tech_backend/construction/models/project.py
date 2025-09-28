@@ -480,6 +480,100 @@ class ProjectTask(models.Model):
     COMPLETED = 'COMPLETED', _('Completed')
     CANCELLED = 'CANCELLED', _('Cancelled')
 
+class ProjectMessageAttachment(models.Model):
+    """Simple model to reference uploaded chat attachments."""
+
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    file = models.FileField(_('file'), upload_to='projects/chat/%Y/%m/%d')
+    uploaded_at = models.DateTimeField(_('uploaded at'), auto_now_add=True)
+    uploaded_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='project_chat_attachments',
+        verbose_name=_('uploaded by'),
+    )
+
+    class Meta:
+        verbose_name = _('project message attachment')
+        verbose_name_plural = _('project message attachments')
+
+    def __str__(self):  # pragma: no cover - simple repr
+        return f"Attachment {self.id}"
+
+
+class ProjectChatMessage(models.Model):
+    """Chat message between project stakeholders."""
+
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    project = models.ForeignKey(
+        Project,
+        related_name='chat_messages',
+        on_delete=models.CASCADE,
+        verbose_name=_('project'),
+    )
+    quote = models.ForeignKey(
+        Quote,
+        related_name='chat_messages',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_('related quote'),
+    )
+    sender = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='sent_project_messages',
+        verbose_name=_('sender'),
+    )
+    body = models.TextField(_('message body'))
+    attachments = models.ManyToManyField(
+        ProjectMessageAttachment,
+        related_name='messages',
+        blank=True,
+        verbose_name=_('attachments'),
+    )
+    metadata = models.JSONField(_('metadata'), default=dict, blank=True)
+    created_at = models.DateTimeField(_('created at'), auto_now_add=True)
+    edited_at = models.DateTimeField(_('edited at'), null=True, blank=True)
+
+    class Meta:
+        ordering = ('created_at',)
+        verbose_name = _('project chat message')
+        verbose_name_plural = _('project chat messages')
+
+    def __str__(self):  # pragma: no cover
+        return f"Message {self.id}"
+
+
+class ProjectMessageReceipt(models.Model):
+    """Tracks which users have read a message."""
+
+    message = models.ForeignKey(
+        ProjectChatMessage,
+        related_name='receipts',
+        on_delete=models.CASCADE,
+        verbose_name=_('message'),
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='project_message_receipts',
+        verbose_name=_('user'),
+    )
+    read_at = models.DateTimeField(_('read at'), default=timezone.now)
+
+    class Meta:
+        unique_together = ('message', 'user')
+        ordering = ('-read_at',)
+        verbose_name = _('project message receipt')
+        verbose_name_plural = _('project message receipts')
+
+    def __str__(self):  # pragma: no cover
+        return f"Receipt {self.message_id} -> {self.user_id}"
+
+
 
 class ProjectMilestone(models.Model):
     """Model representing a milestone in a construction project."""

@@ -25,7 +25,10 @@ from construction.models import (
     ProjectDocument,
     ProjectDocumentVersion,
     ProjectTask,
-    ProjectUpdate
+    ProjectUpdate,
+    ProjectChatMessage,
+    ProjectMessageAttachment,
+    ProjectMessageReceipt
 )
 
 from construction.serializers.project_serializers import (
@@ -40,7 +43,8 @@ from construction.serializers.project_serializers import (
     ProjectDocumentSerializer,
     ProjectDocumentVersionSerializer,
     ProjectTaskSerializer,
-    ProjectUpdateSerializer
+    ProjectUpdateSerializer,
+    ProjectMessageSerializer
 )
 
 from construction.permissions import (

@@ -34,6 +34,12 @@ router.register(r'projects', ProjectViewSet, basename='project')
 project_router = SimpleRouter()
 project_router.register(r'milestones', ProjectMilestoneViewSet, 
                        basename='project-milestone')
+project_router.register(r'documents', ProjectDocumentViewSet, 
+                       basename='project-document')
+project_router.register(r'updates', ProjectUpdateViewSet, 
+                       basename='project-update')
+project_router.register(r'tasks', ProjectTaskViewSet, 
+                       basename='project-task')
 
 # Quote endpoints with nested routes for items
 quote_router = SimpleRouter()

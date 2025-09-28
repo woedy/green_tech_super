@@ -115,13 +115,16 @@ class ProjectDetailSerializer(ProjectSerializer):
     """Detailed serializer for projects with nested milestones."""
     milestones = ProjectMilestoneSerializer(many=True, read_only=True)
     property = PropertySerializer(read_only=True)
+    documents = ProjectDocumentSerializer(many=True, read_only=True)
+    updates = ProjectUpdateSerializer(many=True, read_only=True)
+    tasks = ProjectTaskSerializer(many=True, read_only=True)
     construction_request = serializers.PrimaryKeyRelatedField(read_only=True)
     approved_quote = QuoteSerializer(read_only=True)
     
     class Meta(ProjectSerializer.Meta):
         fields = ProjectSerializer.Meta.fields + [
             'milestones', 'property', 'construction_request', 'approved_quote',
-            'created_by'
+            'documents', 'updates', 'tasks', 'created_by'
         ]
         read_only_fields = ProjectSerializer.Meta.read_only_fields + [
             'created_by'
@@ -506,6 +509,40 @@ class ProjectTaskSerializer(serializers.ModelSerializer):
         if obj.status == ProjectTaskStatus.COMPLETED or not obj.due_date:
             return False
         return obj.due_date < timezone.now().date()
+
+class ProjectMessageReceiptSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+
+    class Meta:
+        model = ProjectMessageReceipt
+        fields = ('user', 'read_at')
+        read_only_fields = fields
+
+
+class ProjectMessageSerializer(serializers.ModelSerializer):
+    sender = UserSerializer(read_only=True)
+    attachments = serializers.SerializerMethodField()
+    receipts = ProjectMessageReceiptSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = ProjectChatMessage
+        fields = (
+            'id', 'project', 'quote', 'sender', 'body', 'attachments',
+            'metadata', 'created_at', 'edited_at', 'receipts'
+        )
+        read_only_fields = ('project', 'sender', 'created_at', 'edited_at', 'receipts', 'attachments')
+
+    def get_attachments(self, obj):
+        return [
+            {
+                'id': attachment.id,
+                'file': attachment.file.url if attachment.file else None,
+                'uploaded_at': attachment.uploaded_at,
+            }
+            for attachment in obj.attachments.all()
+        ]
+
+
 
 
 class ProjectTimelineSerializer(serializers.ModelSerializer):
