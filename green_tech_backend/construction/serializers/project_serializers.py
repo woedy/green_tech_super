@@ -4,6 +4,7 @@ Serializers for project and milestone models.
 from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
+from django.db.models import Q
 
 from accounts.serializers import UserSerializer
 from properties.serializers import PropertySerializer
@@ -13,7 +14,15 @@ from construction.models import (
     ProjectMilestone,
     ProjectStatus,
     ProjectPhase,
-    MilestoneStatus
+    MilestoneStatus,
+    ProjectDocument,
+    ProjectDocumentVersion,
+    ProjectDocumentType,
+    ProjectUpdate,
+    ProjectUpdateCategory,
+    ProjectTask,
+    ProjectTaskStatus,
+    ProjectTaskPriority
 )
 from construction.serializers.quote_serializers import QuoteSerializer
 
@@ -187,6 +196,12 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
     risk_factors = serializers.SerializerMethodField(
         help_text="Identified project risks and their status"
     )
+    documents = serializers.SerializerMethodField(
+        help_text="Project documents with current version details"
+    )
+    action_items = serializers.SerializerMethodField(
+        help_text="Outstanding tasks or actions for the customer"
+    )
     
     class Meta:
         model = Project
@@ -194,7 +209,8 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
             'id', 'title', 'status', 'current_phase', 'progress_percentage',
             'days_remaining', 'budget_status', 'upcoming_milestones',
             'recent_activity', 'phase_progress', 'team_members', 'risk_factors',
-            'start_date', 'end_date', 'estimated_budget', 'actual_cost'
+            'documents', 'action_items', 'planned_start_date', 'planned_end_date',
+            'actual_start_date', 'actual_end_date', 'estimated_budget', 'actual_cost', 'currency'
         ]
         read_only_fields = fields
     
@@ -238,7 +254,8 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
             'estimated': obj.estimated_budget,
             'actual': obj.actual_cost,
             'variance': abs(variance),
-            'is_over_budget': variance < 0
+            'is_over_budget': variance < 0,
+            'currency': obj.currency
         }
     
     def get_upcoming_milestones(self, obj):
@@ -260,11 +277,29 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
                 'is_due_soon': (m.planned_end_date - today).days <= 7,
                 'is_overdue': m.planned_end_date < today,
                 'priority': m.priority if hasattr(m, 'priority') else 'medium',
-                'dependencies': [dep.id for dep in m.dependencies.all()]
+                'dependencies': [dep.id for dep in m.depends_on.all()]
             }
             for m in upcoming
         ]
     
+    def get_documents(self, obj):
+        documents = obj.documents.all().select_related('current_version', 'current_version__uploaded_by')
+        serializer = ProjectDocumentSerializer(documents, many=True, context=self.context)
+        return serializer.data
+
+    def get_action_items(self, obj):
+        request = self.context.get('request')
+        tasks = obj.tasks.filter(status__in=[
+            ProjectTaskStatus.PENDING,
+            ProjectTaskStatus.IN_PROGRESS,
+            ProjectTaskStatus.BLOCKED
+        ])
+        if request and not request.user.is_staff and not request.user.is_superuser:
+            tasks = tasks.filter(Q(assigned_to=request.user) | Q(requires_customer_action=True))
+        tasks = tasks.order_by('due_date', 'created_at')[:10]
+        serializer = ProjectTaskSerializer(tasks, many=True, context=self.context)
+        return serializer.data
+
     def get_phase_progress(self, obj):
         """Calculate progress for each project phase."""
         phases = {phase[0]: {'name': phase[1], 'milestones': []} 
@@ -308,13 +343,13 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
                 'phone': getattr(obj.project_manager, 'phone', '')
             })
             
-        if obj.supervisor:
+        if getattr(obj, 'site_supervisor', None):
             team.append({
-                'id': obj.supervisor.id,
-                'name': str(obj.supervisor),
+                'id': obj.site_supervisor.id,
+                'name': str(obj.site_supervisor),
                 'role': 'Site Supervisor',
-                'email': obj.supervisor.email,
-                'phone': getattr(obj.supervisor, 'phone', '')
+                'email': obj.site_supervisor.email,
+                'phone': getattr(obj.site_supervisor, 'phone', '')
             })
             
         for contractor in obj.contractors.all():
@@ -381,16 +416,96 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
         return risks
     
     def get_recent_activity(self, obj):
-        """Get recent project activities from the activity log."""
-        # In a real implementation, this would query an ActivityLog model
-        # For now, return a placeholder with the last updated timestamp
-        return [{
-            'id': 'placeholder',
-            'type': 'system',
-            'description': f'Project last updated on {obj.updated_at.strftime("%Y-%m-%d %H:%M")}',
-            'timestamp': obj.updated_at,
-            'user': None
-        }]
+        """Get recent project updates visible to the customer."""
+        updates = obj.updates.filter(is_customer_visible=True).order_by('-created_at')[:8]
+        serializer = ProjectUpdateSerializer(updates, many=True, context=self.context)
+        return serializer.data
+
+
+
+class ProjectDocumentVersionSerializer(serializers.ModelSerializer):
+    uploaded_by = UserSerializer(read_only=True)
+    download_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProjectDocumentVersion
+        fields = ('id', 'version', 'notes', 'uploaded_at', 'uploaded_by', 'download_url')
+        read_only_fields = fields
+
+    def get_download_url(self, obj):
+        if not obj.file:
+            return None
+        request = self.context.get('request')
+        url = obj.file.url
+        return request.build_absolute_uri(url) if request else url
+
+
+class ProjectDocumentSerializer(serializers.ModelSerializer):
+    current_version = ProjectDocumentVersionSerializer(read_only=True)
+    versions = ProjectDocumentVersionSerializer(many=True, read_only=True)
+    document_type_display = serializers.CharField(source='get_document_type_display', read_only=True)
+    requires_upload = serializers.SerializerMethodField()
+    initial_file = serializers.FileField(write_only=True, required=False)
+    initial_notes = serializers.CharField(write_only=True, required=False, allow_blank=True)
+
+    class Meta:
+        model = ProjectDocument
+        fields = (
+            'id', 'title', 'document_type', 'document_type_display', 'description', 'is_required',
+            'requires_upload', 'current_version', 'versions',
+            'initial_file', 'initial_notes', 'created_at', 'updated_at'
+        )
+        read_only_fields = ('id', 'requires_upload', 'current_version', 'versions', 'created_at', 'updated_at')
+
+    def get_requires_upload(self, obj):
+        return obj.is_required and obj.current_version is None
+
+    def create(self, validated_data):
+        initial_file = validated_data.pop('initial_file', None)
+        initial_notes = validated_data.pop('initial_notes', '')
+        document = ProjectDocument.objects.create(**validated_data)
+        request = self.context.get('request')
+        if initial_file:
+            ProjectDocumentVersion.objects.create(
+                document=document,
+                file=initial_file,
+                notes=initial_notes,
+                uploaded_by=getattr(request, 'user', None)
+            )
+        return document
+
+    def update(self, instance, validated_data):
+        validated_data.pop('initial_file', None)
+        validated_data.pop('initial_notes', None)
+        return super().update(instance, validated_data)
+
+
+class ProjectUpdateSerializer(serializers.ModelSerializer):
+    created_by = UserSerializer(read_only=True)
+
+    class Meta:
+        model = ProjectUpdate
+        fields = ('id', 'title', 'body', 'category', 'is_customer_visible', 'created_by', 'created_at')
+        read_only_fields = ('id', 'created_by', 'created_at')
+
+
+class ProjectTaskSerializer(serializers.ModelSerializer):
+    assigned_to = UserSerializer(read_only=True)
+    is_overdue = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProjectTask
+        fields = (
+            'id', 'title', 'description', 'status', 'priority', 'due_date',
+            'assigned_to', 'requires_customer_action', 'completed_at',
+            'created_at', 'updated_at', 'is_overdue'
+        )
+        read_only_fields = ('id', 'assigned_to', 'completed_at', 'created_at', 'updated_at', 'is_overdue')
+
+    def get_is_overdue(self, obj):
+        if obj.status == ProjectTaskStatus.COMPLETED or not obj.due_date:
+            return False
+        return obj.due_date < timezone.now().date()
 
 
 class ProjectTimelineSerializer(serializers.ModelSerializer):

@@ -12,7 +12,13 @@ from .views import (
 )
 
 # Import project views
-from .project_views import ProjectViewSet, ProjectMilestoneViewSet
+from .project_views import (
+    ProjectViewSet,
+    ProjectMilestoneViewSet,
+    ProjectDocumentViewSet,
+    ProjectUpdateViewSet,
+    ProjectTaskViewSet
+)
 
 # Create a router and register our viewsets with it
 router = DefaultRouter()
@@ -43,7 +49,7 @@ urlpatterns = [
     path('', include(router.urls)),
     
     # Project nested routes
-    path('projects/<uuid:project_pk>/', include(project_router.urls)),
+    path('projects/<int:project_pk>/', include(project_router.urls)),
     
     # Quote URLs
     path('', include(quote_router.urls)),

@@ -30,21 +30,42 @@ class IsOwnerOrAdmin(permissions.BasePermission):
 
 class IsProjectTeamMember(permissions.BasePermission):
     """
-    Custom permission to only allow team members (project manager, site supervisor, contractors)
+    Custom permission to only allow team members (project manager, site supervisor, contractors, client)
     to view or edit project-related objects.
     """
+    def _resolve_project(self, obj):
+        if isinstance(obj, Project):
+            return obj
+        if hasattr(obj, 'project') and obj.project is not None:
+            return obj.project
+        if hasattr(obj, 'construction_request') and obj.construction_request is not None:
+            return getattr(obj.construction_request, 'project', None)
+        if hasattr(obj, 'document') and obj.document is not None:
+            return getattr(obj.document, 'project', None)
+        return None
+
+    def _is_team_member(self, user, project):
+        if project is None:
+            return False
+        if user.is_staff or user.is_superuser:
+            return True
+        if project.project_manager_id == user.id:
+            return True
+        if getattr(project, 'site_supervisor_id', None) == user.id:
+            return True
+        if project.contractors.filter(id=user.id).exists():
+            return True
+        client = getattr(getattr(project, 'construction_request', None), 'client', None)
+        if client and client.id == user.id:
+            return True
+        return False
+
     def has_object_permission(self, request, view, obj):
-        # Read permissions are allowed to any team member
+        project = self._resolve_project(obj)
         if request.method in permissions.SAFE_METHODS:
-            return (
-                request.user.is_staff or
-                obj.project_manager == request.user or
-                obj.site_supervisor == request.user or
-                obj.contractors.filter(id=request.user.id).exists()
-            )
-            
-        # Write permissions are only allowed to project manager or admin
-        return request.user.is_staff or obj.project_manager == request.user
+            return self._is_team_member(request.user, project)
+
+        return request.user.is_staff or (project and project.project_manager_id == request.user.id)
 
 
 class IsProjectManagerOrAdmin(permissions.BasePermission):

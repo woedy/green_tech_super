@@ -1,6 +1,8 @@
 """
 Project and milestone models for construction project tracking.
 """
+from uuid import uuid4
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
@@ -273,6 +275,204 @@ class Project(models.Model):
 
 
 class MilestoneStatus(models.TextChoices):
+    """Status choices for project milestones."""
+    NOT_STARTED = 'NOT_STARTED', _('Not Started')
+    IN_PROGRESS = 'IN_PROGRESS', _('In Progress')
+    ON_HOLD = 'ON_HOLD', _('On Hold')
+    COMPLETED = 'COMPLETED', _('Completed')
+    CANCELLED = 'CANCELLED', _('Cancelled')
+
+
+class ProjectDocumentType(models.TextChoices):
+    PLAN = 'PLAN', _('Architectural Plan')
+    PERMIT = 'PERMIT', _('Permit')
+    CONTRACT = 'CONTRACT', _('Contract')
+    REPORT = 'REPORT', _('Report')
+    PHOTO = 'PHOTO', _('Progress Photo')
+    OTHER = 'OTHER', _('Other')
+
+
+class ProjectDocument(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name='documents',
+        verbose_name=_('project')
+    )
+    document_type = models.CharField(
+        _('document type'),
+        max_length=20,
+        choices=ProjectDocumentType.choices,
+        default=ProjectDocumentType.OTHER
+    )
+    title = models.CharField(_('title'), max_length=200)
+    description = models.TextField(_('description'), blank=True)
+    is_required = models.BooleanField(_('is required'), default=False)
+    current_version = models.OneToOneField(
+        'ProjectDocumentVersion',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='+',
+        verbose_name=_('current version')
+    )
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='created_project_documents',
+        verbose_name=_('created by')
+    )
+    created_at = models.DateTimeField(_('created at'), auto_now_add=True)
+    updated_at = models.DateTimeField(_('updated at'), auto_now=True)
+
+    class Meta:
+        verbose_name = _('project document')
+        verbose_name_plural = _('project documents')
+        ordering = ['title']
+
+    def __str__(self):
+        return self.title
+
+
+class ProjectDocumentVersion(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    document = models.ForeignKey(
+        ProjectDocument,
+        on_delete=models.CASCADE,
+        related_name='versions',
+        verbose_name=_('document')
+    )
+    version = models.PositiveIntegerField(_('version'), default=0)
+    file = models.FileField(_('file'), upload_to='projects/documents/%Y/%m/%d')
+    notes = models.CharField(_('notes'), max_length=255, blank=True)
+    uploaded_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='uploaded_project_documents',
+        verbose_name=_('uploaded by')
+    )
+    uploaded_at = models.DateTimeField(_('uploaded at'), auto_now_add=True)
+
+    class Meta:
+        verbose_name = _('project document version')
+        verbose_name_plural = _('project document versions')
+        ordering = ['-uploaded_at']
+        unique_together = [('document', 'version')]
+
+    def save(self, *args, **kwargs):
+        if not self.version:
+            last = ProjectDocumentVersion.objects.filter(document=self.document).order_by('-version').first()
+            self.version = (last.version if last else 0) + 1
+        super().save(*args, **kwargs)
+        document = self.document
+        if document.current_version_id != self.id:
+            document.current_version = self
+            document.save(update_fields=['current_version', 'updated_at'])
+
+    def __str__(self):
+        return f"{self.document.title} v{self.version}"
+
+
+class ProjectUpdateCategory(models.TextChoices):
+    PROGRESS = 'progress', _('Progress')
+    RISK = 'risk', _('Risk')
+    NOTE = 'note', _('General Note')
+    MEETING = 'meeting', _('Meeting')
+
+
+class ProjectUpdate(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name='updates',
+        verbose_name=_('project')
+    )
+    category = models.CharField(_('category'), max_length=20, choices=ProjectUpdateCategory.choices, default=ProjectUpdateCategory.PROGRESS)
+    title = models.CharField(_('title'), max_length=200)
+    body = models.TextField(_('body'))
+    is_customer_visible = models.BooleanField(_('visible to customer'), default=True)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='project_updates',
+        verbose_name=_('created by')
+    )
+    created_at = models.DateTimeField(_('created at'), auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = _('project update')
+        verbose_name_plural = _('project updates')
+
+    def __str__(self):
+        return self.title
+
+
+class ProjectTaskStatus(models.TextChoices):
+    PENDING = 'pending', _('Pending')
+    IN_PROGRESS = 'in_progress', _('In Progress')
+    COMPLETED = 'completed', _('Completed')
+    BLOCKED = 'blocked', _('Blocked')
+
+
+class ProjectTaskPriority(models.TextChoices):
+    LOW = 'low', _('Low')
+    MEDIUM = 'medium', _('Medium')
+    HIGH = 'high', _('High')
+
+
+class ProjectTask(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name='tasks',
+        verbose_name=_('project')
+    )
+    title = models.CharField(_('title'), max_length=200)
+    description = models.TextField(_('description'), blank=True)
+    status = models.CharField(_('status'), max_length=20, choices=ProjectTaskStatus.choices, default=ProjectTaskStatus.PENDING)
+    priority = models.CharField(_('priority'), max_length=10, choices=ProjectTaskPriority.choices, default=ProjectTaskPriority.MEDIUM)
+    due_date = models.DateField(_('due date'), null=True, blank=True)
+    assigned_to = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='project_tasks',
+        verbose_name=_('assigned to')
+    )
+    requires_customer_action = models.BooleanField(_('requires customer action'), default=False)
+    completed_at = models.DateTimeField(_('completed at'), null=True, blank=True)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='created_project_tasks',
+        verbose_name=_('created by')
+    )
+    created_at = models.DateTimeField(_('created at'), auto_now_add=True)
+    updated_at = models.DateTimeField(_('updated at'), auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = _('project task')
+        verbose_name_plural = _('project tasks')
+
+    def __str__(self):
+        return self.title
+
+    def save(self, *args, **kwargs):
+        if self.status == ProjectTaskStatus.COMPLETED and self.completed_at is None:
+            self.completed_at = timezone.now()
+        elif self.status != ProjectTaskStatus.COMPLETED:
+            self.completed_at = None
+        super().save(*args, **kwargs)
     """Status choices for project milestones."""
     NOT_STARTED = 'NOT_STARTED', _('Not Started')
     IN_PROGRESS = 'IN_PROGRESS', _('In Progress')

@@ -6,6 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, SAFE_METHODS, IsAdminUser
 from rest_framework.exceptions import ValidationError, PermissionDenied, NotFound
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from django.db import transaction
 from django.utils import timezone
@@ -20,7 +21,11 @@ from construction.models import (
     ProjectPhase,
     MilestoneStatus,
     ConstructionRequest,
-    Quote
+    Quote,
+    ProjectDocument,
+    ProjectDocumentVersion,
+    ProjectTask,
+    ProjectUpdate
 )
 
 from construction.serializers.project_serializers import (
@@ -31,7 +36,11 @@ from construction.serializers.project_serializers import (
     ProjectStatusUpdateSerializer,
     ProjectPhaseUpdateSerializer,
     MilestoneStatusUpdateSerializer,
-    ProjectDashboardSerializer
+    ProjectDashboardSerializer,
+    ProjectDocumentSerializer,
+    ProjectDocumentVersionSerializer,
+    ProjectTaskSerializer,
+    ProjectUpdateSerializer
 )
 
 from construction.permissions import (
@@ -92,9 +101,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
         if not user.is_staff and not user.is_superuser:
             queryset = queryset.filter(
                 Q(project_manager=user) |
-                Q(supervisor=user) |
+                Q(site_supervisor=user) |
                 Q(contractors=user) |
-                Q(project_owner=user)
+                Q(construction_request__client=user)
             ).distinct()
 
         # Filter by status if provided
@@ -199,17 +208,23 @@ class ProjectViewSet(viewsets.ModelViewSet):
         # Prefetch related data to optimize queries
         project = (
             Project.objects
+            .select_related('project_manager', 'site_supervisor', 'construction_request__client')
             .prefetch_related(
+                'contractors',
                 'milestones',
-                'milestones__dependencies',
-                'project_manager',
-                'supervisor',
-                'contractors'
+                'milestones__depends_on',
+                'documents',
+                'documents__current_version',
+                'documents__current_version__uploaded_by',
+                'documents__versions',
+                'documents__versions__uploaded_by',
+                'updates',
+                'tasks'
             )
             .get(pk=project.pk)
         )
-        
-        serializer = ProjectDashboardSerializer(instance=project)
+
+        serializer = ProjectDashboardSerializer(instance=project, context={'request': request})
         return Response(serializer.data)
 
     @action(detail=True, methods=['get'], url_path='timeline')
@@ -223,13 +238,13 @@ class ProjectViewSet(viewsets.ModelViewSet):
         
         timeline_data = {
             'project': {
-                'id': str(project.id),
+                'id': project.id,
                 'title': project.title,
-                'start_date': project.start_date,
-                'end_date': project.end_date,
+                'start_date': project.actual_start_date or project.planned_start_date,
+                'end_date': project.actual_end_date or project.planned_end_date,
                 'status': project.status,
                 'current_phase': project.current_phase,
-                'progress': project.calculate_progress(),
+                'progress': project.progress_percentage,
             },
             'milestones': serializer.data
         }
@@ -266,6 +281,136 @@ class ProjectViewSet(viewsets.ModelViewSet):
         }
         
         return Response(budget_data)
+
+
+
+class ProjectDocumentViewSet(viewsets.ModelViewSet):
+    serializer_class = ProjectDocumentSerializer
+    permission_classes = [IsAuthenticated, IsProjectTeamMember]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get_project(self):
+        project = get_object_or_404(Project, pk=self.kwargs['project_pk'])
+        self.check_object_permissions(self.request, project)
+        return project
+
+    def get_queryset(self):
+        project = self.get_project()
+        return ProjectDocument.objects.filter(project=project).select_related(
+            'current_version', 'current_version__uploaded_by'
+        ).prefetch_related('versions', 'versions__uploaded_by')
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context.setdefault('request', self.request)
+        return context
+
+    def perform_create(self, serializer):
+        project = self.get_project()
+        serializer.save(project=project, created_by=self.request.user)
+
+    def perform_update(self, serializer):
+        project = self.get_project()
+        if not (self.request.user.is_staff or project.project_manager_id == self.request.user.id):
+            raise PermissionDenied('Only the project manager can modify documents.')
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        project = self.get_project()
+        if not (self.request.user.is_staff or project.project_manager_id == self.request.user.id):
+            raise PermissionDenied('Only the project manager can remove documents.')
+        instance.delete()
+
+    @action(detail=True, methods=['get'], url_path='versions')
+    def list_versions(self, request, project_pk=None, pk=None):
+        document = self.get_object()
+        versions = document.versions.select_related('uploaded_by').order_by('-uploaded_at')
+        serializer = ProjectDocumentVersionSerializer(versions, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], url_path='versions')
+    def create_version(self, request, project_pk=None, pk=None):
+        document = self.get_object()
+        upload = request.FILES.get('file')
+        if not upload:
+            return Response({'detail': 'file is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        version = ProjectDocumentVersion.objects.create(
+            document=document,
+            file=upload,
+            notes=request.data.get('notes', ''),
+            uploaded_by=request.user if request.user.is_authenticated else None,
+        )
+        serializer = ProjectDocumentVersionSerializer(version, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class ProjectUpdateViewSet(viewsets.ModelViewSet):
+    serializer_class = ProjectUpdateSerializer
+    permission_classes = [IsAuthenticated, IsProjectTeamMember]
+
+    def get_project(self):
+        project = get_object_or_404(Project, pk=self.kwargs['project_pk'])
+        self.check_object_permissions(self.request, project)
+        return project
+
+    def get_queryset(self):
+        project = self.get_project()
+        queryset = project.updates.all().order_by('-created_at')
+        user = self.request.user
+        if self.request.method in SAFE_METHODS and not (user.is_staff or user.is_superuser):
+            queryset = queryset.filter(is_customer_visible=True)
+        return queryset
+
+    def perform_create(self, serializer):
+        project = self.get_project()
+        if not (self.request.user.is_staff or project.project_manager_id == self.request.user.id):
+            raise PermissionDenied('Only the project manager can post updates.')
+        serializer.save(project=project, created_by=self.request.user)
+
+    def perform_update(self, serializer):
+        project = self.get_project()
+        if not (self.request.user.is_staff or project.project_manager_id == self.request.user.id):
+            raise PermissionDenied('Only the project manager can modify updates.')
+        serializer.save()
+
+
+class ProjectTaskViewSet(viewsets.ModelViewSet):
+    serializer_class = ProjectTaskSerializer
+    permission_classes = [IsAuthenticated, IsProjectTeamMember]
+
+    def get_project(self):
+        project = get_object_or_404(Project, pk=self.kwargs['project_pk'])
+        self.check_object_permissions(self.request, project)
+        return project
+
+    def get_queryset(self):
+        project = self.get_project()
+        queryset = project.tasks.all().order_by('due_date', '-created_at')
+        user = self.request.user
+        if self.request.method in SAFE_METHODS and not (user.is_staff or user.is_superuser):
+            queryset = queryset.filter(Q(assigned_to=user) | Q(requires_customer_action=True))
+        return queryset
+
+    def perform_create(self, serializer):
+        project = self.get_project()
+        if not (self.request.user.is_staff or project.project_manager_id == self.request.user.id):
+            raise PermissionDenied('Only the project manager can create tasks.')
+        serializer.save(project=project, created_by=self.request.user)
+
+    def perform_update(self, serializer):
+        project = self.get_project()
+        instance = serializer.instance
+        if not (self.request.user.is_staff or project.project_manager_id == self.request.user.id):
+            if not (instance.assigned_to_id == self.request.user.id or instance.requires_customer_action):
+                raise PermissionDenied('You do not have permission to update this task.')
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        project = self.get_project()
+        if not (self.request.user.is_staff or project.project_manager_id == self.request.user.id):
+            raise PermissionDenied('Only the project manager can remove tasks.')
+        instance.delete()
+
 
 
 class ProjectMilestoneViewSet(viewsets.ModelViewSet):

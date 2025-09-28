@@ -44,8 +44,7 @@ INSTALLED_APPS = [
     'leads.apps.LeadsConfig',
     'properties.apps.PropertiesConfig',
     'notifications.apps.NotificationsConfig',
-    'quotes.apps.QuotesConfig',
-    'sitecontent.apps.SiteContentConfig',
+    'quotes.apps.QuotesConfig',\n    'construction.apps.ConstructionConfig',\n    'sitecontent.apps.SiteContentConfig',
 ]
 
 MIDDLEWARE = [
@@ -196,3 +195,4 @@ LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
+

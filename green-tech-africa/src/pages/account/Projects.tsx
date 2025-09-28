@@ -1,12 +1,46 @@
+﻿import { useEffect, useState } from "react";
 import Layout from "@/components/layout/Layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Building2, Filter } from "lucide-react";
-import { PROJECTS } from "@/mocks/projects";
 import { Link } from "react-router-dom";
+import { Progress } from "@/components/ui/progress";
+import { api } from "@/lib/api";
+import type { ProjectSummary } from "@/types/project";
 
 const Projects = () => {
+  const [projects, setProjects] = useState<ProjectSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        setLoading(true);
+        const data = await api.get<ProjectSummary[]>("/api/construction/projects/");
+        if (!cancelled) {
+          setProjects(data);
+          setError(null);
+        }
+      } catch (err) {
+        console.error(err);
+        if (!cancelled) {
+          setError((err as Error).message ?? "Unable to load projects.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <Layout>
       <section className="py-10 bg-gradient-to-br from-background via-accent/30 to-background">
@@ -20,22 +54,34 @@ const Projects = () => {
       </section>
       <section className="py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-3">
-          {PROJECTS.map((p) => (
-            <Card key={p.id} className="shadow-soft hover:shadow-medium smooth-transition">
-              <CardContent className="p-4 flex items-center justify-between">
-                <div>
-                  <div className="font-medium">{p.title}</div>
-                  <div className="text-xs text-muted-foreground">Next: {p.nextMilestone ?? "TBD"}</div>
+          {loading && (
+            <Card><CardContent className="p-6 text-sm text-muted-foreground">Loading your projects…</CardContent></Card>
+          )}
+          {error && !loading && (
+            <Card><CardContent className="p-6 text-sm text-destructive">{error}</CardContent></Card>
+          )}
+          {!loading && !error && projects.map((project) => (
+            <Card key={project.id} className="shadow-soft hover:shadow-medium smooth-transition">
+              <CardContent className="p-4 flex items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="font-medium">{project.title}</div>
+                  <div className="text-xs text-muted-foreground">
+                    Phase: {project.phase_display ?? project.current_phase}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Progress value={Math.round(project.progress_percentage)} className="w-32" />
+                    <span className="text-xs text-muted-foreground">{Math.round(project.progress_percentage)}% complete</span>
+                  </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Badge variant="secondary">{p.status}</Badge>
-                  <Button asChild variant="outline" size="sm"><Link to={`/account/projects/${p.id}`}>Open</Link></Button>
+                  <Badge variant="secondary" className="capitalize">{project.status_display ?? project.status.toLowerCase()}</Badge>
+                  <Button asChild variant="outline" size="sm"><Link to={`/account/projects/${project.id}`}>Open</Link></Button>
                 </div>
               </CardContent>
             </Card>
           ))}
-          {PROJECTS.length === 0 && (
-            <Card><CardContent className="p-6 text-sm text-muted-foreground">No projects yet.</CardContent></Card>
+          {!loading && !error && projects.length === 0 && (
+            <Card><CardContent className="p-6 text-sm text-muted-foreground">No projects yet. Once your quote is approved, your project will appear here.</CardContent></Card>
           )}
         </div>
       </section>
@@ -44,4 +90,3 @@ const Projects = () => {
 };
 
 export default Projects;
-
