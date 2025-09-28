@@ -1,5 +1,5 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { ChartBar, Home, Layers, Map, Megaphone, Package, Users, LogOut } from 'lucide-react';
+﻿import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { ChartBar, FileText, Home, Layers, Map, Megaphone, Package, Users, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useState } from 'react';
@@ -12,6 +12,7 @@ const navItems = [
   { to: '/admin/users', label: 'Users', icon: Users },
   { to: '/admin/regions', label: 'Regions', icon: Map },
   { to: '/admin/notifications', label: 'Notifications', icon: Megaphone },
+  { to: '/admin/content', label: 'Content', icon: FileText },
   { to: '/admin/analytics', label: 'Analytics', icon: ChartBar },
 ];
 

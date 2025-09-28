@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'properties.apps.PropertiesConfig',
     'notifications.apps.NotificationsConfig',
     'quotes.apps.QuotesConfig',
+    'sitecontent.apps.SiteContentConfig',
 ]
 
 MIDDLEWARE = [

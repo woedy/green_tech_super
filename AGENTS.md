@@ -161,11 +161,12 @@ Backend
     - Quote builder calculates line items, allowances, and regional multipliers using backend pricing service.
     - Generated quotes render customer-facing PDF/HTML with e-sign CTA; status tracked (sent, viewed, accepted, declined).
     - Customer dashboard surfaces quote timeline, allows acceptance with digital signature, and triggers notifications.
-- [ ] **US2.3 – As an admin,** I want to manage catalogs, regions, and notification templates so that the platform stays current.
+- [x] **US2.3 – As an admin,** I want to manage catalogs, regions, and notification templates so that the platform stays current.
   - Acceptance criteria:
     - Admin portal provides CRUD tables/forms for plans, properties, regions, pricing rules, and notification templates with audit trail.
     - Draft/publish workflow prevents incomplete content from going live; media uploads handled via shared asset library.
     - Global settings (legal pages, contact info) editable with preview and version history.
+    - Implementation snapshot: Admin portal now uses DRF-backed CRUD for plans, properties, regions, notification templates, and site content with draft/publish workflows and audit trails.
 
 ### Phase 3 — Project Delivery & Engagement (Weeks 10-14)
 - [ ] **US3.1 – As a customer with an active project,** I want to track milestones, documents, and updates so that I stay informed.
@@ -188,3 +189,6 @@ Backend
 - [ ] Automated tests (unit + integration + end-to-end smoke) cover critical journeys and run in CI with coverage thresholds.
 - [ ] Observability stack captures API/worker logs, error reporting, and performance metrics with alerting on failure states.
 - [ ] Accessibility, responsiveness, and performance audits (Lighthouse/axe) meet agreed-upon benchmarks before release.
+
+
+

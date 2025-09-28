@@ -6,10 +6,31 @@ from uuid import uuid4
 from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
-from django.db.models import UniqueConstraint
+from django.db.models import UniqueConstraint, Manager
 from django.utils import timezone
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
+
+from .audit import ActionType
+
+
+class PlanQuerySet(models.QuerySet):
+    def published(self):
+        return self.filter(is_published=True)
+
+    def drafts(self):
+        return self.filter(is_published=False)
+
+
+class PlanManager(Manager.from_queryset(PlanQuerySet)):
+    def get_queryset(self):
+        return super().get_queryset()
+
+    def published(self):
+        return self.get_queryset().published()
+
+    def drafts(self):
+        return self.get_queryset().drafts()
 
 
 class PlanStyle(models.TextChoices):
@@ -23,7 +44,9 @@ class PlanStyle(models.TextChoices):
 
 class Plan(models.Model):
     """Architectural plan that can be requested by prospective customers."""
-
+    
+    objects = PlanManager()
+    
     slug = models.SlugField(_('slug'), max_length=120, unique=True)
     name = models.CharField(_('name'), max_length=150)
     summary = models.CharField(_('summary'), max_length=255, blank=True)
@@ -64,7 +87,8 @@ class Plan(models.Model):
     hero_image_url = models.URLField(_('hero image url'), blank=True)
     specs = models.JSONField(_('specifications'), default=dict, blank=True)
     tags = models.JSONField(_('tags'), default=list, blank=True)
-    is_published = models.BooleanField(_('is published'), default=True)
+    is_published = models.BooleanField(_('is published'), default=False)
+    published_at = models.DateTimeField(_('published at'), null=True, blank=True)
     created_at = models.DateTimeField(_('created at'), auto_now_add=True)
     updated_at = models.DateTimeField(_('updated at'), auto_now=True)
 
@@ -79,6 +103,10 @@ class Plan(models.Model):
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name)
+        if self.is_published and not self.published_at:
+            self.published_at = timezone.now()
+        if not self.is_published and self.published_at is not None:
+            self.published_at = None
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -124,19 +152,7 @@ class PlanFeature(models.Model):
     name = models.CharField(_('name'), max_length=100)
     description = models.TextField(_('description'), blank=True)
     category = models.CharField(_('category'), max_length=50, blank=True)
-    is_sustainable = models.BooleanField(_('is sustainable'), default=False)
-
-    class Meta:
-        ordering = ('name',)
-
-    def __str__(self):
-        return f"{self.name} ({self.plan})"
-
-
-class PlanOption(models.Model):
-    plan = models.ForeignKey(Plan, related_name='options', on_delete=models.CASCADE)
-    name = models.CharField(_('name'), max_length=120)
-    description = models.TextField(_('description'), blank=True)
+    is_sustainable = models.BooleanField(_('is sustainable feature'), default=False)
     price_delta = models.DecimalField(
         _('price delta'),
         max_digits=10,
@@ -151,6 +167,25 @@ class PlanOption(models.Model):
     def __str__(self):
         return f"{self.plan}: {self.name}"
 
+
+
+class PlanOption(models.Model):
+    plan = models.ForeignKey(Plan, related_name='options', on_delete=models.CASCADE)
+    name = models.CharField(_('name'), max_length=120)
+    description = models.TextField(_('description'), blank=True)
+    price_delta = models.DecimalField(
+        _('price delta'),
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text=_('Additional cost when this option is selected'),
+    )
+
+    class Meta:
+        ordering = ('name',)
+
+    def __str__(self):
+        return f"{self.plan}: {self.name}"
 
 class PlanRegionalPricing(models.Model):
     plan = models.ForeignKey(Plan, related_name='pricing', on_delete=models.CASCADE)
@@ -167,11 +202,11 @@ class PlanRegionalPricing(models.Model):
 
     class Meta:
         unique_together = ('plan', 'region')
-        verbose_name = _('plan regional pricing')
-        verbose_name_plural = _('plan regional pricing')
+        verbose_name = _('regional pricing')
+        verbose_name_plural = _('regional pricing')
 
     def __str__(self):
-        return f"{self.plan} → {self.region}"
+        return f"{self.plan.name} - {self.region.name} ({self.cost_multiplier}x)"
 
 
 class BuildRequestStatus(models.TextChoices):
@@ -229,3 +264,27 @@ class BuildRequestAttachment(models.Model):
 
     def __str__(self):
         return self.original_name
+
+
+
+
+# Add the methods to the Plan model
+def log_action(self, user, action, changes=None):
+    from .audit import plan_log_action
+    return plan_log_action(self, user, action, changes)
+
+Plan.log_action = log_action
+
+
+def publish(self, user=None):
+    from .audit import plan_publish
+    return plan_publish(self, user)
+
+Plan.publish = publish
+
+
+def unpublish(self, user=None):
+    from .audit import plan_unpublish
+    return plan_unpublish(self, user)
+
+Plan.unpublish = unpublish

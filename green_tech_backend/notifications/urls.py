@@ -7,7 +7,7 @@ from rest_framework.routers import DefaultRouter
 from . import views
 
 router = DefaultRouter()
-router.register(r'templates', views.NotificationTemplateViewSet, basename='notification-template')
+router.register(r'admin/notifications/templates', views.NotificationTemplateViewSet, basename='notification-template')
 router.register(r'send', views.SendNotificationViewSet, basename='send-notification')
 router.register(r'triggers', views.NotificationTriggerViewSet, basename='notification-trigger')
 

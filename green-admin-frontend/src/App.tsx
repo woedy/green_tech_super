@@ -12,6 +12,8 @@ import AdminUsers from "./admin/pages/Users";
 import AdminRegions from "./admin/pages/Regions";
 import AdminNotifications from "./admin/pages/Notifications";
 import AdminAnalytics from "./admin/pages/Analytics";
+import SiteContent from "./admin/pages/SiteContent";
+import { SiteDocumentForm, SiteDocumentDetail } from "./admin/pages/SiteContentDetail";
 import { PlanForm, PlanDetail } from "./admin/pages/PlanDetail";
 import { PropertyForm, PropertyDetail } from "./admin/pages/PropertyDetail";
 import { UserForm, UserDetail } from "./admin/pages/UserDetail";
@@ -60,13 +62,18 @@ const App = () => (
 
               <Route path="/admin/regions" element={<AdminRegions />} />
               <Route path="/admin/regions/new" element={<RegionForm />} />
-              <Route path="/admin/regions/:code" element={<RegionDetail />} />
-              <Route path="/admin/regions/:code/edit" element={<RegionForm />} />
+              <Route path="/admin/regions/:id" element={<RegionDetail />} />
+              <Route path="/admin/regions/:id/edit" element={<RegionForm />} />
 
               <Route path="/admin/notifications" element={<AdminNotifications />} />
               <Route path="/admin/notifications/new" element={<TemplateForm />} />
               <Route path="/admin/notifications/:id" element={<TemplateDetail />} />
               <Route path="/admin/notifications/:id/edit" element={<TemplateForm />} />
+
+              <Route path="/admin/content" element={<SiteContent />} />
+              <Route path="/admin/content/new" element={<SiteDocumentForm />} />
+              <Route path="/admin/content/:id" element={<SiteDocumentDetail />} />
+              <Route path="/admin/content/:id/edit" element={<SiteDocumentForm />} />
 
               <Route path="/admin/analytics" element={<AdminAnalytics />} />
             </Route>
