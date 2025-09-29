@@ -53,6 +53,7 @@ from construction.permissions import (
     CanEditProject,
     CanEditConstructionRequest
 )
+from construction.realtime import broadcast_project_message
 
 
 class ProjectViewSet(viewsets.ModelViewSet):
@@ -655,25 +656,90 @@ class ProjectMilestoneViewSet(viewsets.ModelViewSet):
         # If the dependency is the milestone itself, it's a circular reference
         if milestone == dependency:
             return True
-            
+
         # Check if the dependency already depends on the milestone
         visited = set()
         to_visit = [dependency]
-        
+
         while to_visit:
             current = to_visit.pop()
-            
+
             # If we've already visited this milestone, skip it
             if current.id in visited:
                 continue
-                
+
             # If we find the original milestone in the dependency tree, it's a circular reference
             if current == milestone:
                 return True
-                
+
             visited.add(current.id)
-            
+
             # Add all dependencies of the current milestone to the queue
             to_visit.extend(current.dependencies.all())
-        
+
         return False
+
+
+class ProjectChatMessageViewSet(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    viewsets.GenericViewSet,
+):
+    """List and create chat messages for a specific project."""
+
+    serializer_class = ProjectMessageSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def _project_queryset(self):
+        return Project.objects.select_related(
+            'project_manager',
+            'site_supervisor',
+            'construction_request__client',
+        ).prefetch_related('contractors')
+
+    def _message_queryset(self):
+        return ProjectChatMessage.objects.select_related('project', 'quote', 'sender').prefetch_related(
+            'attachments',
+            'receipts__user',
+        )
+
+    def _ensure_access(self, project: Project, *, write: bool = False) -> None:
+        perm = IsProjectTeamMember()
+        if not perm._is_team_member(self.request.user, project):
+            raise PermissionDenied('You do not have access to this project chat.')
+        if write:
+            # Team members (including customers) may post messages once access is granted.
+            return
+
+    def get_project(self) -> Project:
+        if not hasattr(self, '_project'):
+            project = get_object_or_404(self._project_queryset(), pk=self.kwargs['project_pk'])
+            self._ensure_access(project)
+            self._project = project
+        return self._project
+
+    def get_queryset(self):
+        project = self.get_project()
+        return self._message_queryset().filter(project=project).order_by('created_at')
+
+    def perform_create(self, serializer):
+        project = self.get_project()
+        self._ensure_access(project, write=True)
+        user = self.request.user
+        message = serializer.save(project=project, sender=user)
+        ProjectMessageReceipt.objects.update_or_create(
+            message=message,
+            user=user,
+            defaults={'read_at': timezone.now()},
+        )
+        broadcast_project_message(message)
+        return message
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        message = self.perform_create(serializer)
+        message = self._message_queryset().get(pk=message.pk)
+        output = self.get_serializer(message)
+        headers = self.get_success_headers(output.data)
+        return Response(output.data, status=status.HTTP_201_CREATED, headers=headers)

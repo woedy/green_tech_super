@@ -21,12 +21,18 @@ except Exception:  # pragma: no cover
     lead_ws = []
 
 try:
+    from quotes.routing import websocket_urlpatterns as quote_ws
+except Exception:  # pragma: no cover
+    quote_ws = []
+
+try:
     from construction.routing import websocket_urlpatterns as construction_ws
 except Exception:  # pragma: no cover
     construction_ws = []
 
 websocket_urlpatterns.extend(plan_ws)
 websocket_urlpatterns.extend(lead_ws)
+websocket_urlpatterns.extend(quote_ws)
 websocket_urlpatterns.extend(construction_ws)
 
 application = ProtocolTypeRouter(
