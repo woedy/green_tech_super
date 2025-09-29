@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.contrib.auth import get_user_model
 
 from .models import Quote, QuoteChatMessage, QuoteMessageReceipt
+from .permissions import user_can_access_quote_chat
 from .serializers import QuoteMessageSerializer
 
 User = get_user_model()
@@ -82,21 +83,7 @@ class QuoteChatConsumer(AsyncJsonWebsocketConsumer):
 
     @sync_to_async
     def _has_access(self, quote: Quote, user: User) -> bool:
-        if user.is_staff or user.is_superuser:
-            return True
-        build_request = quote.build_request
-        if build_request and build_request.user_id == user.id:
-            return True
-        email = (user.email or '').lower()
-        if email:
-            candidate_emails = [
-                quote.prepared_by_email,
-                quote.recipient_email,
-                getattr(build_request, 'contact_email', None),
-            ]
-            if any(candidate and candidate.lower() == email for candidate in candidate_emails):
-                return True
-        return False
+        return user_can_access_quote_chat(quote, user)
 
     @sync_to_async
     def _create_message(self, body: str, user: User) -> QuoteChatMessage:

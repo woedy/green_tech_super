@@ -1,15 +1,20 @@
 from __future__ import annotations
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
 
-from rest_framework import status, viewsets
+from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from .models import Quote, QuoteStatus
+from .models import Quote, QuoteChatMessage, QuoteMessageReceipt, QuoteStatus
+from .permissions import QuoteChatAccessPermission
+from .realtime import broadcast_quote_message
 from .serializers import (
     QuoteActionSerializer,
     QuoteDetailSerializer,
     QuoteListSerializer,
+    QuoteMessageSerializer,
     QuoteWriteSerializer,
 )
 from .services import handle_quote_event
@@ -111,3 +116,55 @@ class QuoteViewSet(viewsets.ModelViewSet):
         quote.mark_declined()
         handle_quote_event(quote, 'declined')
         return Response(QuoteDetailSerializer(quote, context=self.get_serializer_context()).data)
+
+
+class QuoteMessageViewSet(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    viewsets.GenericViewSet,
+):
+    """API endpoints for listing and creating quote chat messages."""
+
+    serializer_class = QuoteMessageSerializer
+    permission_classes = (IsAuthenticated, QuoteChatAccessPermission)
+
+    def _quote_queryset(self):
+        return Quote.objects.select_related('build_request__user')
+
+    def _message_queryset(self):
+        return QuoteChatMessage.objects.select_related('quote', 'sender').prefetch_related(
+            'attachments',
+            'receipts__user',
+        )
+
+    def get_quote(self):
+        if not hasattr(self, '_quote'):
+            quote = get_object_or_404(self._quote_queryset(), pk=self.kwargs['quote_pk'])
+            self.check_object_permissions(self.request, quote)
+            self._quote = quote
+        return self._quote
+
+    def get_queryset(self):
+        quote = self.get_quote()
+        return self._message_queryset().filter(quote=quote).order_by('created_at')
+
+    def perform_create(self, serializer):
+        quote = self.get_quote()
+        user = self.request.user
+        message = serializer.save(quote=quote, sender=user)
+        QuoteMessageReceipt.objects.update_or_create(
+            message=message,
+            user=user,
+            defaults={'read_at': timezone.now()},
+        )
+        broadcast_quote_message(message)
+        return message
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        message = self.perform_create(serializer)
+        message = self._message_queryset().get(pk=message.pk)
+        output = self.get_serializer(message)
+        headers = self.get_success_headers(output.data)
+        return Response(output.data, status=status.HTTP_201_CREATED, headers=headers)

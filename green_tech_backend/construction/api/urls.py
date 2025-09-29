@@ -17,7 +17,8 @@ from .project_views import (
     ProjectMilestoneViewSet,
     ProjectDocumentViewSet,
     ProjectUpdateViewSet,
-    ProjectTaskViewSet
+    ProjectTaskViewSet,
+    ProjectChatMessageViewSet,
 )
 
 # Create a router and register our viewsets with it
@@ -32,14 +33,16 @@ router.register(r'projects', ProjectViewSet, basename='project')
 
 # Nested router for project milestones
 project_router = SimpleRouter()
-project_router.register(r'milestones', ProjectMilestoneViewSet, 
+project_router.register(r'milestones', ProjectMilestoneViewSet,
                        basename='project-milestone')
-project_router.register(r'documents', ProjectDocumentViewSet, 
+project_router.register(r'documents', ProjectDocumentViewSet,
                        basename='project-document')
-project_router.register(r'updates', ProjectUpdateViewSet, 
+project_router.register(r'updates', ProjectUpdateViewSet,
                        basename='project-update')
-project_router.register(r'tasks', ProjectTaskViewSet, 
+project_router.register(r'tasks', ProjectTaskViewSet,
                        basename='project-task')
+project_router.register(r'chat-messages', ProjectChatMessageViewSet,
+                       basename='project-chat-message')
 
 # Quote endpoints with nested routes for items
 quote_router = SimpleRouter()
