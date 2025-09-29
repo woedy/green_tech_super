@@ -2,35 +2,39 @@ from __future__ import annotations
 
 from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
-from django.contrib.auth import get_user_model
 from django.utils import timezone
 
-from construction.models import Project, ProjectChatMessage, ProjectMessageReceipt
-from construction.permissions import IsProjectTeamMember
-from construction.serializers.project_serializers import ProjectMessageSerializer
+from django.contrib.auth import get_user_model
+
+from .models import Quote, QuoteChatMessage, QuoteMessageReceipt
+from .serializers import QuoteMessageSerializer
 
 User = get_user_model()
 
 
-class ProjectChatConsumer(AsyncJsonWebsocketConsumer):
-    group_name_template = 'project-chat-{project_id}'
+class QuoteChatConsumer(AsyncJsonWebsocketConsumer):
+    """WebSocket consumer powering quote-specific chat rooms."""
+
+    group_name_template = 'quote-chat-{quote_id}'
 
     async def connect(self):
         user = self.scope.get('user')
         if not user or not user.is_authenticated:
             await self.close()
             return
-        self.project_id = int(self.scope['url_route']['kwargs']['project_id'])
-        project = await self._get_project(self.project_id)
-        if not project:
+
+        self.quote_id = self.scope['url_route']['kwargs'].get('quote_id')
+        quote = await self._get_quote(self.quote_id)
+        if not quote:
             await self.close()
             return
-        has_access = await self._has_access(project, user)
+        has_access = await self._has_access(quote, user)
         if not has_access:
             await self.close()
             return
-        self.project = project
-        self.group_name = self.group_name_template.format(project_id=self.project_id)
+
+        self.quote = quote
+        self.group_name = self.group_name_template.format(quote_id=self.quote_id)
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
 
@@ -42,9 +46,9 @@ class ProjectChatConsumer(AsyncJsonWebsocketConsumer):
     async def receive_json(self, content, **kwargs):
         event_type = content.get('type')
         user = self.scope['user']
+
         if event_type == 'typing':
-            is_typing = bool(content.get('is_typing'))
-            await self._broadcast_typing(user.id, is_typing)
+            await self._broadcast_typing(user.id, bool(content.get('is_typing')))
         elif event_type == 'read':
             message_id = content.get('message_id')
             if message_id:
@@ -54,13 +58,11 @@ class ProjectChatConsumer(AsyncJsonWebsocketConsumer):
                     if updated:
                         await self._broadcast_read_receipt(message, receipt)
         elif event_type == 'message':
-            body = content.get('body', '').strip()
+            body = (content.get('body') or '').strip()
             if not body:
                 return
-            message = await self._create_message(body, user, content.get('quote'))
+            message = await self._create_message(body, user)
             await self._broadcast_message(message)
-        else:
-            return
 
     async def chat_message(self, event):
         await self.send_json({'type': 'message', 'payload': event['payload']})
@@ -72,33 +74,38 @@ class ProjectChatConsumer(AsyncJsonWebsocketConsumer):
         await self.send_json({'type': 'read', 'payload': event['payload']})
 
     @sync_to_async
-    def _get_project(self, project_id: int):
+    def _get_quote(self, quote_id):
         try:
-            return Project.objects.get(pk=project_id)
-        except Project.DoesNotExist:
+            return Quote.objects.select_related('build_request__user').get(pk=quote_id)
+        except Quote.DoesNotExist:
             return None
 
     @sync_to_async
-    def _has_access(self, project: Project, user: User) -> bool:
-        perm = IsProjectTeamMember()
-        return perm._is_team_member(user, project)
+    def _has_access(self, quote: Quote, user: User) -> bool:
+        if user.is_staff or user.is_superuser:
+            return True
+        build_request = quote.build_request
+        if build_request and build_request.user_id == user.id:
+            return True
+        email = (user.email or '').lower()
+        if email:
+            candidate_emails = [
+                quote.prepared_by_email,
+                quote.recipient_email,
+                getattr(build_request, 'contact_email', None),
+            ]
+            if any(candidate and candidate.lower() == email for candidate in candidate_emails):
+                return True
+        return False
 
     @sync_to_async
-    def _create_message(self, body: str, user: User, quote_id=None):
-        quote = None
-        if quote_id:
-            from construction.models import Quote
-            try:
-                quote = Quote.objects.get(pk=quote_id)
-            except Quote.DoesNotExist:
-                quote = None
-        message = ProjectChatMessage.objects.create(
-            project=self.project,
-            quote=quote,
+    def _create_message(self, body: str, user: User) -> QuoteChatMessage:
+        message = QuoteChatMessage.objects.create(
+            quote=self.quote,
             sender=user,
             body=body,
         )
-        ProjectMessageReceipt.objects.get_or_create(
+        QuoteMessageReceipt.objects.update_or_create(
             message=message,
             user=user,
             defaults={'read_at': timezone.now()},
@@ -108,10 +115,10 @@ class ProjectChatConsumer(AsyncJsonWebsocketConsumer):
     @sync_to_async
     def _mark_read(self, message_id, user: User):
         try:
-            message = ProjectChatMessage.objects.get(pk=message_id, project=self.project)
-        except ProjectChatMessage.DoesNotExist:
+            message = QuoteChatMessage.objects.get(pk=message_id, quote=self.quote)
+        except QuoteChatMessage.DoesNotExist:
             return None
-        receipt, created = ProjectMessageReceipt.objects.get_or_create(
+        receipt, created = QuoteMessageReceipt.objects.get_or_create(
             message=message,
             user=user,
             defaults={'read_at': timezone.now()},
@@ -125,8 +132,8 @@ class ProjectChatConsumer(AsyncJsonWebsocketConsumer):
                 updated = True
         return message, receipt, updated
 
-    async def _broadcast_message(self, message: ProjectChatMessage):
-        serializer = ProjectMessageSerializer(message, context={'request': None})
+    async def _broadcast_message(self, message: QuoteChatMessage):
+        serializer = QuoteMessageSerializer(message, context={'request': None})
         await self.channel_layer.group_send(
             self.group_name,
             {
@@ -144,7 +151,7 @@ class ProjectChatConsumer(AsyncJsonWebsocketConsumer):
             },
         )
 
-    async def _broadcast_read_receipt(self, message: ProjectChatMessage, receipt: ProjectMessageReceipt):
+    async def _broadcast_read_receipt(self, message: QuoteChatMessage, receipt: QuoteMessageReceipt):
         await self.channel_layer.group_send(
             self.group_name,
             {

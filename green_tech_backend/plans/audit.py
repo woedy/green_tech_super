@@ -1,9 +1,7 @@
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-
-User = get_user_model()
 
 class ActionType(models.TextChoices):
     CREATE = 'create', _('Create')
@@ -14,7 +12,7 @@ class ActionType(models.TextChoices):
 
 class PlanAuditLog(models.Model):
     plan = models.ForeignKey('plans.Plan', on_delete=models.CASCADE, related_name='audit_logs')
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
     action = models.CharField(max_length=20, choices=ActionType.choices)
     changes = models.JSONField(_('changes'), default=dict)
     timestamp = models.DateTimeField(auto_now_add=True)

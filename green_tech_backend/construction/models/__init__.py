@@ -5,11 +5,20 @@ Construction models package.
 # Import all models to ensure they are registered with Django
 from .quote import Quote, QuoteItem, QuoteChangeLog, QuoteStatus
 from .project import (
-    Project, 
-    ProjectStatus, 
-    ProjectPhase, 
-    ProjectMilestone, 
-    MilestoneStatus
+    Project,
+    ProjectStatus,
+    ProjectPhase,
+    ProjectMilestone,
+    MilestoneStatus,
+    ProjectDocument,
+    ProjectDocumentVersion,
+    ProjectUpdate,
+    ProjectTask,
+    ProjectTaskStatus,
+    ProjectTaskPriority,
+    ProjectMessageAttachment,
+    ProjectChatMessage,
+    ProjectMessageReceipt,
 )
 from .request import ConstructionRequest, ConstructionMilestone, ConstructionDocument
 
@@ -27,6 +36,15 @@ __all__ = [
     'ProjectPhase',
     'ProjectMilestone',
     'MilestoneStatus',
+    'ProjectDocument',
+    'ProjectDocumentVersion',
+    'ProjectUpdate',
+    'ProjectTask',
+    'ProjectTaskStatus',
+    'ProjectTaskPriority',
+    'ProjectMessageAttachment',
+    'ProjectChatMessage',
+    'ProjectMessageReceipt',
     
     # Legacy construction request models
     'ConstructionRequest',

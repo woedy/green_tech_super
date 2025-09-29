@@ -5,10 +5,11 @@ from decimal import Decimal, ROUND_HALF_UP
 from typing import Iterable
 from uuid import uuid4
 
+from django.conf import settings
 from django.db import models
+from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from django.template.loader import render_to_string
 
 
 TWOPLACES = Decimal('0.01')
@@ -287,3 +288,89 @@ class QuoteLineItem(models.Model):
         if self.apply_region_multiplier:
             total *= Decimal(multiplier)
         return quantize(total)
+
+
+class QuoteMessageAttachment(models.Model):
+    """File attachments shared within a quote chat thread."""
+
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    file = models.FileField(_('file'), upload_to='quotes/chat/%Y/%m/%d')
+    uploaded_at = models.DateTimeField(_('uploaded at'), auto_now_add=True)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='quote_chat_attachments',
+        verbose_name=_('uploaded by'),
+    )
+
+    class Meta:
+        verbose_name = _('quote message attachment')
+        verbose_name_plural = _('quote message attachments')
+
+    def __str__(self):  # pragma: no cover - helper representation
+        return f"QuoteAttachment {self.id}"
+
+
+class QuoteChatMessage(models.Model):
+    """Chat message associated with a sales quote."""
+
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    quote = models.ForeignKey(
+        'Quote',
+        related_name='chat_messages',
+        on_delete=models.CASCADE,
+        verbose_name=_('quote'),
+    )
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='sent_quote_messages',
+        verbose_name=_('sender'),
+    )
+    body = models.TextField(_('message body'))
+    attachments = models.ManyToManyField(
+        QuoteMessageAttachment,
+        related_name='messages',
+        blank=True,
+        verbose_name=_('attachments'),
+    )
+    metadata = models.JSONField(_('metadata'), default=dict, blank=True)
+    created_at = models.DateTimeField(_('created at'), auto_now_add=True)
+    edited_at = models.DateTimeField(_('edited at'), null=True, blank=True)
+
+    class Meta:
+        ordering = ('created_at',)
+        verbose_name = _('quote chat message')
+        verbose_name_plural = _('quote chat messages')
+
+    def __str__(self):  # pragma: no cover - helper representation
+        return f"QuoteMessage {self.id}"
+
+
+class QuoteMessageReceipt(models.Model):
+    """Tracks read receipts for quote chat messages."""
+
+    message = models.ForeignKey(
+        QuoteChatMessage,
+        related_name='receipts',
+        on_delete=models.CASCADE,
+        verbose_name=_('message'),
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='quote_message_receipts',
+        verbose_name=_('user'),
+    )
+    read_at = models.DateTimeField(_('read at'), default=timezone.now)
+
+    class Meta:
+        unique_together = ('message', 'user')
+        ordering = ('-read_at',)
+        verbose_name = _('quote message receipt')
+        verbose_name_plural = _('quote message receipts')
+
+    def __str__(self):  # pragma: no cover - helper representation
+        return f"QuoteReceipt {self.message_id}->{self.user_id}"

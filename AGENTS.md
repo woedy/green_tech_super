@@ -177,7 +177,7 @@ Backend
 - [ ] **US3.2 – As an agent/project manager,** I want real-time collaboration tools so that I can coordinate with customers and teammates.
   - Subtasks checklist (complete each before moving to the next):
     - [ ] **Realtime Collaboration Backbone (Backend)**
-      - [ ] Implement project and quote chat models with Channels consumers supporting per-room typing indicators and read receipts.
+      - [x] Implement project and quote chat models with Channels consumers supporting per-room typing indicators and read receipts.
       - [ ] Expose REST endpoints for chat history and message posting with permission enforcement and WebSocket routing updates.
       - [ ] Extend the notifications layer so new chat messages alert the appropriate agents and customers.
     - [ ] **Task Management Enhancements**
