@@ -1,6 +1,4 @@
-""
-URLs for the notifications API.
-"""
+"""URLs for the notifications API."""
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 

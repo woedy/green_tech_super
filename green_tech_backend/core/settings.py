@@ -44,7 +44,9 @@ INSTALLED_APPS = [
     'leads.apps.LeadsConfig',
     'properties.apps.PropertiesConfig',
     'notifications.apps.NotificationsConfig',
-    'quotes.apps.QuotesConfig',\n    'construction.apps.ConstructionConfig',\n    'sitecontent.apps.SiteContentConfig',
+    'quotes.apps.QuotesConfig',
+    'construction.apps.ConstructionConfig',
+    'sitecontent.apps.SiteContentConfig',
 ]
 
 MIDDLEWARE = [

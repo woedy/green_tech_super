@@ -5,10 +5,17 @@ from decimal import Decimal
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from accounts.serializers import UserSerializer
 from locations.models import Region
 from plans.models import BuildRequest
 
-from .models import Quote, QuoteLineItem
+from .models import (
+    Quote,
+    QuoteChatMessage,
+    QuoteLineItem,
+    QuoteMessageAttachment,
+    QuoteMessageReceipt,
+)
 
 
 class QuoteLineItemSerializer(serializers.ModelSerializer):
@@ -236,6 +243,46 @@ class QuoteWriteSerializer(serializers.ModelSerializer):
 class QuoteActionSerializer(serializers.Serializer):
     signature_name = serializers.CharField(required=False, allow_blank=False, max_length=120)
     signature_email = serializers.EmailField(required=False, allow_blank=True)
+
+
+class QuoteMessageReceiptSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+
+    class Meta:
+        model = QuoteMessageReceipt
+        fields = ('user', 'read_at')
+        read_only_fields = fields
+
+
+class QuoteMessageSerializer(serializers.ModelSerializer):
+    sender = UserSerializer(read_only=True)
+    attachments = serializers.SerializerMethodField()
+    receipts = QuoteMessageReceiptSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = QuoteChatMessage
+        fields = (
+            'id',
+            'quote',
+            'sender',
+            'body',
+            'attachments',
+            'metadata',
+            'created_at',
+            'edited_at',
+            'receipts',
+        )
+        read_only_fields = ('quote', 'sender', 'created_at', 'edited_at', 'receipts', 'attachments')
+
+    def get_attachments(self, obj: QuoteChatMessage) -> list[dict[str, object]]:
+        return [
+            {
+                'id': attachment.id,
+                'file': attachment.file.url if attachment.file else None,
+                'uploaded_at': attachment.uploaded_at,
+            }
+            for attachment in obj.attachments.all()
+        ]
 
 
 # Backwards compatible alias for existing integrations (notifications, etc.).
