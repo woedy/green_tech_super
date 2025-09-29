@@ -175,10 +175,24 @@ Backend
     - File uploads support versioning and secure download links; activity feed records changes.
     - Notifications delivered via email/SMS/push when milestones change or documents are requested.
 - [ ] **US3.2 – As an agent/project manager,** I want real-time collaboration tools so that I can coordinate with customers and teammates.
-  - Acceptance criteria:
-    - Channels-powered chat rooms per project and quote with typing indicators and read receipts.
-    - Task assignments with due dates sync to calendar; overdue tasks trigger escalations.
-    - Analytics dashboard summarizes pipeline KPIs (lead-to-quote conversion, quote acceptance, project status breakdown) with exportable CSV.
+  - Subtasks checklist (complete each before moving to the next):
+    - [ ] **Realtime Collaboration Backbone (Backend)**
+      - [ ] Implement project and quote chat models with Channels consumers supporting per-room typing indicators and read receipts.
+      - [ ] Expose REST endpoints for chat history and message posting with permission enforcement and WebSocket routing updates.
+      - [ ] Extend the notifications layer so new chat messages alert the appropriate agents and customers.
+    - [ ] **Task Management Enhancements**
+      - [ ] Add calendar/ICS export for project tasks and trigger notifications for overdue items.
+      - [ ] Ensure task CRUD APIs support agents while restricting customers to actionable items only.
+    - [ ] **Analytics Dashboard**
+      - [ ] Provide aggregated pipeline KPI stats (lead → quote → project, status breakdowns, conversion rates) with optional CSV export.
+      - [ ] Publish a REST endpoint at `/api/construction/analytics/agent-dashboard` returning the analytics payload.
+    - [ ] **Agent Frontend Integration**
+      - [ ] Replace seeded agent/project detail UI data with live API integrations for chat, tasks, and analytics (including WebSocket client features).
+      - [ ] Implement task management UI with due dates, status updates, and actionable filters aligned with backend permissions.
+      - [ ] Add an analytics dashboard page with KPI cards and export capability wired to the new API client methods and types.
+    - [ ] **Wrap-Up**
+      - [ ] Smoke-test backend and agent portal flows covering chat, tasks, and analytics.
+      - [ ] Update `AGENTS.md` with an accurate US3.2 implementation snapshot and check off completed subtasks.
 - [ ] **US3.3 – As an executive stakeholder,** I want demo-ready storytelling assets so that investors understand traction and vision.
   - Acceptance criteria:
     - Seed data/fixtures populate sandbox with realistic plans, properties, leads, and project scenarios.
