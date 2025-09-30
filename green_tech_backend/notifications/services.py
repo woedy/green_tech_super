@@ -1,6 +1,4 @@
-""
-Services for handling notifications.
-"""
+"""Services for handling notifications."""
 import logging
 from typing import List, Optional, Union
 from django.conf import settings

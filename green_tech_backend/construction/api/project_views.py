@@ -10,9 +10,11 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from django.db import transaction
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 from django.shortcuts import get_object_or_404
 from django.db.models import Q, F, Case, When, Value, IntegerField, Sum
 from django.db.models.functions import Coalesce
+from django.http import HttpResponse
 
 from construction.models import (
     Project,
@@ -25,6 +27,7 @@ from construction.models import (
     ProjectDocument,
     ProjectDocumentVersion,
     ProjectTask,
+    ProjectTaskStatus,
     ProjectUpdate,
     ProjectChatMessage,
     ProjectMessageAttachment,
@@ -43,6 +46,7 @@ from construction.serializers.project_serializers import (
     ProjectDocumentSerializer,
     ProjectDocumentVersionSerializer,
     ProjectTaskSerializer,
+    ProjectTaskWriteSerializer,
     ProjectUpdateSerializer,
     ProjectMessageSerializer
 )
@@ -53,6 +57,11 @@ from construction.permissions import (
     CanEditProject,
     CanEditConstructionRequest
 )
+from construction.notifications import (
+    notify_overdue_project_task,
+    notify_project_chat_message,
+)
+from construction.tasks import build_project_tasks_ics, mark_overdue_tasks
 from construction.realtime import broadcast_project_message
 
 
@@ -384,9 +393,21 @@ class ProjectTaskViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsProjectTeamMember]
 
     def get_project(self):
-        project = get_object_or_404(Project, pk=self.kwargs['project_pk'])
-        self.check_object_permissions(self.request, project)
-        return project
+        if not hasattr(self, '_project_cache'):
+            project = get_object_or_404(Project, pk=self.kwargs['project_pk'])
+            self.check_object_permissions(self.request, project)
+            self._project_cache = project
+        return self._project_cache
+
+    def get_serializer_class(self):
+        if self.action in {'create', 'update', 'partial_update'}:
+            return ProjectTaskWriteSerializer
+        return ProjectTaskSerializer
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['project'] = self.get_project()
+        return context
 
     def get_queryset(self):
         project = self.get_project()
@@ -401,6 +422,7 @@ class ProjectTaskViewSet(viewsets.ModelViewSet):
         if not (self.request.user.is_staff or project.project_manager_id == self.request.user.id):
             raise PermissionDenied('Only the project manager can create tasks.')
         serializer.save(project=project, created_by=self.request.user)
+        self._trigger_overdue_notifications(project)
 
     def perform_update(self, serializer):
         project = self.get_project()
@@ -409,12 +431,55 @@ class ProjectTaskViewSet(viewsets.ModelViewSet):
             if not (instance.assigned_to_id == self.request.user.id or instance.requires_customer_action):
                 raise PermissionDenied('You do not have permission to update this task.')
         serializer.save()
+        self._trigger_overdue_notifications(project)
 
     def perform_destroy(self, instance):
         project = self.get_project()
         if not (self.request.user.is_staff or project.project_manager_id == self.request.user.id):
             raise PermissionDenied('Only the project manager can remove tasks.')
         instance.delete()
+
+    def list(self, request, *args, **kwargs):
+        project = self.get_project()
+        self._trigger_overdue_notifications(project)
+        return super().list(request, *args, **kwargs)
+
+    def _trigger_overdue_notifications(self, project: Project) -> None:
+        today = timezone.now().date()
+        now = timezone.now()
+        overdue_statuses = [
+            ProjectTaskStatus.PENDING,
+            ProjectTaskStatus.IN_PROGRESS,
+            ProjectTaskStatus.BLOCKED,
+        ]
+        overdue_tasks = (
+            ProjectTask.objects.select_related(
+                'project__project_manager',
+                'project__site_supervisor',
+                'project__construction_request__client',
+                'assigned_to',
+            )
+            .filter(
+                project=project,
+                due_date__lt=today,
+                overdue_notified_at__isnull=True,
+                status__in=overdue_statuses,
+            )
+        )
+
+        mark_overdue_tasks(overdue_tasks, notify_overdue_project_task, timestamp=now)
+
+    @action(detail=False, methods=['get'], url_path='calendar')
+    def calendar(self, request, project_pk=None):
+        project = self.get_project()
+        self._trigger_overdue_notifications(project)
+        tasks = self.get_queryset().filter(due_date__isnull=False)
+        calendar_body = build_project_tasks_ics(project, tasks)
+        response = HttpResponse(calendar_body, content_type='text/calendar')
+        response['Content-Disposition'] = (
+            f'attachment; filename=project-{project.pk}-tasks.ics'
+        )
+        return response
 
 
 
@@ -733,6 +798,7 @@ class ProjectChatMessageViewSet(
             defaults={'read_at': timezone.now()},
         )
         broadcast_project_message(message)
+        notify_project_chat_message(message)
         return message
 
     def create(self, request, *args, **kwargs):

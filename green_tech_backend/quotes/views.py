@@ -9,6 +9,7 @@ from rest_framework.response import Response
 
 from .models import Quote, QuoteChatMessage, QuoteMessageReceipt, QuoteStatus
 from .permissions import QuoteChatAccessPermission
+from .notifications import notify_quote_chat_message
 from .realtime import broadcast_quote_message
 from .serializers import (
     QuoteActionSerializer,
@@ -158,6 +159,7 @@ class QuoteMessageViewSet(
             defaults={'read_at': timezone.now()},
         )
         broadcast_quote_message(message)
+        notify_quote_chat_message(message)
         return message
 
     def create(self, request, *args, **kwargs):

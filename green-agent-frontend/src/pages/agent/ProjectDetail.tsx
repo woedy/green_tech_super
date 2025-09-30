@@ -1,178 +1,242 @@
-import AgentShell from "@/components/layout/AgentShell";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { useMemo } from "react";
 import { useParams } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+import AgentShell from "@/components/layout/AgentShell";
+import ProjectTasksPanel from "@/components/projects/ProjectTasksPanel";
 import { Badge } from "@/components/ui/badge";
-import { AGENT_PROJECTS_SEED } from "@/mocks/agent";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { fetchProjectDashboard, fetchProjectTasks, updateProjectTask } from "@/lib/api";
+import { asArray } from "@/types/api";
+import { ProjectDashboardPayload, ProjectTask, ProjectTaskStatus } from "@/types/project";
 
 export default function ProjectDetail() {
   const { id } = useParams();
-  const p = AGENT_PROJECTS_SEED.find((x) => x.id === id) ?? AGENT_PROJECTS_SEED[0];
-  const milestones: { title: string; due?: string; done?: boolean }[] = [
-    { title: "Site survey & soil test", done: true },
-    { title: "Foundation pour", due: "2025-03-22" },
-    { title: "Framing & roofing", due: "2025-04-30" },
-    { title: "Solar + plumbing rough-ins", due: "2025-05-10" },
-  ];
-  const updates: { at: string; text: string }[] = [
-    { at: "2025-03-09", text: "Soil test results confirm bearing capacity. Excavation scheduled." },
-    { at: "2025-03-12", text: "Footing trenches completed. Rebar placement in progress." },
-  ];
-  const files: { name: string; size: string }[] = [
-    { name: "Permit-Application.pdf", size: "220 KB" },
-    { name: "Structural-Drawings-v2.pdf", size: "1.4 MB" },
-  ];
-  const team: { name: string; role: string }[] = [
-    { name: "Jane Builder", role: "Project Manager" },
-    { name: "Kwame Mensah", role: "Site Engineer" },
-    { name: "Aisha Bello", role: "QS" },
-  ];
+  const projectId = id ?? "";
+  const queryClient = useQueryClient();
+
+  const { data: dashboard, isLoading } = useQuery<ProjectDashboardPayload>({
+    queryKey: ["project-dashboard", projectId],
+    queryFn: () => fetchProjectDashboard(projectId),
+    enabled: Boolean(projectId),
+  });
+
+  const { data: tasksResponse, isFetching: isTasksLoading } = useQuery({
+    queryKey: ["project-tasks", projectId],
+    queryFn: () => fetchProjectTasks(projectId),
+    enabled: Boolean(projectId),
+  });
+
+  const tasks = useMemo<ProjectTask[]>(() => (tasksResponse ? asArray(tasksResponse) : []), [tasksResponse]);
+
+  const updateTask = useMutation({
+    mutationFn: ({ taskId, status }: { taskId: string; status: ProjectTaskStatus }) =>
+      updateProjectTask(projectId, taskId, { status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["project-tasks", projectId] });
+    },
+  });
+
+  const budget = dashboard?.budget_status;
+
   return (
     <AgentShell>
       <section className="py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <h1 className="text-2xl font-bold">{p.title}</h1>
-              <div className="text-sm text-muted-foreground">ID: {p.id}</div>
+              <h1 className="text-2xl font-bold">{dashboard?.title ?? "Project"}</h1>
+              {dashboard && (
+                <div className="text-sm text-muted-foreground space-x-2">
+                  <span>ID: {dashboard.id}</span>
+                  <span>• Phase: {dashboard.current_phase}</span>
+                  <span>• Progress: {Math.round(dashboard.progress_percentage)}%</span>
+                </div>
+              )}
+              {isLoading && !dashboard && <div className="text-sm text-muted-foreground">Loading project details…</div>}
             </div>
-            <div className="text-right">
-              <Badge variant="secondary">{p.status}</Badge>
-              <div className="text-xs text-muted-foreground mt-1">Next: {p.nextMilestone ?? "TBD"}</div>
+            <div className="text-right space-y-1">
+              <Badge variant="secondary">{dashboard?.status ?? "Loading"}</Badge>
+              {dashboard?.days_remaining !== undefined && dashboard?.days_remaining !== null && (
+                <div className="text-xs text-muted-foreground">{dashboard.days_remaining} days remaining</div>
+              )}
             </div>
           </div>
         </div>
       </section>
       <section className="py-4">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader><CardTitle className="text-sm text-muted-foreground">Budget Utilization</CardTitle></CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{budget ? `${budget.utilization.toFixed(1)}%` : "—"}</div>
+                {budget && (
+                  <div className="text-xs text-muted-foreground mt-2">
+                    {budget.status.replace(/_/g, ' ')} • Remaining {budget.currency} {budget.remaining.toLocaleString()}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle className="text-sm text-muted-foreground">Upcoming Milestones</CardTitle></CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{dashboard?.upcoming_milestones.length ?? 0}</div>
+                <div className="text-xs text-muted-foreground mt-2">Including overdue within the next week.</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle className="text-sm text-muted-foreground">Action Items</CardTitle></CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{dashboard?.action_items.length ?? 0}</div>
+                <div className="text-xs text-muted-foreground mt-2">Tasks requiring attention.</div>
+              </CardContent>
+            </Card>
+          </div>
+
           <Tabs defaultValue="overview" className="space-y-4">
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="milestones">Milestones</TabsTrigger>
               <TabsTrigger value="updates">Updates</TabsTrigger>
-              <TabsTrigger value="files">Files</TabsTrigger>
+              <TabsTrigger value="documents">Documents</TabsTrigger>
               <TabsTrigger value="team">Team</TabsTrigger>
+              <TabsTrigger value="tasks">Tasks</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview">
               <Card>
                 <CardHeader><CardTitle>Overview</CardTitle></CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                  <div className="p-3 rounded-md bg-muted/30">
-                    <div className="text-muted-foreground">Project</div>
-                    <div className="font-medium">{p.title}</div>
-                  </div>
-                  <div className="p-3 rounded-md bg-muted/30">
-                    <div className="text-muted-foreground">Status</div>
-                    <div className="font-medium capitalize">{p.status.replace("_"," ")}</div>
-                  </div>
-                  <div className="p-3 rounded-md bg-muted/30">
-                    <div className="text-muted-foreground">Next Milestone</div>
-                    <div className="font-medium">{p.nextMilestone ?? "TBD"}</div>
-                  </div>
-                  <div className="p-3 rounded-md bg-muted/30">
-                    <div className="text-muted-foreground">Start</div>
-                    <div className="font-medium">2025-03-01</div>
-                  </div>
-                  <div className="p-3 rounded-md bg-muted/30">
-                    <div className="text-muted-foreground">Budget</div>
-                    <div className="font-medium">USD 250,000</div>
-                  </div>
-                  <div className="p-3 rounded-md bg-muted/30">
-                    <div className="text-muted-foreground">Client</div>
-                    <div className="font-medium">client@domain.com</div>
-                  </div>
+                  <OverviewItem label="Status" value={dashboard?.status} />
+                  <OverviewItem label="Phase" value={dashboard?.current_phase} />
+                  <OverviewItem label="Progress" value={dashboard ? `${Math.round(dashboard.progress_percentage)}%` : "—"} />
+                  <OverviewItem label="Planned Start" value={formatDate(dashboard?.planned_start_date)} />
+                  <OverviewItem label="Planned End" value={formatDate(dashboard?.planned_end_date)} />
+                  <OverviewItem label="Actual Start" value={formatDate(dashboard?.actual_start_date)} />
+                  <OverviewItem label="Actual End" value={formatDate(dashboard?.actual_end_date)} />
                 </CardContent>
               </Card>
             </TabsContent>
+
             <TabsContent value="milestones">
               <Card>
-                <CardHeader className="flex-row items-center justify-between"><CardTitle>Milestones</CardTitle>
-                  <Dialog>
-                    <DialogTrigger asChild><Button size="sm" variant="outline">Add Milestone</Button></DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader><DialogTitle>Add Milestone (demo)</DialogTitle></DialogHeader>
-                      <div className="grid gap-2">
-                        <Input placeholder="Title" />
-                        <Input placeholder="Due (YYYY-MM-DD)" />
-                        <Button>Add</Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </CardHeader>
-                <CardContent className="p-4 text-sm space-y-2">
-                  {milestones.map((m, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 rounded-md bg-muted/30">
+                <CardHeader><CardTitle>Upcoming Milestones</CardTitle></CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                  {dashboard?.upcoming_milestones.map((milestone) => (
+                    <div key={milestone.id} className="flex items-center justify-between p-3 rounded-md bg-muted/30">
                       <div>
-                        <div className="font-medium">{m.title}</div>
-                        <div className="text-xs text-muted-foreground">{m.due ? `Due ${m.due}` : (m.done ? "Done" : "TBD")}</div>
+                        <div className="font-medium">{milestone.title}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {milestone.due_date ? `Due ${formatDate(milestone.due_date)}` : "Schedule TBD"}
+                        </div>
                       </div>
-                      <Badge variant={m.done ? "default" : "secondary"}>{m.done ? "done" : (m.due ? "upcoming" : "pending")}</Badge>
+                      <Badge variant={milestone.is_overdue ? "destructive" : milestone.is_due_soon ? "default" : "secondary"}>
+                        {milestone.is_overdue ? "Overdue" : milestone.is_due_soon ? "Due soon" : milestone.status}
+                      </Badge>
                     </div>
                   ))}
+                  {dashboard && dashboard.upcoming_milestones.length === 0 && (
+                    <div className="text-sm text-muted-foreground">No upcoming milestones scheduled.</div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
+
             <TabsContent value="updates">
               <Card>
-                <CardHeader className="flex-row items-center justify-between"><CardTitle>Updates</CardTitle>
-                  <Dialog>
-                    <DialogTrigger asChild><Button size="sm" variant="outline">Post Update</Button></DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader><DialogTitle>Post Update (demo)</DialogTitle></DialogHeader>
-                      <div className="grid gap-2">
-                        <Textarea placeholder="Update text" />
-                        <Button>Post</Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </CardHeader>
-                <CardContent className="p-4 text-sm space-y-2">
-                  {updates.map((u, i) => (
-                    <div key={i} className="p-3 rounded-md bg-muted/30">
-                      <div className="text-xs text-muted-foreground">{u.at}</div>
-                      <div>{u.text}</div>
+                <CardHeader><CardTitle>Recent Updates</CardTitle></CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                  {dashboard?.recent_activity.map((update) => (
+                    <div key={update.id} className="p-3 rounded-md bg-muted/30">
+                      <div className="text-xs text-muted-foreground">{formatDateTime(update.created_at)}</div>
+                      <div className="font-medium">{update.title}</div>
+                      <div>{update.body}</div>
                     </div>
                   ))}
+                  {dashboard && dashboard.recent_activity.length === 0 && (
+                    <div className="text-sm text-muted-foreground">No updates yet.</div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
-            <TabsContent value="files">
+
+            <TabsContent value="documents">
               <Card>
-                <CardHeader><CardTitle>Files</CardTitle></CardHeader>
-                <CardContent className="p-4 text-sm space-y-2">
-                  {files.map((f, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 rounded-md bg-muted/30">
+                <CardHeader><CardTitle>Documents</CardTitle></CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                  {dashboard?.documents.map((doc) => (
+                    <div key={doc.id} className="flex flex-col md:flex-row md:items-center md:justify-between p-3 rounded-md bg-muted/30 gap-2">
                       <div>
-                        <div className="font-medium">{f.name}</div>
-                        <div className="text-xs text-muted-foreground">{f.size}</div>
+                        <div className="font-medium">{doc.title}</div>
+                        <div className="text-xs text-muted-foreground">{doc.document_type_display ?? doc.document_type}</div>
                       </div>
-                      <Button variant="outline" size="sm">Download</Button>
+                      <div className="text-xs text-muted-foreground">
+                        {doc.current_version ? `Updated ${formatDateTime(doc.current_version.uploaded_at)}` : "Awaiting upload"}
+                      </div>
                     </div>
                   ))}
+                  {dashboard && dashboard.documents.length === 0 && (
+                    <div className="text-sm text-muted-foreground">No documents yet.</div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
+
             <TabsContent value="team">
               <Card>
                 <CardHeader><CardTitle>Team</CardTitle></CardHeader>
-                <CardContent className="p-4 text-sm space-y-2">
-                  {team.map((t, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 rounded-md bg-muted/30">
-                      <div className="font-medium">{t.name}</div>
-                      <div className="text-xs text-muted-foreground">{t.role}</div>
+                <CardContent className="space-y-3 text-sm">
+                  {dashboard?.team_members.map((member) => (
+                    <div key={member.id} className="flex items-center justify-between p-3 rounded-md bg-muted/30">
+                      <div>
+                        <div className="font-medium">{member.name}</div>
+                        <div className="text-xs text-muted-foreground">{member.role}</div>
+                      </div>
+                      <div className="text-xs text-muted-foreground text-right">
+                        {member.email}
+                        {member.phone && <div>{member.phone}</div>}
+                      </div>
                     </div>
                   ))}
+                  {dashboard && dashboard.team_members.length === 0 && (
+                    <div className="text-sm text-muted-foreground">No team members recorded.</div>
+                  )}
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="tasks">
+              <ProjectTasksPanel
+                tasks={tasks}
+                isLoading={isTasksLoading || updateTask.isPending}
+                onUpdateStatus={(taskId, status) => updateTask.mutate({ taskId, status })}
+              />
             </TabsContent>
           </Tabs>
         </div>
       </section>
     </AgentShell>
   );
+}
+
+function OverviewItem({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div className="p-3 rounded-md bg-muted/30">
+      <div className="text-muted-foreground">{label}</div>
+      <div className="font-medium">{value ?? "—"}</div>
+    </div>
+  );
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return "—";
+  return new Date(value).toLocaleDateString();
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "—";
+  const date = new Date(value);
+  return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 }

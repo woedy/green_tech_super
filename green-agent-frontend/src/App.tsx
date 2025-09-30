@@ -10,6 +10,7 @@ import ForgotPassword from "./pages/auth/ForgotPassword";
 
 // Agent Portal
 import AgentDashboard from "./pages/agent/Dashboard";
+import AgentAnalytics from "./pages/agent/Analytics";
 import Leads from "./pages/agent/Leads";
 import LeadDetail from "./pages/agent/LeadDetail";
 import Calendar from "./pages/agent/Calendar";
@@ -44,6 +45,7 @@ const App = () => (
 
           {/* Agent surfaces */}
           <Route path="/dashboard" element={<AgentDashboard />} />
+          <Route path="/analytics" element={<AgentAnalytics />} />
           <Route path="/leads" element={<Leads />} />
           <Route path="/leads/:id" element={<LeadDetail />} />
           <Route path="/quotes" element={<Quotes />} />

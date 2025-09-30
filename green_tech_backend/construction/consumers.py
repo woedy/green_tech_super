@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from construction.models import Project, ProjectChatMessage, ProjectMessageReceipt
+from construction.notifications import notify_project_chat_message
 from construction.permissions import IsProjectTeamMember
 from construction.serializers.project_serializers import ProjectMessageSerializer
 
@@ -103,6 +104,7 @@ class ProjectChatConsumer(AsyncJsonWebsocketConsumer):
             user=user,
             defaults={'read_at': timezone.now()},
         )
+        notify_project_chat_message(message)
         return message
 
     @sync_to_async
