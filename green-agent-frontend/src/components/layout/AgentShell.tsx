@@ -1,12 +1,13 @@
 ﻿import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Bell, Command as CommandIcon, Home, ListChecks, FileText, Briefcase, Calendar as Cal, MessagesSquare, User } from "lucide-react";
+import { Bell, Command as CommandIcon, Home, ListChecks, FileText, Briefcase, Calendar as Cal, MessagesSquare, User, BarChart3 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import CommandPalette from "@/components/CommandPalette";
 
 const nav = [
   { label: "Dashboard", to: "/dashboard", icon: Home },
+  { label: "Analytics", to: "/analytics", icon: BarChart3 },
   { label: "Leads", to: "/leads", icon: ListChecks },
   { label: "Quotes", to: "/quotes", icon: FileText },
   { label: "Projects", to: "/projects", icon: Briefcase },

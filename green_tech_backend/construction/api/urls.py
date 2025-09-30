@@ -4,6 +4,7 @@ URL configuration for the construction app's API endpoints.
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter, SimpleRouter
 
+from .analytics_views import AgentAnalyticsDashboardView
 from .views import (
     ConstructionRequestViewSet,
     EcoFeatureSelectionViewSet,
@@ -54,6 +55,7 @@ quote_item_router.register(r'items', QuoteItemViewSet, basename='quote-item')
 
 # The API URLs are now determined automatically by the router
 urlpatterns = [
+    path('analytics/agent-dashboard', AgentAnalyticsDashboardView.as_view(), name='agent-analytics-dashboard'),
     # Main API endpoints
     path('', include(router.urls)),
     

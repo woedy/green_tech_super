@@ -1,10 +1,11 @@
 """
 Serializers for project and milestone models.
 """
-from rest_framework import serializers
+from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from django.db.models import Q
+from rest_framework import serializers
 
 from accounts.serializers import UserSerializer
 from properties.serializers import PropertySerializer
@@ -25,6 +26,8 @@ from construction.models import (
     ProjectTaskPriority
 )
 from construction.serializers.quote_serializers import QuoteSerializer
+
+User = get_user_model()
 
 
 class ProjectMilestoneSerializer(serializers.ModelSerializer):
@@ -509,6 +512,47 @@ class ProjectTaskSerializer(serializers.ModelSerializer):
         if obj.status == ProjectTaskStatus.COMPLETED or not obj.due_date:
             return False
         return obj.due_date < timezone.now().date()
+
+
+class ProjectTaskWriteSerializer(ProjectTaskSerializer):
+    assigned_to_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(is_active=True),
+        source='assigned_to',
+        allow_null=True,
+        required=False,
+        write_only=True,
+    )
+
+    class Meta(ProjectTaskSerializer.Meta):
+        fields = ProjectTaskSerializer.Meta.fields + ('assigned_to_id',)
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        if not request:
+            return attrs
+
+        user = request.user
+        if not (user.is_staff or user.is_superuser or self._is_project_manager(user)):
+            disallowed_fields = set(attrs.keys()) - {'status'}
+            if disallowed_fields:
+                raise serializers.ValidationError(
+                    _('Customers may only update the status of actionable tasks.'),
+                )
+        return attrs
+
+    def _is_project_manager(self, user):
+        task = getattr(self, 'instance', None)
+        project = getattr(task, 'project', None)
+        if project is None:
+            project = self.context.get('project')
+        if project is None:
+            view = self.context.get('view')
+            if view is not None:
+                try:
+                    project = view.get_project()
+                except Exception:  # pragma: no cover - defensive guard
+                    project = None
+        return bool(project and project.project_manager_id == user.id)
 
 class ProjectMessageReceiptSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)

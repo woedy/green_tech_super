@@ -1,57 +1,45 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import AgentShell from "@/components/layout/AgentShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AGENT_PROJECTS_SEED, EVENTS } from "@/mocks/agent";
+import { fetchAgentAnalytics, fetchRecentLeads, fetchRecentQuotes } from "@/lib/api";
+import { asArray } from "@/types/api";
 import { Lead } from "@/types/lead";
 import { QuoteSummary } from "@/types/quote";
 
 const Dashboard = () => {
-  const [leadCount, setLeadCount] = useState(0);
-  const [recentLeads, setRecentLeads] = useState<Lead[]>([]);
-  const [recentQuotes, setRecentQuotes] = useState<QuoteSummary[]>([]);
+  const { data: analytics } = useQuery({
+    queryKey: ["agent-analytics"],
+    queryFn: () => fetchAgentAnalytics(),
+  });
 
-  useEffect(() => {
-    const loadLeads = async () => {
-      try {
-        const response = await fetch("/api/leads/?page_size=5");
-        if (!response.ok) return;
-        const payload = await response.json();
-        const results: Lead[] = payload.results ?? payload;
-        setLeadCount(payload.count ?? results.length ?? 0);
-        setRecentLeads(results);
-      } catch (err) {
-        console.error("Failed to load recent leads", err);
-      }
-    };
-    loadLeads();
-  }, []);
+  const { data: leadResponse } = useQuery({
+    queryKey: ["recent-leads"],
+    queryFn: () => fetchRecentLeads(5),
+  });
 
-  useEffect(() => {
-    const loadQuotes = async () => {
-      try {
-        const response = await fetch("/api/quotes/?page_size=5");
-        if (!response.ok) return;
-        const payload = await response.json();
-        const results: QuoteSummary[] = payload.results ?? [];
-        const sorted = results.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-        setRecentQuotes(sorted);
-      } catch (err) {
-        console.error("Failed to load recent quotes", err);
-      }
-    };
-    loadQuotes();
-  }, []);
+  const { data: quoteResponse } = useQuery({
+    queryKey: ["recent-quotes"],
+    queryFn: () => fetchRecentQuotes(5),
+  });
 
-  const quotesSent = recentQuotes.filter((quote) => quote.status === "sent" || quote.status === "viewed").length;
+  const recentLeads: Lead[] = useMemo(() => asArray(leadResponse ?? []).slice(0, 5), [leadResponse]);
+  const recentQuotes: QuoteSummary[] = useMemo(() => {
+    const payload = asArray(quoteResponse ?? []);
+    return [...payload].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5);
+  }, [quoteResponse]);
+
+  const leadTotal = leadResponse?.count ?? recentLeads.length ?? 0;
+  const quotesSent = recentQuotes.filter((quote) => quote.status === "sent" || quote.status === "viewed" || quote.status === "accepted").length;
+  const activeProjects = analytics?.projects.active ?? analytics?.projects.total ?? 0;
 
   const kpis = {
-    leads: leadCount,
+    leads: leadTotal,
     quotesSent,
-    activeProjects: AGENT_PROJECTS_SEED.filter(p => p.status === "in_progress").length,
-    events: EVENTS.length,
+    activeProjects,
   };
 
   return (
@@ -73,9 +61,14 @@ const Dashboard = () => {
       <section className="py-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card><CardContent className="p-4"><div className="text-sm text-muted-foreground">Leads</div><div className="text-2xl font-bold">{kpis.leads}</div></CardContent></Card>
-          <Card><CardContent className="p-4"><div className="text-sm text-muted-foreground">Quotes (sent)</div><div className="text-2xl font-bold">{kpis.quotesSent}</div></CardContent></Card>
+          <Card><CardContent className="p-4"><div className="text-sm text-muted-foreground">Quotes (sent/viewed)</div><div className="text-2xl font-bold">{kpis.quotesSent}</div></CardContent></Card>
           <Card><CardContent className="p-4"><div className="text-sm text-muted-foreground">Active Projects</div><div className="text-2xl font-bold">{kpis.activeProjects}</div></CardContent></Card>
-          <Card><CardContent className="p-4"><div className="text-sm text-muted-foreground">Events</div><div className="text-2xl font-bold">{kpis.events}</div></CardContent></Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-sm text-muted-foreground">Lead → Quote Conversion</div>
+              <div className="text-2xl font-bold">{analytics ? `${Math.round((analytics.conversion_rates.lead_to_quote || 0) * 100)}%` : "—"}</div>
+            </CardContent>
+          </Card>
         </div>
       </section>
       <section className="py-4">

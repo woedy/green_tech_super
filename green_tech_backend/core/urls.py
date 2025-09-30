@@ -26,6 +26,7 @@ urlpatterns = [
     path('api/', include(('properties.urls', 'properties'), namespace='properties')),
     path('api/', include(('leads.urls', 'leads'), namespace='leads')),
     path('api/', include(('quotes.urls', 'quotes'), namespace='quotes')),
+    path('api/construction/', include(('construction.api.urls', 'construction'), namespace='construction')),
     path('api/', include(('locations.urls', 'locations'), namespace='locations')),
     path('api/', include(('notifications.urls', 'notifications'), namespace='notifications')),
     path('api/', include(('sitecontent.urls', 'sitecontent'), namespace='sitecontent')),

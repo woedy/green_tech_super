@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.contrib.auth import get_user_model
 
 from .models import Quote, QuoteChatMessage, QuoteMessageReceipt
+from .notifications import notify_quote_chat_message
 from .permissions import user_can_access_quote_chat
 from .serializers import QuoteMessageSerializer
 
@@ -97,6 +98,7 @@ class QuoteChatConsumer(AsyncJsonWebsocketConsumer):
             user=user,
             defaults={'read_at': timezone.now()},
         )
+        notify_quote_chat_message(message)
         return message
 
     @sync_to_async

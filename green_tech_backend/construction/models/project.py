@@ -456,6 +456,7 @@ class ProjectTask(models.Model):
         related_name='created_project_tasks',
         verbose_name=_('created by')
     )
+    overdue_notified_at = models.DateTimeField(_('overdue notified at'), null=True, blank=True)
     created_at = models.DateTimeField(_('created at'), auto_now_add=True)
     updated_at = models.DateTimeField(_('updated at'), auto_now=True)
 
