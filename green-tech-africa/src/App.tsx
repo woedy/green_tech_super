@@ -37,8 +37,12 @@ import Documents from "./pages/account/Documents";
 import Payments from "./pages/account/Payments";
 import SavedSearches from "./pages/account/SavedSearches";
 import PropertyInquiry from "./pages/PropertyInquiry";
+import FinancialTools from "./pages/FinancialTools";
+import Community from "./pages/Community";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./routes/ProtectedRoute";
+import { PWAInstallPrompt } from "./components/pwa/PWAInstallPrompt";
+import { OfflineIndicator } from "./components/pwa/OfflineIndicator";
 import { toast } from "sonner";
 
 const queryClient = new QueryClient({
@@ -69,6 +73,8 @@ const App = () => (
       <Sonner />
       <AuthProvider>
         <BrowserRouter>
+          <PWAInstallPrompt />
+          <OfflineIndicator />
           <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/about" element={<About />} />
@@ -77,6 +83,9 @@ const App = () => (
           <Route path="/properties" element={<Properties />} />
           <Route path="/properties/:id" element={<PropertyDetail />} />
           <Route path="/properties/:id/inquire" element={<PropertyInquiry />} />
+          <Route path="/land" element={<Properties />} />
+          <Route path="/financial-tools" element={<FinancialTools />} />
+          <Route path="/community" element={<Community />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />

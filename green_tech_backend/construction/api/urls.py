@@ -5,9 +5,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter, SimpleRouter
 
 from .analytics_views import AgentAnalyticsDashboardView
-from .views import (
-    ConstructionRequestViewSet,
-    EcoFeatureSelectionViewSet,
+from .quote_views import (
     QuoteViewSet,
     QuoteItemViewSet
 )
@@ -24,10 +22,11 @@ from .project_views import (
 
 # Create a router and register our viewsets with it
 router = DefaultRouter()
-router.register(r'construction-requests', ConstructionRequestViewSet, 
-                basename='construction-request')
-router.register(r'eco-feature-selections', EcoFeatureSelectionViewSet, 
-                basename='eco-feature-selection')
+# TODO: Add these ViewSets when they are implemented
+# router.register(r'construction-requests', ConstructionRequestViewSet, 
+#                 basename='construction-request')
+# router.register(r'eco-feature-selections', EcoFeatureSelectionViewSet, 
+#                 basename='eco-feature-selection')
 
 # Project and Milestone endpoints
 router.register(r'projects', ProjectViewSet, basename='project')

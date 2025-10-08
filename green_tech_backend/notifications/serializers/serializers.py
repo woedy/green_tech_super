@@ -1,10 +1,10 @@
-""
+"""
 Serializers for the notifications API.
 """
 from rest_framework import serializers
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
-from .models import (
+from ..models import (
     Notification, NotificationTemplate, UserNotificationPreference,
     NotificationType, NotificationStatus, NotificationPriority
 )
@@ -63,15 +63,15 @@ class NotificationSerializer(serializers.ModelSerializer):
             return None
             
         # Import here to avoid circular imports
-        from properties.serializers import PropertySerializer
+        from properties.serializers import PropertyDetailSerializer
         from construction.serializers import ConstructionRequestSerializer
-        from quotes.serializers import QuoteSerializer
+        from quotes.serializers import QuoteDetailSerializer
         
         # Map content types to their respective serializers
         serializer_map = {
-            'property': PropertySerializer,
+            'property': PropertyDetailSerializer,
             'constructionrequest': ConstructionRequestSerializer,
-            'quote': QuoteSerializer,
+            'quote': QuoteDetailSerializer,
         }
         
         model_name = obj.content_type.model.lower()

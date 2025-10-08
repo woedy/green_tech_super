@@ -4,6 +4,7 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
+from .health import health_check
 
 # API URL patterns
 api_patterns = [
@@ -17,6 +18,9 @@ api_patterns = [
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    
+    # Health check
+    path('api/health/', health_check, name='health-check'),
 
     # API v1
     path('api/v1/', include((api_patterns, 'api'), namespace='v1')),

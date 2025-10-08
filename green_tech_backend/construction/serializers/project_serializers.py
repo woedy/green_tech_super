@@ -8,7 +8,7 @@ from django.db.models import Q
 from rest_framework import serializers
 
 from accounts.serializers import UserSerializer
-from properties.serializers import PropertySerializer
+from properties.serializers import PropertyDetailSerializer
 
 from construction.models import (
     Project,
@@ -23,7 +23,9 @@ from construction.models import (
     ProjectUpdateCategory,
     ProjectTask,
     ProjectTaskStatus,
-    ProjectTaskPriority
+    ProjectTaskPriority,
+    ProjectChatMessage,
+    ProjectMessageReceipt
 )
 from construction.serializers.quote_serializers import QuoteSerializer
 
@@ -114,24 +116,7 @@ class ProjectSerializer(serializers.ModelSerializer):
         ]
 
 
-class ProjectDetailSerializer(ProjectSerializer):
-    """Detailed serializer for projects with nested milestones."""
-    milestones = ProjectMilestoneSerializer(many=True, read_only=True)
-    property = PropertySerializer(read_only=True)
-    documents = ProjectDocumentSerializer(many=True, read_only=True)
-    updates = ProjectUpdateSerializer(many=True, read_only=True)
-    tasks = ProjectTaskSerializer(many=True, read_only=True)
-    construction_request = serializers.PrimaryKeyRelatedField(read_only=True)
-    approved_quote = QuoteSerializer(read_only=True)
-    
-    class Meta(ProjectSerializer.Meta):
-        fields = ProjectSerializer.Meta.fields + [
-            'milestones', 'property', 'construction_request', 'approved_quote',
-            'documents', 'updates', 'tasks', 'created_by'
-        ]
-        read_only_fields = ProjectSerializer.Meta.read_only_fields + [
-            'created_by'
-        ]
+# ProjectDetailSerializer moved to end of file to avoid forward reference issues
 
 
 class ProjectStatusUpdateSerializer(serializers.Serializer):
@@ -612,4 +597,24 @@ class ProjectTimelineSerializer(serializers.ModelSerializer):
                 'is_on_track': m.is_on_track
             }
             for m in milestones
+        ]
+
+
+class ProjectDetailSerializer(ProjectSerializer):
+    """Detailed serializer for projects with nested milestones."""
+    milestones = ProjectMilestoneSerializer(many=True, read_only=True)
+    property = PropertyDetailSerializer(read_only=True)
+    documents = ProjectDocumentSerializer(many=True, read_only=True)
+    updates = ProjectUpdateSerializer(many=True, read_only=True)
+    tasks = ProjectTaskSerializer(many=True, read_only=True)
+    construction_request = serializers.PrimaryKeyRelatedField(read_only=True)
+    approved_quote = QuoteSerializer(read_only=True)
+    
+    class Meta(ProjectSerializer.Meta):
+        fields = ProjectSerializer.Meta.fields + [
+            'milestones', 'property', 'construction_request', 'approved_quote',
+            'documents', 'updates', 'tasks', 'created_by'
+        ]
+        read_only_fields = ProjectSerializer.Meta.read_only_fields + [
+            'created_by'
         ]

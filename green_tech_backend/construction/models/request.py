@@ -265,3 +265,76 @@ class ConstructionDocument(models.Model):
 
     def __str__(self):
         return f"{self.get_document_type_display()} - {self.title}"
+
+
+class ConstructionRequestEcoFeature(models.Model):
+    """Through model for eco-features selected in a construction request."""
+    construction_request = models.ForeignKey(
+        ConstructionRequest,
+        on_delete=models.CASCADE,
+        related_name='selected_eco_features',
+        verbose_name=_('construction request')
+    )
+    eco_feature = models.ForeignKey(
+        EcoFeature,
+        on_delete=models.CASCADE,
+        related_name='construction_requests',
+        verbose_name=_('eco feature')
+    )
+    quantity = models.PositiveIntegerField(
+        _('quantity'),
+        default=1,
+        validators=[MinValueValidator(1)],
+        help_text=_('Number of units of this eco feature')
+    )
+    custom_specifications = models.TextField(
+        _('custom specifications'),
+        blank=True,
+        help_text=_('Any custom specifications for this eco feature')
+    )
+    estimated_cost = models.DecimalField(
+        _('estimated cost'),
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        null=True,
+        blank=True,
+        help_text=_('Estimated cost for this eco feature in GHS')
+    )
+    is_approved = models.BooleanField(
+        _('is approved'),
+        default=False,
+        help_text=_('Whether this eco feature has been approved for the project')
+    )
+    added_at = models.DateTimeField(_('added at'), auto_now_add=True)
+    updated_at = models.DateTimeField(_('updated at'), auto_now=True)
+
+    class Meta:
+        verbose_name = _('construction request eco feature')
+        verbose_name_plural = _('construction request eco features')
+        unique_together = ('construction_request', 'eco_feature')
+        ordering = ['eco_feature__category', 'eco_feature__name']
+
+    def __str__(self):
+        return f"{self.construction_request.title} - {self.eco_feature.name}"
+
+    def calculate_estimated_cost(self):
+        """Calculate the estimated cost based on quantity and regional pricing."""
+        if not self.construction_request.region:
+            return None
+        
+        try:
+            from construction.ghana.models import GhanaPricing, GhanaRegion
+            region = GhanaRegion.objects.get(name=self.construction_request.region)
+            pricing = GhanaPricing.objects.get(
+                region=region,
+                eco_feature=self.eco_feature,
+                is_active=True
+            )
+            base_cost = pricing.get_adjusted_price()
+            total_cost = base_cost * self.quantity
+            self.estimated_cost = total_cost
+            self.save()
+            return total_cost
+        except (GhanaRegion.DoesNotExist, GhanaPricing.DoesNotExist):
+            return None

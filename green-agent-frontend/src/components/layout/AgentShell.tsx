@@ -1,9 +1,12 @@
 ﻿import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Bell, Command as CommandIcon, Home, ListChecks, FileText, Briefcase, Calendar as Cal, MessagesSquare, User, BarChart3 } from "lucide-react";
+import { Bell, Command as CommandIcon, Home, ListChecks, FileText, Briefcase, Calendar as Cal, MessagesSquare, User, BarChart3, LogOut, MapPin } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import CommandPalette from "@/components/CommandPalette";
+import { useAuth } from "@/hooks/useAuth";
 
 const nav = [
   { label: "Dashboard", to: "/dashboard", icon: Home },
@@ -17,14 +20,25 @@ const nav = [
 
 export default function AgentShell({ children }: { children: ReactNode }) {
   const location = useLocation();
+  const { user, logout } = useAuth();
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + "/");
+
+  const userInitials = user?.name
+    ?.split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase() || 'A';
 
   return (
     <div className="min-h-screen bg-background text-foreground flex">
       {/* Sidebar */}
       <aside className="hidden md:flex w-64 flex-col border-r">
-        <div className="h-16 flex items-center px-4 border-b">
-          <Link to="/dashboard" className="font-bold">Agent Portal</Link>
+        <div className="h-16 flex items-center justify-between px-4 border-b">
+          <Link to="/dashboard" className="font-bold text-lg">Agent Portal</Link>
+          <Badge variant="outline" className="text-xs">
+            <MapPin className="w-3 h-3 mr-1" />
+            Ghana
+          </Badge>
         </div>
         <nav className="flex-1 p-2 space-y-1">
           {nav.map((item) => {
@@ -36,10 +50,16 @@ export default function AgentShell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
-        <div className="p-2 border-t">
+        <div className="p-2 border-t space-y-1">
           <Link to="/profile" className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-accent/50">
             <User className="w-4 h-4" /> Profile
           </Link>
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-accent/50"
+          >
+            <LogOut className="w-4 h-4" /> Logout
+          </button>
         </div>
       </aside>
 
@@ -49,6 +69,10 @@ export default function AgentShell({ children }: { children: ReactNode }) {
         <header className="h-16 border-b flex items-center justify-between px-4 gap-2">
           <div className="flex items-center gap-2 md:hidden">
             <Link to="/dashboard" className="font-semibold">Agent Portal</Link>
+            <Badge variant="outline" className="text-xs">
+              <MapPin className="w-3 h-3 mr-1" />
+              Ghana
+            </Badge>
           </div>
           <div className="flex-1" />
           <div className="flex items-center gap-2">
@@ -63,6 +87,49 @@ export default function AgentShell({ children }: { children: ReactNode }) {
                   <div className="p-2 rounded-md bg-muted/30">Quote QUO-551 sent • Mar 9</div>
                   <div className="p-2 rounded-md bg-muted/30">New request REQ-1024 in review</div>
                   <div className="p-2 rounded-md bg-muted/30">Project PRJ-88 update posted</div>
+                </div>
+              </PopoverContent>
+            </Popover>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-2">
+                  <Avatar className="h-7 w-7">
+                    <AvatarFallback className="text-xs">{userInitials}</AvatarFallback>
+                  </Avatar>
+                  <span className="hidden sm:inline text-sm">{user?.name || 'Agent'}</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-64">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarFallback>{userInitials}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm truncate">{user?.name}</div>
+                      <div className="text-xs text-muted-foreground truncate">{user?.email}</div>
+                    </div>
+                  </div>
+                  {user?.location && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <MapPin className="w-3 h-3" />
+                      {user.location}
+                    </div>
+                  )}
+                  {user?.verified_agent && (
+                    <Badge variant="secondary" className="text-xs">Verified Agent</Badge>
+                  )}
+                  <div className="pt-2 border-t space-y-1">
+                    <Link to="/profile" className="block px-2 py-1.5 text-sm rounded hover:bg-accent">
+                      Profile Settings
+                    </Link>
+                    <button
+                      onClick={logout}
+                      className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-accent text-destructive"
+                    >
+                      Logout
+                    </button>
+                  </div>
                 </div>
               </PopoverContent>
             </Popover>

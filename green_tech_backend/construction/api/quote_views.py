@@ -23,8 +23,6 @@ from construction.serializers.quote_serializers import (
     QuoteChangeLogSerializer
 )
 from construction.permissions import (
-    IsOwnerOrStaff,
-    IsStaffOrReadOnly,
     IsQuoteOwnerOrStaff,
     IsQuoteItemOwnerOrStaff
 )

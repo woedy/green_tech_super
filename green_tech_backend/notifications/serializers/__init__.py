@@ -1,4 +1,4 @@
-""
+"""
 Serializers for the notifications API.
 """
 from .serializers import (

@@ -1,4 +1,4 @@
-""
+"""
 Views for the notifications API.
 """
 from django.db import transaction

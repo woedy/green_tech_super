@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 
 // Auth
 import Login from "./pages/auth/Login";
@@ -24,7 +25,6 @@ import Messages from "./pages/account/Messages";
 import MessageThread from "./pages/agent/MessageThread";
 import Profile from "./pages/account/Profile";
 import NotificationSettings from "./pages/account/NotificationSettings";
-import AgentShell from "./components/layout/AgentShell";
 import QuoteBuilder from "./pages/agent/QuoteBuilder";
 
 const queryClient = new QueryClient();
@@ -39,25 +39,25 @@ const App = () => (
           {/* Root → Dashboard */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-          {/* Auth */}
+          {/* Auth - Public routes */}
           <Route path="/auth/login" element={<Login />} />
           <Route path="/auth/forgot" element={<ForgotPassword />} />
 
-          {/* Agent surfaces */}
-          <Route path="/dashboard" element={<AgentDashboard />} />
-          <Route path="/analytics" element={<AgentAnalytics />} />
-          <Route path="/leads" element={<Leads />} />
-          <Route path="/leads/:id" element={<LeadDetail />} />
-          <Route path="/quotes" element={<Quotes />} />
-          <Route path="/quotes/new" element={<QuoteBuilder />} />
-          <Route path="/quotes/:id" element={<QuoteDetail />} />
-          <Route path="/projects" element={<Projects />} />
-          <Route path="/projects/:id" element={<ProjectDetail />} />
-          <Route path="/messages" element={<Messages />} />
-          <Route path="/messages/:id" element={<MessageThread />} />
-          <Route path="/calendar" element={<Calendar />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/notifications" element={<NotificationSettings />} />
+          {/* Agent surfaces - Protected routes */}
+          <Route path="/dashboard" element={<ProtectedRoute><AgentDashboard /></ProtectedRoute>} />
+          <Route path="/analytics" element={<ProtectedRoute><AgentAnalytics /></ProtectedRoute>} />
+          <Route path="/leads" element={<ProtectedRoute><Leads /></ProtectedRoute>} />
+          <Route path="/leads/:id" element={<ProtectedRoute><LeadDetail /></ProtectedRoute>} />
+          <Route path="/quotes" element={<ProtectedRoute><Quotes /></ProtectedRoute>} />
+          <Route path="/quotes/new" element={<ProtectedRoute><QuoteBuilder /></ProtectedRoute>} />
+          <Route path="/quotes/:id" element={<ProtectedRoute><QuoteDetail /></ProtectedRoute>} />
+          <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
+          <Route path="/projects/:id" element={<ProtectedRoute><ProjectDetail /></ProtectedRoute>} />
+          <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+          <Route path="/messages/:id" element={<ProtectedRoute><MessageThread /></ProtectedRoute>} />
+          <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute><NotificationSettings /></ProtectedRoute>} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

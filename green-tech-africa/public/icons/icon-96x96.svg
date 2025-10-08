@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="96" height="96" viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle with Ghana green theme -->
+  <circle cx="48" cy="48" r="48" fill="#22c55e"/>
+  
+  <!-- Building/house icon -->
+  <g transform="translate(19.200000000000003, 24)">
+    <!-- House base -->
+    <rect x="0" y="28.799999999999997" width="57.599999999999994" height="33.599999999999994" fill="white" rx="1.92"/>
+    
+    <!-- Roof -->
+    <polygon points="-4.800000000000001,28.799999999999997 28.799999999999997,9.600000000000001 62.400000000000006,28.799999999999997" fill="white"/>
+    
+    <!-- Door -->
+    <rect x="9.600000000000001" y="43.2" width="11.52" height="19.200000000000003" fill="#22c55e" rx="0.96"/>
+    
+    <!-- Windows -->
+    <rect x="33.599999999999994" y="38.400000000000006" width="7.68" height="7.68" fill="#22c55e" rx="0.48"/>
+    <rect x="45.12" y="38.400000000000006" width="7.68" height="7.68" fill="#22c55e" rx="0.48"/>
+    
+    <!-- Solar panel on roof -->
+    <rect x="14.399999999999999" y="14.399999999999999" width="28.799999999999997" height="7.68" fill="#1e40af" rx="0.48"/>
+    
+    <!-- Eco leaf symbol -->
+    <g transform="translate(43.2, 4.800000000000001)">
+      <path d="M 0,7.68 Q 3.84,0 7.68,3.84 Q 3.84,7.68 0,7.68" fill="#16a34a"/>
+      <line x1="0" y1="7.68" x2="3.84" y2="3.84" stroke="#16a34a" stroke-width="0.192"/>
+    </g>
+  </g>
+  
+  <!-- Ghana flag colors accent (small stripe at bottom) -->
+  <rect x="0" y="86.4" width="96" height="3.168" fill="#dc2626"/>
+  <rect x="0" y="89.56800000000001" width="96" height="3.168" fill="#eab308"/>
+  <rect x="0" y="92.73599999999999" width="96" height="3.2640000000000002" fill="#16a34a"/>
+</svg>

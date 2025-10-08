@@ -9,6 +9,7 @@ import {
   ProjectDashboardPayload,
   ProjectSummary,
   ProjectTask,
+  ProjectMilestoneItem,
 } from "@/types/project";
 import { Lead } from "@/types/lead";
 import { QuoteSummary } from "@/types/quote";
@@ -157,10 +158,151 @@ export async function fetchRecentQuotes(limit = 5): Promise<PaginatedResponse<Qu
   return apiFetch<PaginatedResponse<QuoteSummary>>(`/api/quotes/${query}`);
 }
 
+export async function fetchQuotes(params: { status?: string; build_request?: string; customer_email?: string } = {}): Promise<PaginatedResponse<QuoteSummary>> {
+  const query = toQuery(params);
+  return apiFetch<PaginatedResponse<QuoteSummary>>(`/api/quotes/${query}`);
+}
+
+export async function fetchQuoteDetail(quoteId: string): Promise<import("@/types/quote").QuoteDetail> {
+  return apiFetch<import("@/types/quote").QuoteDetail>(`/api/quotes/${quoteId}/`);
+}
+
+export async function createQuote(payload: {
+  build_request: string;
+  notes?: string;
+  terms?: string;
+  prepared_by_name?: string;
+  prepared_by_email?: string;
+  recipient_name?: string;
+  recipient_email?: string;
+  items: Array<{
+    kind: string;
+    label: string;
+    quantity: number;
+    unit_cost: number;
+    apply_region_multiplier: boolean;
+    position: number;
+  }>;
+}): Promise<import("@/types/quote").QuoteDetail> {
+  return apiFetch<import("@/types/quote").QuoteDetail>(`/api/quotes/`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateQuote(
+  quoteId: string,
+  payload: {
+    notes?: string;
+    terms?: string;
+    prepared_by_name?: string;
+    prepared_by_email?: string;
+    recipient_name?: string;
+    recipient_email?: string;
+    items?: Array<{
+      kind: string;
+      label: string;
+      quantity: number;
+      unit_cost: number;
+      apply_region_multiplier: boolean;
+      position: number;
+    }>;
+  }
+): Promise<import("@/types/quote").QuoteDetail> {
+  return apiFetch<import("@/types/quote").QuoteDetail>(`/api/quotes/${quoteId}/`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function sendQuote(quoteId: string): Promise<import("@/types/quote").QuoteDetail> {
+  return apiFetch<import("@/types/quote").QuoteDetail>(`/api/quotes/${quoteId}/send/`, {
+    method: "POST",
+  });
+}
+
+export async function markQuoteViewed(quoteId: string): Promise<import("@/types/quote").QuoteDetail> {
+  return apiFetch<import("@/types/quote").QuoteDetail>(`/api/quotes/${quoteId}/view/`, {
+    method: "POST",
+  });
+}
+
+export async function acceptQuote(quoteId: string, payload: { signature_name: string; signature_email?: string }): Promise<import("@/types/quote").QuoteDetail> {
+  return apiFetch<import("@/types/quote").QuoteDetail>(`/api/quotes/${quoteId}/accept/`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function declineQuote(quoteId: string): Promise<import("@/types/quote").QuoteDetail> {
+  return apiFetch<import("@/types/quote").QuoteDetail>(`/api/quotes/${quoteId}/decline/`, {
+    method: "POST",
+  });
+}
+
 export type ProjectChatSocketEvent =
   | { type: "message"; payload: ProjectChatMessage }
   | { type: "typing"; payload: ProjectChatTypingEvent }
   | { type: "read"; payload: ProjectChatReadEvent };
+
+export async function updateProjectMilestone(
+  projectId: string,
+  milestoneId: string,
+  payload: {
+    title?: string;
+    status?: string;
+    progress?: number;
+    notes?: string;
+    photos?: File[];
+  }
+): Promise<ProjectMilestoneItem> {
+  const formData = new FormData();
+  
+  if (payload.title) formData.append('title', payload.title);
+  if (payload.status) formData.append('status', payload.status);
+  if (payload.progress !== undefined) formData.append('progress', payload.progress.toString());
+  if (payload.notes) formData.append('notes', payload.notes);
+  
+  if (payload.photos) {
+    payload.photos.forEach((photo, index) => {
+      formData.append(`photos[${index}]`, photo);
+    });
+  }
+
+  return apiFetch<ProjectMilestoneItem>(`/api/construction/projects/${projectId}/milestones/${milestoneId}/`, {
+    method: "PATCH",
+    body: formData,
+    headers: {}, // Let browser set Content-Type for FormData
+  });
+}
+
+export async function createChangeOrder(
+  projectId: string,
+  payload: {
+    title: string;
+    description: string;
+    reason: string;
+    items: Array<{
+      description: string;
+      type: "addition" | "removal" | "modification";
+      quantity: number;
+      unitCost: number;
+      laborHours?: number;
+      materialCost?: number;
+    }>;
+    estimatedDays?: number;
+    totalCostImpact: number;
+  }
+): Promise<any> {
+  return apiFetch<any>(`/api/construction/projects/${projectId}/change-orders/`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function fetchChangeOrders(projectId: string): Promise<any[]> {
+  return apiFetch<any[]>(`/api/construction/projects/${projectId}/change-orders/`);
+}
 
 export function createProjectChatSocket(projectId: string): WebSocket {
   const protocol = window.location.protocol === "https:" ? "wss" : "ws";

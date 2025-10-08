@@ -1,33 +1,99 @@
+import { useEffect, useState } from "react";
 import Layout from "@/components/layout/Layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ProjectStatusCard } from "@/components/dashboard/ProjectStatusCard";
+import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
+import { NotificationCenter } from "@/components/dashboard/NotificationCenter";
+import { SavedSearchesWidget } from "@/components/dashboard/SavedSearchesWidget";
 import { 
   ClipboardList,
   FileSpreadsheet,
-  Building2,
   Calendar,
-  MessageCircle,
-  ArrowRight
+  TrendingUp
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { api } from "@/lib/api";
+import { getSavedSearches, toggleAlerts, deleteSavedSearch, type SavedSearch } from "@/lib/savedSearches";
+import { MOCK_NOTIFICATIONS, MOCK_ACTIVITIES, DEFAULT_NOTIFICATION_PREFERENCES } from "@/mocks/notifications";
+import type { ProjectSummary } from "@/types/project";
+import type { Notification, NotificationPreferences } from "@/components/dashboard/NotificationCenter";
+import type { ActivityItem } from "@/components/dashboard/ActivityFeed";
 
 const Dashboard = () => {
-  // Placeholder data to guide backend contracts
-  const recentRequests = [
-    { id: "REQ-1024", plan: "Green Valley Villa", region: "KE-Nairobi", submittedAt: "2025-03-10", status: "in_review" },
-    { id: "REQ-1023", plan: "Urban Duplex A2", region: "NG-Lagos", submittedAt: "2025-03-08", status: "new" },
-  ];
-  const recentQuotes = [
-    { id: "QUO-551", requestId: "REQ-1017", total: 125000, currency: "USD", status: "sent", sentAt: "2025-03-09" },
-  ];
-  const activeProjects = [
-    { id: "PRJ-88", title: "Urban Duplex A2 - Lagos", nextMilestone: "Foundation pour (Mar 22)", progress: 35 },
-  ];
-  const upcomingAppointments = [
-    { id: "APT-301", title: "Site viewing - Riverside Estate", date: "2025-03-15 10:00", location: "Nairobi" },
-  ];
+  const navigate = useNavigate();
+  const [projects, setProjects] = useState<ProjectSummary[]>([]);
+  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>(MOCK_NOTIFICATIONS);
+  const [activities] = useState<ActivityItem[]>(MOCK_ACTIVITIES);
+  const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferences>(DEFAULT_NOTIFICATION_PREFERENCES);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setSavedSearches(getSavedSearches());
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        setLoading(true);
+        const data = await api.get<ProjectSummary[]>("/api/construction/projects/");
+        if (!cancelled) {
+          setProjects(data);
+        }
+      } catch (err) {
+        console.error("Failed to load projects:", err);
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleToggleAlerts = (id: string) => {
+    setSavedSearches(toggleAlerts(id));
+  };
+
+  const handleDeleteSearch = (id: string) => {
+    setSavedSearches(deleteSavedSearch(id));
+  };
+
+  const handleApplySearch = (search: SavedSearch) => {
+    const params = new URLSearchParams();
+    const f = search.filters as any;
+    if (f.q) params.set("q", f.q);
+    if (f.type) params.set("type", f.type);
+    if (f.location) params.set("location", f.location);
+    navigate(`/properties?${params.toString()}`);
+  };
+
+  const handleMarkAsRead = (id: string) => {
+    setNotifications(prev => 
+      prev.map(n => n.id === id ? { ...n, read: true } : n)
+    );
+  };
+
+  const handleMarkAllAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
+
+  const handleUpdatePreferences = (prefs: NotificationPreferences) => {
+    setNotificationPrefs(prefs);
+    // In a real app, this would save to backend
+    console.log("Updated notification preferences:", prefs);
+  };
+
+  const activeProjects = projects.filter(p => 
+    p.status.toLowerCase() === 'in_progress' || p.status.toLowerCase() === 'planning'
+  );
+  const unreadNotifications = notifications.filter(n => !n.read).length;
 
   return (
     <Layout>
@@ -46,28 +112,48 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Quick stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <Card className="shadow-soft">
+            <Card className="shadow-soft hover:shadow-medium smooth-transition">
               <CardContent className="p-4">
-                <div className="text-sm text-muted-foreground">Requests</div>
-                <div className="text-2xl font-bold">{recentRequests.length}</div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm text-muted-foreground">Active Projects</div>
+                    <div className="text-2xl font-bold">{activeProjects.length}</div>
+                  </div>
+                  <TrendingUp className="w-8 h-8 text-primary/20" />
+                </div>
               </CardContent>
             </Card>
-            <Card className="shadow-soft">
+            <Card className="shadow-soft hover:shadow-medium smooth-transition">
               <CardContent className="p-4">
-                <div className="text-sm text-muted-foreground">Quotes</div>
-                <div className="text-2xl font-bold">{recentQuotes.length}</div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm text-muted-foreground">All Projects</div>
+                    <div className="text-2xl font-bold">{projects.length}</div>
+                  </div>
+                  <ClipboardList className="w-8 h-8 text-primary/20" />
+                </div>
               </CardContent>
             </Card>
-            <Card className="shadow-soft">
+            <Card className="shadow-soft hover:shadow-medium smooth-transition">
               <CardContent className="p-4">
-                <div className="text-sm text-muted-foreground">Active Projects</div>
-                <div className="text-2xl font-bold">{activeProjects.length}</div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm text-muted-foreground">Notifications</div>
+                    <div className="text-2xl font-bold">{unreadNotifications}</div>
+                  </div>
+                  <FileSpreadsheet className="w-8 h-8 text-primary/20" />
+                </div>
               </CardContent>
             </Card>
-            <Card className="shadow-soft">
+            <Card className="shadow-soft hover:shadow-medium smooth-transition">
               <CardContent className="p-4">
-                <div className="text-sm text-muted-foreground">Appointments</div>
-                <div className="text-2xl font-bold">{upcomingAppointments.length}</div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm text-muted-foreground">Saved Searches</div>
+                    <div className="text-2xl font-bold">{savedSearches.length}</div>
+                  </div>
+                  <Calendar className="w-8 h-8 text-primary/20" />
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -75,148 +161,112 @@ const Dashboard = () => {
           <Tabs defaultValue="overview" className="space-y-6">
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="messages">Messages</TabsTrigger>
+              <TabsTrigger value="activity">Activity Feed</TabsTrigger>
+              <TabsTrigger value="notifications">
+                Notifications
+                {unreadNotifications > 0 && (
+                  <span className="ml-2 px-1.5 py-0.5 text-xs bg-destructive text-destructive-foreground rounded-full">
+                    {unreadNotifications}
+                  </span>
+                )}
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Recent Requests */}
-                <Card className="shadow-medium">
-                  <CardHeader className="flex-row items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <ClipboardList className="w-5 h-5" />
-                      <CardTitle>Recent Requests</CardTitle>
-                    </div>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link to="/account/requests">View all</Link>
-                    </Button>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {recentRequests.map((r) => (
-                        <div key={r.id} className="flex items-center justify-between p-3 rounded-md bg-muted/30">
-                          <div>
-                            <div className="font-medium">{r.plan}</div>
-                            <div className="text-xs text-muted-foreground">{r.id} • {r.region} • {r.submittedAt}</div>
-                          </div>
-                          <Badge variant="secondary">{r.status}</Badge>
-                        </div>
-                      ))}
-                      {recentRequests.length === 0 && (
-                        <div className="text-sm text-muted-foreground">No requests yet.</div>
-                      )}
-                    </div>
-                    <div className="mt-4">
-                      <Button variant="hero" asChild>
-                        <Link to="/plans">Start a new request</Link>
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                {/* Main content - 2 columns */}
+                <div className="xl:col-span-2 space-y-6">
+                  {/* Active Projects */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-xl font-semibold">Active Projects</h2>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to="/account/projects">View all</Link>
                       </Button>
                     </div>
-                  </CardContent>
-                </Card>
-
-                {/* Recent Quotes */}
-                <Card className="shadow-medium">
-                  <CardHeader className="flex-row items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <FileSpreadsheet className="w-5 h-5" />
-                      <CardTitle>Recent Quotes</CardTitle>
-                    </div>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link to="/account/quotes">View all</Link>
-                    </Button>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {recentQuotes.map((q) => (
-                        <div key={q.id} className="flex items-center justify-between p-3 rounded-md bg-muted/30">
-                          <div>
-                            <div className="font-medium">{q.id} • {q.currency} {q.total.toLocaleString()}</div>
-                            <div className="text-xs text-muted-foreground">For {q.requestId} • sent {q.sentAt}</div>
-                          </div>
-                          <Badge variant="secondary">{q.status}</Badge>
-                        </div>
-                      ))}
-                      {recentQuotes.length === 0 && (
-                        <div className="text-sm text-muted-foreground">No quotes yet.</div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Active Projects */}
-                <Card className="shadow-medium">
-                  <CardHeader className="flex-row items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Building2 className="w-5 h-5" />
-                      <CardTitle>Active Projects</CardTitle>
-                    </div>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link to="/account/projects">View all</Link>
-                    </Button>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {activeProjects.map((p) => (
-                        <div key={p.id} className="flex items-center justify-between p-3 rounded-md bg-muted/30">
-                          <div>
-                            <div className="font-medium">{p.title}</div>
-                            <div className="text-xs text-muted-foreground">Next: {p.nextMilestone}</div>
-                          </div>
-                          <Badge variant="secondary">{p.progress}%</Badge>
-                        </div>
-                      ))}
-                      {activeProjects.length === 0 && (
-                        <div className="text-sm text-muted-foreground">No active projects.</div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Upcoming Appointments */}
-                <Card className="shadow-medium">
-                  <CardHeader className="flex-row items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-5 h-5" />
-                      <CardTitle>Upcoming Appointments</CardTitle>
-                    </div>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link to="/account/appointments">View all</Link>
-                    </Button>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {upcomingAppointments.map((a) => (
-                        <div key={a.id} className="flex items-center justify-between p-3 rounded-md bg-muted/30">
-                          <div>
-                            <div className="font-medium">{a.title}</div>
-                            <div className="text-xs text-muted-foreground">{a.date} • {a.location}</div>
-                          </div>
-                          <Button variant="ghost" size="sm" className="group">
-                            Details <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 smooth-transition" />
+                    {loading ? (
+                      <Card>
+                        <CardContent className="p-6 text-sm text-muted-foreground">
+                          Loading projects...
+                        </CardContent>
+                      </Card>
+                    ) : activeProjects.length === 0 ? (
+                      <Card>
+                        <CardContent className="p-6 text-sm text-muted-foreground text-center">
+                          <p>No active projects yet.</p>
+                          <Button variant="hero" className="mt-4" asChild>
+                            <Link to="/plans">Start a new request</Link>
                           </Button>
-                        </div>
-                      ))}
-                      {upcomingAppointments.length === 0 && (
-                        <div className="text-sm text-muted-foreground">No upcoming appointments.</div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <div className="space-y-4">
+                        {activeProjects.slice(0, 3).map((project) => (
+                          <ProjectStatusCard key={project.id} project={project} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Recent Activity */}
+                  <ActivityFeed activities={activities} maxItems={5} />
+                </div>
+
+                {/* Sidebar - 1 column */}
+                <div className="space-y-6">
+                  {/* Saved Searches */}
+                  <SavedSearchesWidget
+                    searches={savedSearches}
+                    onToggleAlerts={handleToggleAlerts}
+                    onDelete={handleDeleteSearch}
+                    onApply={handleApplySearch}
+                    maxItems={3}
+                  />
+
+                  {/* Quick Actions */}
+                  <Card className="shadow-medium">
+                    <CardContent className="p-4 space-y-3">
+                      <h3 className="font-semibold text-sm mb-3">Quick Actions</h3>
+                      <Button variant="outline" className="w-full justify-start" asChild>
+                        <Link to="/plans">
+                          <ClipboardList className="w-4 h-4 mr-2" />
+                          Request New Build
+                        </Link>
+                      </Button>
+                      <Button variant="outline" className="w-full justify-start" asChild>
+                        <Link to="/properties">
+                          <FileSpreadsheet className="w-4 h-4 mr-2" />
+                          Browse Properties
+                        </Link>
+                      </Button>
+                      <Button variant="outline" className="w-full justify-start" asChild>
+                        <Link to="/account/messages">
+                          <Calendar className="w-4 h-4 mr-2" />
+                          View Messages
+                        </Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
             </TabsContent>
 
-            <TabsContent value="messages">
-              <Card className="shadow-medium">
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <MessageCircle className="w-5 h-5" />
-                    <CardTitle>Messages</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-sm text-muted-foreground">Messaging UI will appear here. For now, visit <Link to="/account/messages" className="text-primary underline">Conversations</Link>.</div>
-                </CardContent>
-              </Card>
+            <TabsContent value="activity">
+              <div className="max-w-4xl mx-auto">
+                <ActivityFeed activities={activities} maxItems={20} />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="notifications">
+              <div className="max-w-4xl mx-auto">
+                <NotificationCenter
+                  notifications={notifications}
+                  preferences={notificationPrefs}
+                  onMarkAsRead={handleMarkAsRead}
+                  onMarkAllAsRead={handleMarkAllAsRead}
+                  onUpdatePreferences={handleUpdatePreferences}
+                />
+              </div>
             </TabsContent>
           </Tabs>
         </div>

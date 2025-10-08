@@ -285,7 +285,7 @@ class ConstructionPermissionTests(TestCase):
         )
     
     def test_is_owner_or_admin_permission(self):
-        ""Test the IsOwnerOrAdmin permission."""
+        """Test the IsOwnerOrAdmin permission."""
         permission = IsOwnerOrAdmin()
         request = self.factory.get('/')
         request.user = self.client_user
@@ -302,7 +302,7 @@ class ConstructionPermissionTests(TestCase):
         self.assertFalse(permission.has_object_permission(request, None, self.construction_request))
     
     def test_is_project_team_member_permission(self):
-        ""Test the IsProjectTeamMember permission."""
+        """Test the IsProjectTeamMember permission."""
         permission = IsProjectTeamMember()
         request = self.factory.get('/')
         
@@ -327,7 +327,7 @@ class ConstructionPermissionTests(TestCase):
         self.assertFalse(permission.has_object_permission(request, None, self.project))
     
     def test_is_project_manager_or_admin_permission(self):
-        ""Test the IsProjectManagerOrAdmin permission."""
+        """Test the IsProjectManagerOrAdmin permission."""
         permission = IsProjectManagerOrAdmin()
         request = self.factory.get('/')
         

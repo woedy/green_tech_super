@@ -1,9 +1,12 @@
+"""
+Serializers for construction request models.
+"""
 from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
 from accounts.serializers import UserSerializer
-from properties.serializers import PropertySerializer
+from properties.serializers import PropertyDetailSerializer
 from construction.ghana.serializers import EcoFeatureSerializer
-from .models import (
+from ..models import (
     ConstructionRequest, ConstructionMilestone, 
     ConstructionDocument, Project, ProjectStatus,
     ConstructionRequestEcoFeature, ConstructionRequestStep
@@ -53,9 +56,10 @@ class ConstructionRequestEcoFeatureSerializer(serializers.ModelSerializer):
         model = ConstructionRequestEcoFeature
         fields = [
             'id', 'eco_feature', 'eco_feature_details', 'quantity', 
-            'customizations', 'estimated_cost', 'notes', 'created_at', 'updated_at'
+            'custom_specifications', 'estimated_cost', 'is_approved', 
+            'added_at', 'updated_at'
         ]
-        read_only_fields = ('id', 'created_at', 'updated_at', 'estimated_cost')
+        read_only_fields = ('id', 'added_at', 'updated_at', 'estimated_cost')
 
 
 class ConstructionRequestSerializer(serializers.ModelSerializer):
@@ -77,18 +81,24 @@ class ConstructionRequestSerializer(serializers.ModelSerializer):
         read_only=True,
         source='selected_eco_features.all'
     )
+    client = UserSerializer(read_only=True)
+    project_manager = UserSerializer(read_only=True)
+    contractors = UserSerializer(many=True, read_only=True)
+    milestones = ConstructionMilestoneSerializer(many=True, read_only=True)
+    documents = ConstructionDocumentSerializer(many=True, read_only=True)
+    property_data = PropertyDetailSerializer(source='property', read_only=True)
     
     class Meta:
         model = ConstructionRequest
         fields = [
             'id', 'title', 'description', 'construction_type', 'construction_type_display',
             'status', 'status_display', 'current_step', 'current_step_display',
-            'is_completed', 'customization_data', 'property', 'address', 'city',
-            'region', 'start_date', 'estimated_end_date', 'actual_end_date',
-            'budget', 'currency', 'estimated_cost', 'target_energy_rating',
-            'target_water_rating', 'target_sustainability_score', 'client',
-            'project_manager', 'contractors', 'selected_eco_features',
-            'created_at', 'updated_at'
+            'is_completed', 'customization_data', 'property', 'property_data', 
+            'address', 'city', 'region', 'start_date', 'estimated_end_date', 
+            'actual_end_date', 'budget', 'currency', 'estimated_cost', 
+            'target_energy_rating', 'target_water_rating', 'target_sustainability_score', 
+            'client', 'project_manager', 'contractors', 'selected_eco_features',
+            'milestones', 'documents', 'created_at', 'updated_at'
         ]
         read_only_fields = ('id', 'created_at', 'updated_at', 'estimated_cost')
     
@@ -124,30 +134,6 @@ class ConstructionRequestSerializer(serializers.ModelSerializer):
                 instance.is_completed = True
         
         return super().update(instance, validated_data)
-    status_display = serializers.CharField(
-        source='get_status_display', 
-        read_only=True
-    )
-    client = UserSerializer(read_only=True)
-    project_manager = UserSerializer(read_only=True)
-    contractors = UserSerializer(many=True, read_only=True)
-    milestones = ConstructionMilestoneSerializer(many=True, read_only=True)
-    documents = ConstructionDocumentSerializer(many=True, read_only=True)
-    property_data = PropertySerializer(source='property', read_only=True)
-    
-    class Meta:
-        model = ConstructionRequest
-        fields = [
-            'id', 'title', 'description', 'construction_type', 
-            'construction_type_display', 'status', 'status_display',
-            'property', 'property_data', 'address', 'city', 'region',
-            'start_date', 'estimated_end_date', 'actual_end_date',
-            'budget', 'currency', 'target_energy_rating', 
-            'target_water_rating', 'target_sustainability_score',
-            'client', 'project_manager', 'contractors',
-            'milestones', 'documents', 'created_at', 'updated_at'
-        ]
-        read_only_fields = ('id', 'created_at', 'updated_at')
     
     def create(self, validated_data):
         """Create a new construction request with the current user as client if not provided."""
@@ -163,36 +149,13 @@ class ProjectSerializer(serializers.ModelSerializer):
         source='get_status_display', 
         read_only=True
     )
-    duration_days = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = Project
-        fields = [
-            'id', 'name', 'description', 'status', 'status_display', 
-            'construction_request', 'start_date', 'estimated_end_date', 
-            'actual_end_date', 'estimated_budget', 'actual_cost', 'currency',
-            'energy_efficiency_rating', 'water_efficiency_rating', 
-            'sustainability_score', 'co2_emissions_saved', 'water_saved',
-            'project_manager', 'site_supervisor', 'contractors', 'location',
-            'gps_coordinates', 'region', 'district', 'notes', 'created_at',
-            'updated_at', 'created_by', 'duration_days'
-        ]
-        read_only_fields = ('id', 'created_at', 'updated_at', 'duration_days')
-    
-    def get_duration_days(self, obj):
-        """Calculate the project duration in days."""
-        if obj.start_date and obj.actual_end_date:
-            return (obj.actual_end_date - obj.start_date).days
-        elif obj.start_date and obj.estimated_end_date:
-            return (obj.estimated_end_date - obj.start_date).days
-        return None
     created_by = UserSerializer(read_only=True)
     project_manager = UserSerializer(read_only=True)
     site_supervisor = UserSerializer(read_only=True)
     contractors = UserSerializer(many=True, read_only=True)
     construction_request = ConstructionRequestSerializer(read_only=True)
     sustainability_score = serializers.ReadOnlyField()
-    duration_days = serializers.ReadOnlyField()
+    duration_days = serializers.SerializerMethodField()
     is_active = serializers.ReadOnlyField()
     
     class Meta:
@@ -212,6 +175,14 @@ class ProjectSerializer(serializers.ModelSerializer):
             'id', 'sustainability_score', 'created_at', 'updated_at',
             'duration_days', 'is_active'
         )
+    
+    def get_duration_days(self, obj):
+        """Calculate the project duration in days."""
+        if obj.start_date and obj.actual_end_date:
+            return (obj.actual_end_date - obj.start_date).days
+        elif obj.start_date and obj.estimated_end_date:
+            return (obj.estimated_end_date - obj.start_date).days
+        return None
     
     def create(self, validated_data):
         """

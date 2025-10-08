@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Building, Home } from "lucide-react";
+import { ArrowRight, Building, Home, Scale } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroImage from "@/assets/hero-construction.jpg";
 
@@ -37,22 +37,31 @@ const Hero = () => {
                 <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
               </Link>
             </Button>
-            
+
             <Button variant="outline" size="xl" className="bg-white/10 border-white/30 text-white hover:bg-white hover:text-professional backdrop-blur-sm" asChild>
               <Link to="/properties">
                 <Home className="w-5 h-5 mr-2" />
                 View Properties
               </Link>
             </Button>
+
+            <Button variant="outline" size="xl" className="bg-white/10 border-white/30 text-white hover:bg-white hover:text-professional backdrop-blur-sm" asChild>
+              <Link to="/land">
+                <Scale className="w-5 h-5 mr-2" />
+                Land Sales & Legal
+              </Link>
+            </Button>
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-8 mt-16">
             {[
               { number: "250+", label: "Projects Completed" },
               { number: "15+", label: "Years Experience" },
               { number: "500+", label: "Happy Clients" },
               { number: "50+", label: "Green Buildings" },
+              { number: "1000+", label: "Acres Sold" },
+              { number: "500+", label: "Legal Cases Won" },
             ].map((stat, index) => (
               <div key={index} className="text-center">
                 <div className="text-3xl md:text-4xl font-bold text-success mb-2">

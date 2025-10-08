@@ -11,6 +11,15 @@ from django.utils import timezone
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
+
+class ActionType(models.TextChoices):
+    CREATE = 'create', _('Create')
+    UPDATE = 'update', _('Update')
+    DELETE = 'delete', _('Delete')
+    PUBLISH = 'publish', _('Publish')
+    UNPUBLISH = 'unpublish', _('Unpublish')
+
+
 from .audit import ActionType
 
 

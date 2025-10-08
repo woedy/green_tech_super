@@ -12,7 +12,9 @@ from .project import (
     MilestoneStatus,
     ProjectDocument,
     ProjectDocumentVersion,
+    ProjectDocumentType,
     ProjectUpdate,
+    ProjectUpdateCategory,
     ProjectTask,
     ProjectTaskStatus,
     ProjectTaskPriority,
@@ -20,7 +22,7 @@ from .project import (
     ProjectChatMessage,
     ProjectMessageReceipt,
 )
-from .request import ConstructionRequest, ConstructionMilestone, ConstructionDocument
+from .request import ConstructionRequest, ConstructionMilestone, ConstructionDocument, ConstructionRequestEcoFeature, ConstructionRequestStep
 
 # Make models available at the package level
 __all__ = [
@@ -38,7 +40,9 @@ __all__ = [
     'MilestoneStatus',
     'ProjectDocument',
     'ProjectDocumentVersion',
+    'ProjectDocumentType',
     'ProjectUpdate',
+    'ProjectUpdateCategory',
     'ProjectTask',
     'ProjectTaskStatus',
     'ProjectTaskPriority',
@@ -50,5 +54,7 @@ __all__ = [
     'ConstructionRequest',
     'ConstructionMilestone',
     'ConstructionDocument',
+    'ConstructionRequestEcoFeature',
+    'ConstructionRequestStep',
 ]
 

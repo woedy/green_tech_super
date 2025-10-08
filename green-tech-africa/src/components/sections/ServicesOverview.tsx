@@ -4,6 +4,7 @@ import {
   Building2, 
   Home, 
   TreePine, 
+  Scale,
   Wrench, 
   MapPin, 
   Shield,
@@ -33,6 +34,13 @@ const ServicesOverview = () => {
       description: "Eco-friendly construction methods and renewable energy integration for sustainable development.",
       features: ["Solar Installation", "Green Certification", "Energy Efficiency"],
       color: "text-primary-light"
+    },
+    {
+      icon: Scale,
+      title: "Land & Legal Services",
+      description: "Comprehensive land sales and legal support for all your property and land-related needs across Africa.",
+      features: ["Land Sales", "Legal Consultation", "Title Registration"],
+      color: "text-accent"
     }
   ];
 
@@ -49,7 +57,7 @@ const ServicesOverview = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           {services.map((service, index) => {
             const IconComponent = service.icon;
             return (

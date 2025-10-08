@@ -30,10 +30,16 @@ try:
 except Exception:  # pragma: no cover
     construction_ws = []
 
+try:
+    from notifications.routing import websocket_urlpatterns as notification_ws
+except Exception:  # pragma: no cover
+    notification_ws = []
+
 websocket_urlpatterns.extend(plan_ws)
 websocket_urlpatterns.extend(lead_ws)
 websocket_urlpatterns.extend(quote_ws)
 websocket_urlpatterns.extend(construction_ws)
+websocket_urlpatterns.extend(notification_ws)
 
 application = ProtocolTypeRouter(
     {

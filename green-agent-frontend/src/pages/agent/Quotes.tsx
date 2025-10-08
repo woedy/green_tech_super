@@ -5,9 +5,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link } from "react-router-dom";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState, useCallback } from "react";
 import { QuoteStatus, QuoteSummary } from "@/types/quote";
 import { toast } from "@/components/ui/use-toast";
+import { fetchQuotes, sendQuote } from "@/lib/api";
+import { asArray } from "@/types/api";
+import { Loader2, FileText, Plus } from "lucide-react";
 
 const STATUS_FILTERS: { value: QuoteStatus | "all"; label: string }[] = [
   { value: "all", label: "All" },
@@ -28,32 +32,14 @@ const STATUS_BADGES: Record<QuoteStatus, { label: string; variant: "default" | "
 
 export default function AgentQuotes() {
   const [status, setStatus] = useState<QuoteStatus | "all">("all");
-  const [quotes, setQuotes] = useState<QuoteSummary[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [sendingQuoteId, setSendingQuoteId] = useState<string | null>(null);
 
-  const fetchQuotes = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const query = status === "all" ? "" : `&status=${status}`;
-      const response = await fetch(`/api/quotes/?page_size=200${query}`);
-      if (!response.ok) {
-        throw new Error(`Failed to load quotes (${response.status})`);
-      }
-      const data = await response.json();
-      setQuotes((data.results ?? []) as QuoteSummary[]);
-      setError(null);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Unable to load quotes";
-      setError(message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [status]);
+  const { data: quotesResponse, isLoading, error, refetch } = useQuery({
+    queryKey: ["quotes", status],
+    queryFn: () => fetchQuotes(status === "all" ? {} : { status }),
+  });
 
-  useEffect(() => {
-    fetchQuotes();
-  }, [fetchQuotes]);
+  const quotes = useMemo(() => asArray(quotesResponse ?? []), [quotesResponse]);
 
   const formatTotal = useCallback((quote: QuoteSummary) => {
     try {
@@ -68,39 +54,56 @@ export default function AgentQuotes() {
   }, []);
 
   const handleSend = async (quoteId: string) => {
+    setSendingQuoteId(quoteId);
     try {
-      const response = await fetch(`/api/quotes/${quoteId}/send/`, { method: "POST" });
-      if (!response.ok) {
-        throw new Error(`Unable to send quote (${response.status})`);
-      }
-      toast({ title: "Quote sent", description: "Customer has been notified." });
-      fetchQuotes();
+      await sendQuote(quoteId);
+      toast({ title: "Quote sent successfully", description: "Customer has been notified via email." });
+      refetch();
     } catch (err) {
       toast({
         title: "Failed to send quote",
         description: err instanceof Error ? err.message : "Unknown error",
         variant: "destructive",
       });
+    } finally {
+      setSendingQuoteId(null);
     }
   };
 
-  const filtered = useMemo(() => quotes, [quotes]);
-
   return (
     <AgentShell>
-      <section className="py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Quotes</h1>
-          <div className="flex items-center gap-2">
-            <Button asChild size="sm"><Link to="/quotes/new">New Quote</Link></Button>
-            <Select value={status} onValueChange={(value) => setStatus(value as QuoteStatus | "all")}>
-              <SelectTrigger className="w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
-              <SelectContent>
-                {STATUS_FILTERS.map((filter) => (
-                  <SelectItem key={filter.value} value={filter.value}>{filter.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      <section className="py-6 bg-gradient-to-br from-background via-accent/10 to-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-3">
+              <FileText className="w-8 h-8 text-primary" />
+              <div>
+                <h1 className="text-3xl font-bold">Quotes</h1>
+                <p className="text-sm text-muted-foreground">
+                  Manage and track all customer quotes
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Select value={status} onValueChange={(value) => setStatus(value as QuoteStatus | "all")}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_FILTERS.map((filter) => (
+                    <SelectItem key={filter.value} value={filter.value}>
+                      {filter.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button asChild>
+                <Link to="/quotes/new">
+                  <Plus className="w-4 h-4 mr-2" />
+                  New Quote
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
       </section>
@@ -123,26 +126,31 @@ export default function AgentQuotes() {
                 <TableBody>
                   {isLoading && (
                     <TableRow>
-                      <TableCell colSpan={7} className="py-6 text-center text-sm text-muted-foreground">
-                        Loading quotes…
+                      <TableCell colSpan={7} className="py-12 text-center">
+                        <Loader2 className="w-8 h-8 animate-spin mx-auto text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground mt-2">Loading quotes...</p>
                       </TableCell>
                     </TableRow>
                   )}
                   {!isLoading && error && (
                     <TableRow>
                       <TableCell colSpan={7} className="py-6 text-center text-sm text-destructive">
-                        {error}
+                        {error instanceof Error ? error.message : "Failed to load quotes"}
                       </TableCell>
                     </TableRow>
                   )}
-                  {!isLoading && !error && filtered.length === 0 && (
+                  {!isLoading && !error && quotes.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} className="py-6 text-center text-sm text-muted-foreground">
-                        No quotes yet.
+                      <TableCell colSpan={7} className="py-12 text-center">
+                        <FileText className="w-12 h-12 mx-auto text-muted-foreground opacity-50 mb-2" />
+                        <p className="text-sm text-muted-foreground">No quotes found.</p>
+                        <Button asChild variant="outline" size="sm" className="mt-4">
+                          <Link to="/quotes/new">Create your first quote</Link>
+                        </Button>
                       </TableCell>
                     </TableRow>
                   )}
-                  {!isLoading && !error && filtered.map((quote) => {
+                  {!isLoading && !error && quotes.map((quote) => {
                     const badge = STATUS_BADGES[quote.status];
                     return (
                       <TableRow key={quote.id}>
@@ -167,9 +175,19 @@ export default function AgentQuotes() {
                           {quote.sent_at ? new Date(quote.sent_at).toLocaleDateString() : '—'}
                         </TableCell>
                         <TableCell className="text-right space-x-2">
-                          <Button asChild variant="outline" size="sm"><Link to={`/quotes/${quote.id}`}>Open</Link></Button>
-                          {(quote.status === 'draft' || quote.status === 'viewed') && (
-                            <Button variant="outline" size="sm" onClick={() => handleSend(quote.id)}>Send</Button>
+                          <Button asChild variant="outline" size="sm">
+                            <Link to={`/quotes/${quote.id}`}>View</Link>
+                          </Button>
+                          {quote.status === 'draft' && (
+                            <Button 
+                              variant="default" 
+                              size="sm" 
+                              onClick={() => handleSend(quote.id)}
+                              disabled={sendingQuoteId === quote.id}
+                            >
+                              {sendingQuoteId === quote.id && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
+                              Send
+                            </Button>
                           )}
                         </TableCell>
                       </TableRow>

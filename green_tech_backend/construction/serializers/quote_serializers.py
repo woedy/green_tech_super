@@ -8,7 +8,7 @@ from construction.models.quote import (
     QuoteChangeLog,
     QuoteStatus
 )
-from construction.serializers import UserSerializer
+from accounts.serializers import UserSerializer
 
 
 class QuoteItemSerializer(serializers.ModelSerializer):
@@ -154,7 +154,7 @@ class QuoteUpdateSerializer(QuoteSerializer):
 class QuoteItemCreateSerializer(QuoteItemSerializer):
     """Serializer for creating quote items."""
     class Meta(QuoteItemSerializer.Meta):
-        read_only_fields = QuoteItemSerializer.Meta.readonly_fields + [
+        read_only_fields = QuoteItemSerializer.Meta.read_only_fields + [
             'total_amount'
         ]
 
@@ -162,6 +162,6 @@ class QuoteItemCreateSerializer(QuoteItemSerializer):
 class QuoteItemUpdateSerializer(QuoteItemSerializer):
     """Serializer for updating quote items."""
     class Meta(QuoteItemSerializer.Meta):
-        read_only_fields = QuoteItemSerializer.Meta.readonly_fields + [
+        read_only_fields = QuoteItemSerializer.Meta.read_only_fields + [
             'total_amount', 'quote'
         ]
