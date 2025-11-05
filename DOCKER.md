@@ -39,7 +39,7 @@ Migrations run automatically on boot. If you need a clean slate, stop the stack 
 ## 2. Coolify deployment
 
 1. Copy `.env.coolify.example` to `.env.coolify` and fill in your production secrets, domains, and (optionally) external database connection info.
-2. In Coolify, create a docker-compose application that points at `docker-compose.coolify.yml` and loads the `.env.coolify` file.
+2. In Coolify, create a docker-compose application that points at `docker-compose.coolify.yml` and loads the `.env.coolify` file. Keep the Postgres username/password aligned with the defaults (`gtagent`/`super-secret-password`) unless you intend to wipe the existing database volume.
 3. Coolify will build the images and map ports itself:
    - `backend` exposes port `8000` (ASGI via Daphne)
    - Each frontend exposes port `80` (served by nginx)
