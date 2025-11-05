@@ -1,0 +1,14 @@
+.git
+.gitignore
+**/__pycache__
+**/*.py[cod]
+**/node_modules
+**/dist
+**/dev-dist
+**/.vite
+**/.pytest_cache
+venv
+.venv
+*.log
+docker-compose.local.yml
+docker-compose.coolify.yml

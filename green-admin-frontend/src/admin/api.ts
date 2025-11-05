@@ -1,6 +1,16 @@
 ﻿import type { PlanPayload, PlanResponse, PropertyPayload, PropertyResponse, RegionPayload, RegionResponse, NotificationTemplatePayload, NotificationTemplateResponse, SiteDocumentPayload, SiteDocumentResponse, SiteDocumentVersionPayload, SiteDocumentVersionResponse } from './types/api';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') ?? '/api';
+const explicitBase = import.meta.env.VITE_API_BASE_URL
+  ? (import.meta.env.VITE_API_BASE_URL as string).replace(/\/$/, '')
+  : null;
+const apiDomain = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '');
+const apiPath = (import.meta.env.VITE_API_BASE_PATH as string | undefined) ?? '/api';
+
+const API_BASE =
+  explicitBase ??
+  (apiDomain
+    ? `${apiDomain}${apiPath.startsWith('/') ? '' : '/'}${apiPath}`.replace(/\/$/, '')
+    : apiPath);
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {

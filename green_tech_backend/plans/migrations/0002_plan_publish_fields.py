@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
             name='is_published',
             field=models.BooleanField(default=False, verbose_name='is published'),
         ),
-        migrations.AddField(
+        migrations.AlterField(
             model_name='planfeature',
             name='is_sustainable',
             field=models.BooleanField(default=False, verbose_name='is sustainable feature'),

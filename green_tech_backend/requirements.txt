@@ -5,6 +5,7 @@ django-filter
 django-cors-headers
 djangorestframework
 python-dotenv
+daphne
 setuptools
 wheel
 
