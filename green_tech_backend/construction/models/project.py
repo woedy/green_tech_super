@@ -13,7 +13,6 @@ from django.db.models.functions import Coalesce
 from builtins import property as builtin_property
 from django.contrib.auth import get_user_model
 
-from construction.models.quote import Quote
 from properties.models import Property
 
 User = get_user_model()
@@ -98,14 +97,7 @@ class Project(models.Model):
         null=True,
         blank=True
     )
-    approved_quote = models.OneToOneField(
-        'construction.Quote',
-        on_delete=models.PROTECT,
-        related_name='project',
-        verbose_name=_('approved quote'),
-        null=True,
-        blank=True
-    )
+    # approved_quote field removed - quotes now handled by quotes app
     property = models.ForeignKey(
         Property,
         on_delete=models.PROTECT,
@@ -513,14 +505,7 @@ class ProjectChatMessage(models.Model):
         on_delete=models.CASCADE,
         verbose_name=_('project'),
     )
-    quote = models.ForeignKey(
-        Quote,
-        related_name='chat_messages',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        verbose_name=_('related quote'),
-    )
+    # quote field removed - quotes now handled by quotes app
     sender = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,

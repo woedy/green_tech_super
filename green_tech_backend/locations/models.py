@@ -23,6 +23,22 @@ class Region(models.Model):
         help_text=_('Multiplier applied to plan base prices to estimate local costs'),
     )
     timezone = models.CharField(_('timezone'), max_length=64, blank=True)
+    
+    # Ghana-specific fields (consolidated from GhanaRegion)
+    capital = models.CharField(_('capital city'), max_length=100, blank=True)
+    ghana_region_name = models.CharField(
+        _('Ghana region name'),
+        max_length=50,
+        blank=True,
+        help_text=_('Official Ghana region name if applicable')
+    )
+    local_materials_available = models.JSONField(
+        _('local materials available'),
+        default=list,
+        blank=True,
+        help_text=_('List of locally available construction materials')
+    )
+    
     is_active = models.BooleanField(_('is active'), default=True)
     created_at = models.DateTimeField(_('created at'), auto_now_add=True)
     updated_at = models.DateTimeField(_('updated at'), auto_now=True)

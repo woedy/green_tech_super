@@ -1,0 +1,121 @@
+{
+  "scan_timestamp": "2026-01-01T20:55:37.914970",
+  "project_root": "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend",
+  "experimental_files": [
+    {
+      "path": "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\construction\\urls_new.py",
+      "relative_path": "construction\\urls_new.py",
+      "size_bytes": 1903,
+      "modified": "2026-01-01T15:48:15.034601",
+      "references": [],
+      "safe_to_delete": true
+    },
+    {
+      "path": "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\notifications\\minimal_test.py",
+      "relative_path": "notifications\\minimal_test.py",
+      "size_bytes": 1541,
+      "modified": "2025-09-26T15:11:09.908594",
+      "references": [],
+      "safe_to_delete": true
+    },
+    {
+      "path": "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\notifications\\simple_test.py",
+      "relative_path": "notifications\\simple_test.py",
+      "size_bytes": 1540,
+      "modified": "2025-09-26T15:11:09.911183",
+      "references": [],
+      "safe_to_delete": true
+    },
+    {
+      "path": "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\scripts\\database_backup.py",
+      "relative_path": "scripts\\database_backup.py",
+      "size_bytes": 13645,
+      "modified": "2026-01-01T15:01:50.157530",
+      "references": [
+        "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\scripts\\backup_phase2.py: database_backup.DatabaseBackupManager",
+        "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\scripts\\backup_phase2.py: database_backup.DatabaseBackupManager",
+        "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\scripts\\backup_phase2.py: database_backup",
+        "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\scripts\\backup_phase2.py: database_backup"
+      ],
+      "safe_to_delete": false
+    },
+    {
+      "path": "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\scripts\\detect_experimental_files.py",
+      "relative_path": "scripts\\detect_experimental_files.py",
+      "size_bytes": 12665,
+      "modified": "2026-01-01T20:55:22.806384",
+      "references": [],
+      "safe_to_delete": true
+    },
+    {
+      "path": "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\construction\\api\\project_views_temp.py",
+      "relative_path": "construction\\api\\project_views_temp.py",
+      "size_bytes": 20658,
+      "modified": "2025-09-26T15:11:09.845242",
+      "references": [],
+      "safe_to_delete": true
+    }
+  ],
+  "safe_to_delete": [
+    {
+      "path": "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\construction\\urls_new.py",
+      "relative_path": "construction\\urls_new.py",
+      "size_bytes": 1903,
+      "modified": "2026-01-01T15:48:15.034601",
+      "references": [],
+      "safe_to_delete": true
+    },
+    {
+      "path": "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\notifications\\minimal_test.py",
+      "relative_path": "notifications\\minimal_test.py",
+      "size_bytes": 1541,
+      "modified": "2025-09-26T15:11:09.908594",
+      "references": [],
+      "safe_to_delete": true
+    },
+    {
+      "path": "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\notifications\\simple_test.py",
+      "relative_path": "notifications\\simple_test.py",
+      "size_bytes": 1540,
+      "modified": "2025-09-26T15:11:09.911183",
+      "references": [],
+      "safe_to_delete": true
+    },
+    {
+      "path": "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\scripts\\detect_experimental_files.py",
+      "relative_path": "scripts\\detect_experimental_files.py",
+      "size_bytes": 12665,
+      "modified": "2026-01-01T20:55:22.806384",
+      "references": [],
+      "safe_to_delete": true
+    },
+    {
+      "path": "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\construction\\api\\project_views_temp.py",
+      "relative_path": "construction\\api\\project_views_temp.py",
+      "size_bytes": 20658,
+      "modified": "2025-09-26T15:11:09.845242",
+      "references": [],
+      "safe_to_delete": true
+    }
+  ],
+  "has_references": [
+    {
+      "path": "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\scripts\\database_backup.py",
+      "relative_path": "scripts\\database_backup.py",
+      "size_bytes": 13645,
+      "modified": "2026-01-01T15:01:50.157530",
+      "references": [
+        "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\scripts\\backup_phase2.py: database_backup.DatabaseBackupManager",
+        "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\scripts\\backup_phase2.py: database_backup.DatabaseBackupManager",
+        "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\scripts\\backup_phase2.py: database_backup",
+        "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\scripts\\backup_phase2.py: database_backup"
+      ],
+      "safe_to_delete": false
+    }
+  ],
+  "summary": {
+    "total_experimental": 6,
+    "safe_to_delete": 5,
+    "has_references": 1
+  }
+}

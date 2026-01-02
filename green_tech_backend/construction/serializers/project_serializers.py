@@ -27,7 +27,7 @@ from construction.models import (
     ProjectChatMessage,
     ProjectMessageReceipt
 )
-from construction.serializers.quote_serializers import QuoteSerializer
+# Quote serializers now handled by quotes app
 
 User = get_user_model()
 
@@ -608,11 +608,11 @@ class ProjectDetailSerializer(ProjectSerializer):
     updates = ProjectUpdateSerializer(many=True, read_only=True)
     tasks = ProjectTaskSerializer(many=True, read_only=True)
     construction_request = serializers.PrimaryKeyRelatedField(read_only=True)
-    approved_quote = QuoteSerializer(read_only=True)
+    # approved_quote field removed - quotes now handled by quotes app
     
     class Meta(ProjectSerializer.Meta):
         fields = ProjectSerializer.Meta.fields + [
-            'milestones', 'property', 'construction_request', 'approved_quote',
+            'milestones', 'property', 'construction_request',
             'documents', 'updates', 'tasks', 'created_by'
         ]
         read_only_fields = ProjectSerializer.Meta.read_only_fields + [

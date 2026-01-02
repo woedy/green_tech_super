@@ -23,7 +23,7 @@ from construction.models import (
     ProjectPhase,
     MilestoneStatus,
     ConstructionRequest,
-    Quote,
+    # Quote model now handled by quotes app
     ProjectDocument,
     ProjectDocumentVersion,
     ProjectTask,

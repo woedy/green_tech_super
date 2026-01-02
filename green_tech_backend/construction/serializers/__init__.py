@@ -22,16 +22,17 @@ from .request_serializers import (
     ProjectSerializer as RequestProjectSerializer,
 )
 
-from .quote_serializers import (
-    QuoteItemSerializer,
-    QuoteChangeLogSerializer,
-    QuoteSerializer,
-    QuoteDetailSerializer,
-    QuoteCreateSerializer,
-    QuoteUpdateSerializer,
-    QuoteItemCreateSerializer,
-    QuoteItemUpdateSerializer,
-)
+# Quote serializers now handled by quotes app
+# from .quote_serializers import (
+#     QuoteItemSerializer,
+#     QuoteChangeLogSerializer,
+#     QuoteSerializer,
+#     QuoteDetailSerializer,
+#     QuoteCreateSerializer,
+#     QuoteUpdateSerializer,
+#     QuoteItemCreateSerializer,
+#     QuoteItemUpdateSerializer,
+# )
 
 # Make serializers available at the package level
 __all__ = [
@@ -52,13 +53,13 @@ __all__ = [
     'ConstructionRequestSerializer',
     'RequestProjectSerializer',
     
-    # Quote serializers
-    'QuoteItemSerializer',
-    'QuoteChangeLogSerializer',
-    'QuoteSerializer',
-    'QuoteDetailSerializer',
-    'QuoteCreateSerializer',
-    'QuoteUpdateSerializer',
-    'QuoteItemCreateSerializer',
-    'QuoteItemUpdateSerializer',
+    # Quote serializers now handled by quotes app
+    # 'QuoteItemSerializer',
+    # 'QuoteChangeLogSerializer',
+    # 'QuoteSerializer',
+    # 'QuoteDetailSerializer',
+    # 'QuoteCreateSerializer',
+    # 'QuoteUpdateSerializer',
+    # 'QuoteItemCreateSerializer',
+    # 'QuoteItemUpdateSerializer',
 ]

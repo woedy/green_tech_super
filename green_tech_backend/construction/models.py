@@ -5,7 +5,59 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
 from accounts.models import User
 from properties.models import Property
-from construction.ghana.models import EcoFeature
+
+
+class EcoFeature(models.Model):
+    """Model representing eco-friendly features available in Ghana."""
+    class FeatureCategory(models.TextChoices):
+        SOLAR = 'SOLAR', _('Solar Energy')
+        WATER = 'WATER', _('Water Conservation')
+        MATERIALS = 'MATERIALS', _('Eco-friendly Materials')
+        WASTE = 'WASTE', _('Waste Management')
+        LANDSCAPING = 'LANDSCAPING', _('Sustainable Landscaping')
+        INSULATION = 'INSULATION', _('Insulation & Ventilation')
+        SMART_HOME = 'SMART_HOME', _('Smart Home Technology')
+
+    name = models.CharField(_('feature name'), max_length=200)
+    description = models.TextField(_('description'), blank=True)
+    category = models.CharField(
+        _('category'),
+        max_length=20,
+        choices=FeatureCategory.choices
+    )
+    icon = models.CharField(
+        _('icon class'),
+        max_length=50,
+        blank=True,
+        help_text=_('CSS class for the feature icon')
+    )
+    base_cost = models.DecimalField(
+        _('base cost'),
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        null=True,
+        blank=True,
+        help_text=_('Base cost in GHS')
+    )
+    is_available = models.BooleanField(
+        _('is available in Ghana'),
+        default=True
+    )
+    requires_specialist = models.BooleanField(
+        _('requires specialist installation'),
+        default=False
+    )
+    created_at = models.DateTimeField(_('created at'), auto_now_add=True)
+    updated_at = models.DateTimeField(_('updated at'), auto_now=True)
+
+    class Meta:
+        verbose_name = _('eco feature')
+        verbose_name_plural = _('eco features')
+        ordering = ['category', 'name']
+
+    def __str__(self):
+        return self.name
 
 
 class ConstructionType(models.TextChoices):

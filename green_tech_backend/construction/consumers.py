@@ -88,7 +88,7 @@ class ProjectChatConsumer(AsyncJsonWebsocketConsumer):
     def _create_message(self, body: str, user: User, quote_id=None):
         quote = None
         if quote_id:
-            from construction.models import Quote
+            from quotes.models import Quote
             try:
                 quote = Quote.objects.get(pk=quote_id)
             except Quote.DoesNotExist:

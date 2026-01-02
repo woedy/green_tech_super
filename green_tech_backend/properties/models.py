@@ -50,7 +50,6 @@ class Property(models.Model):
     sustainability_score = models.PositiveSmallIntegerField(_('sustainability score'), default=60)
     energy_rating = models.PositiveSmallIntegerField(_('energy rating'), default=3)
     water_rating = models.PositiveSmallIntegerField(_('water rating'), default=3)
-    eco_features = models.JSONField(_('eco features'), default=list, blank=True)
     amenities = models.JSONField(_('amenities'), default=list, blank=True)
     highlights = models.JSONField(_('highlights'), default=list, blank=True)
     city = models.CharField(_('city'), max_length=100)
@@ -156,3 +155,28 @@ class ViewingAppointment(models.Model):
 
     def __str__(self):
         return f"Viewing for {self.property} on {self.scheduled_for}"
+
+
+class PropertyEcoFeature(models.Model):
+    """Junction table linking properties to eco-features."""
+    property = models.ForeignKey(
+        Property,
+        on_delete=models.CASCADE,
+        related_name='property_eco_features',
+        verbose_name=_('property')
+    )
+    eco_feature = models.ForeignKey(
+        'construction.EcoFeature',
+        on_delete=models.CASCADE,
+        related_name='property_eco_features',
+        verbose_name=_('eco feature')
+    )
+    created_at = models.DateTimeField(_('created at'), auto_now_add=True)
+
+    class Meta:
+        unique_together = ('property', 'eco_feature')
+        verbose_name = _('property eco feature')
+        verbose_name_plural = _('property eco features')
+
+    def __str__(self):
+        return f"{self.property.title} - {self.eco_feature.name}"

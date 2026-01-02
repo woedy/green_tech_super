@@ -8,8 +8,7 @@ from .models import (
     ConstructionRequest, 
     Project,
     ProjectMilestone,
-    Quote,
-    QuoteItem,
+    # Quote models now handled by quotes app
     ProjectStatus,
     MilestoneStatus
 )
@@ -82,79 +81,80 @@ class IsProjectManagerOrAdmin(permissions.BasePermission):
             return request.user.is_staff or request.user.role in ['project_manager', 'admin']
             
 
-class IsQuoteOwnerOrStaff(permissions.BasePermission):
-    """
-    Permission to only allow the quote owner (client or creator) or staff to access it.
-    """
-    def has_permission(self, request, view):
-        # Only allow authenticated users
-        if not request.user.is_authenticated:
-            return False
-            
-        # Allow list/create for all authenticated users
-        if view.action in ['list', 'create']:
-            return True
-            
-        # For other actions, check object permissions
-        return True
-    
-    def has_object_permission(self, request, view, obj):
-        # Allow read access to the client, creator, or staff
-        if request.method in permissions.SAFE_METHODS:
-            return (
-                request.user.is_staff or
-                obj.construction_request.client == request.user or
-                obj.created_by == request.user
-            )
-            
-        # Allow write access only to the creator or staff
-        return request.user.is_staff or obj.created_by == request.user
+# Quote permission classes moved to quotes app
+# class IsQuoteOwnerOrStaff(permissions.BasePermission):
+#     """
+#     Permission to only allow the quote owner (client or creator) or staff to access it.
+#     """
+#     def has_permission(self, request, view):
+#         # Only allow authenticated users
+#         if not request.user.is_authenticated:
+#             return False
+#             
+#         # Allow list/create for all authenticated users
+#         if view.action in ['list', 'create']:
+#             return True
+#             
+#         # For other actions, check object permissions
+#         return True
+#     
+#     def has_object_permission(self, request, view, obj):
+#         # Allow read access to the client, creator, or staff
+#         if request.method in permissions.SAFE_METHODS:
+#             return (
+#                 request.user.is_staff or
+#                 obj.construction_request.client == request.user or
+#                 obj.created_by == request.user
+#             )
+#             
+#         # Allow write access only to the creator or staff
+#         return request.user.is_staff or obj.created_by == request.user
 
 
-class IsQuoteItemOwnerOrStaff(permissions.BasePermission):
-    """
-    Permission to only allow the quote owner (client or creator) or staff to access its items.
-    """
-    def has_permission(self, request, view):
-        # Only allow authenticated users
-        if not request.user.is_authenticated:
-            return False
-            
-        # For list/create, check if user can access the parent quote
-        quote_id = view.kwargs.get('quote_pk')
-        if quote_id:
-            from .models import Quote
-            quote = get_object_or_404(Quote, pk=quote_id)
-            
-            if request.method in permissions.SAFE_METHODS:
-                return (
-                    request.user.is_staff or
-                    quote.construction_request.client == request.user or
-                    quote.created_by == request.user
-                )
-                
-            # For write operations, only allow if quote is in draft and user is the creator or staff
-            return (
-                quote.status == 'DRAFT' and
-                (request.user.is_staff or quote.created_by == request.user)
-            )
-            
-        return False
-    
-    def has_object_permission(self, request, view, obj):
-        # Allow read access to the client, creator, or staff
-        if request.method in permissions.SAFE_METHODS:
-            return (
-                request.user.is_staff or
-                obj.quote.construction_request.client == request.user or
-                obj.quote.created_by == request.user
-            )
-            
-        # Allow write access only if quote is in draft and user is the creator or staff
-        return (
-            obj.quote.status == 'DRAFT' and
-            (request.user.is_staff or obj.quote.created_by == request.user)
-        )
+# class IsQuoteItemOwnerOrStaff(permissions.BasePermission):
+#     """
+#     Permission to only allow the quote owner (client or creator) or staff to access its items.
+#     """
+#     def has_permission(self, request, view):
+#         # Only allow authenticated users
+#         if not request.user.is_authenticated:
+#             return False
+#             
+#         # For list/create, check if user can access the parent quote
+#         quote_id = view.kwargs.get('quote_pk')
+#         if quote_id:
+#             from quotes.models import Quote
+#             quote = get_object_or_404(Quote, pk=quote_id)
+#             
+#             if request.method in permissions.SAFE_METHODS:
+#                 return (
+#                     request.user.is_staff or
+#                     quote.construction_request.client == request.user or
+#                     quote.created_by == request.user
+#                 )
+#                 
+#             # For write operations, only allow if quote is in draft and user is the creator or staff
+#             return (
+#                 quote.status == 'DRAFT' and
+#                 (request.user.is_staff or quote.created_by == request.user)
+#             )
+#             
+#         return False
+#     
+#     def has_object_permission(self, request, view, obj):
+#         # Allow read access to the client, creator, or staff
+#         if request.method in permissions.SAFE_METHODS:
+#             return (
+#                 request.user.is_staff or
+#                 obj.quote.construction_request.client == request.user or
+#                 obj.quote.created_by == request.user
+#             )
+#             
+#         # Allow write access only if quote is in draft and user is the creator or staff
+#         return (
+#             obj.quote.status == 'DRAFT' and
+#             (request.user.is_staff or obj.quote.created_by == request.user)
+#         )
         # Only allow write operations for project managers and admins
         return request.user.is_staff or request.user.role in ['project_manager', 'admin']
     

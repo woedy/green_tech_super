@@ -1,0 +1,71 @@
+{
+  "deletion_timestamp": "20260101_144727",
+  "project_root": "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend",
+  "backup_location": "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\backups\\app_deletion_backup_20260101_144727",
+  "actions": [
+    {
+      "action": "backup_created",
+      "app": "community",
+      "source": "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\community",
+      "backup": "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\backups\\app_deletion_backup_20260101_144727\\community",
+      "timestamp": "2026-01-01T14:47:27.925534",
+      "size_bytes": 55842
+    },
+    {
+      "action": "directory_deleted",
+      "app": "community",
+      "path": "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\community",
+      "timestamp": "2026-01-01T14:47:27.934859",
+      "files_deleted": 9
+    },
+    {
+      "action": "backup_created",
+      "app": "dashboard",
+      "source": "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\dashboard",
+      "backup": "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\backups\\app_deletion_backup_20260101_144727\\dashboard",
+      "timestamp": "2026-01-01T14:47:27.981235",
+      "size_bytes": 34593
+    },
+    {
+      "action": "directory_deleted",
+      "app": "dashboard",
+      "path": "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\dashboard",
+      "timestamp": "2026-01-01T14:47:27.997081",
+      "files_deleted": 14
+    },
+    {
+      "action": "backup_created",
+      "app": "finances",
+      "source": "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\finances",
+      "backup": "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\backups\\app_deletion_backup_20260101_144727\\finances",
+      "timestamp": "2026-01-01T14:47:28.041354",
+      "size_bytes": 47375
+    },
+    {
+      "action": "directory_deleted",
+      "app": "finances",
+      "path": "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\finances",
+      "timestamp": "2026-01-01T14:47:28.073750",
+      "files_deleted": 12
+    },
+    {
+      "action": "backup_created",
+      "app": "sustainability",
+      "source": "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\sustainability",
+      "backup": "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\backups\\app_deletion_backup_20260101_144727\\sustainability",
+      "timestamp": "2026-01-01T14:47:28.109108",
+      "size_bytes": 66863
+    },
+    {
+      "action": "directory_deleted",
+      "app": "sustainability",
+      "path": "C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\sustainability",
+      "timestamp": "2026-01-01T14:47:28.144576",
+      "files_deleted": 12
+    }
+  ],
+  "rollback_instructions": {
+    "description": "To rollback this deletion, copy the backed up directories back to the project root",
+    "command": "cp -r C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend\\backups\\app_deletion_backup_20260101_144727/<app_name> C:\\Users\\Mawu\\Desktop\\GilbyProjects\\SuperProjects\\green_tech_super\\green_tech_super\\green_tech_backend/"
+  }
+}

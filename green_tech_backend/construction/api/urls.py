@@ -5,10 +5,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter, SimpleRouter
 
 from .analytics_views import AgentAnalyticsDashboardView
-from .quote_views import (
-    QuoteViewSet,
-    QuoteItemViewSet
-)
+# Quote views now handled by quotes app
 
 # Import project views
 from .project_views import (
@@ -44,13 +41,13 @@ project_router.register(r'tasks', ProjectTaskViewSet,
 project_router.register(r'chat-messages', ProjectChatMessageViewSet,
                        basename='project-chat-message')
 
-# Quote endpoints with nested routes for items
-quote_router = SimpleRouter()
-quote_router.register(r'quotes', QuoteViewSet, basename='quote')
+# Quote endpoints now handled by quotes app
+# quote_router = SimpleRouter()
+# quote_router.register(r'quotes', QuoteViewSet, basename='quote')
 
-# Nested router for quote items
-quote_item_router = SimpleRouter()
-quote_item_router.register(r'items', QuoteItemViewSet, basename='quote-item')
+# Nested router for quote items now handled by quotes app
+# quote_item_router = SimpleRouter()
+# quote_item_router.register(r'items', QuoteItemViewSet, basename='quote-item')
 
 # The API URLs are now determined automatically by the router
 urlpatterns = [
@@ -61,9 +58,9 @@ urlpatterns = [
     # Project nested routes
     path('projects/<int:project_pk>/', include(project_router.urls)),
     
-    # Quote URLs
-    path('', include(quote_router.urls)),
+    # Quote URLs now handled by quotes app
+    # path('', include(quote_router.urls)),
     
-    # Nested quote items URLs
-    path('quotes/<uuid:quote_pk>/', include(quote_item_router.urls)),
+    # Nested quote items URLs now handled by quotes app
+    # path('quotes/<uuid:quote_pk>/', include(quote_item_router.urls)),
 ]
