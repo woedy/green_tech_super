@@ -1,57 +1,61 @@
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { registerSchema, type RegisterFormData } from "@/lib/validation";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 
 const Register = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { register } = useAuth();
-  const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    password: "",
-    confirm: "",
+
+  const form = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+      password: "",
+      confirmPassword: "",
+    },
   });
-  const [loading, setLoading] = useState(false);
 
-  const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm((f) => ({ ...f, [e.target.id]: e.target.value }));
-  };
-
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (form.password !== form.confirm) {
-      toast({ title: "Passwords do not match", variant: "destructive" });
-      return;
-    }
-    setLoading(true);
+  const onSubmit = async (data: RegisterFormData) => {
     try {
       await register({
-        email: form.email,
-        password: form.password,
-        confirmPassword: form.confirm,
-        firstName: form.firstName,
-        lastName: form.lastName,
-        phoneNumber: form.phone,
+        email: data.email,
+        password: data.password,
+        confirmPassword: data.confirmPassword,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phoneNumber: data.phone,
       });
       toast({
-        title: "Account created",
-        description: `We sent a verification email to ${form.email}.`,
+        title: "Account created successfully",
+        description: `We sent a verification email to ${data.email}. Please check your inbox and click the verification link to activate your account.`,
       });
-      navigate(`/auth/verify?email=${encodeURIComponent(form.email)}`);
+      navigate(`/auth/verify?email=${encodeURIComponent(data.email)}`);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to create account.";
-      toast({ title: "Registration failed", description: message, variant: "destructive" });
-    } finally {
-      setLoading(false);
+      const message = error instanceof Error ? error.message : "Unable to create account. Please try again.";
+      toast({ 
+        title: "Registration failed", 
+        description: message, 
+        variant: "destructive" 
+      });
     }
   };
 
@@ -64,40 +68,109 @@ const Register = () => {
               <CardTitle className="text-2xl text-center">Create your account</CardTitle>
             </CardHeader>
             <CardContent>
-              <form className="grid grid-cols-1 md:grid-cols-2 gap-4" onSubmit={onSubmit}>
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input id="firstName" placeholder="Jane" value={form.firstName} onChange={onChange} required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input id="lastName" placeholder="Doe" value={form.lastName} onChange={onChange} required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="jane@example.com" value={form.email} onChange={onChange} required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input id="phone" placeholder="+254 700 000 000" value={form.phone} onChange={onChange} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input id="password" type="password" placeholder="••••••••" value={form.password} onChange={onChange} required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirm">Confirm Password</Label>
-                  <Input id="confirm" type="password" placeholder="••••••••" value={form.confirm} onChange={onChange} required />
-                </div>
-                <div className="md:col-span-2">
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? "Creating account..." : "Create Account"}
-                  </Button>
-                </div>
-              </form>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="firstName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>First Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Jane" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="lastName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Last Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Doe" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email Address</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="jane@example.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone Number (Optional)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="+233 XX XXX XXXX" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="••••••••" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirm Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="••••••••" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="md:col-span-2">
+                    <Button 
+                      type="submit" 
+                      className="w-full" 
+                      disabled={form.formState.isSubmitting}
+                    >
+                      {form.formState.isSubmitting ? "Creating account..." : "Create Account"}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+              
               <div className="text-center text-sm text-muted-foreground mt-4">
                 Already have an account?{" "}
-                <Link to="/auth/login" className="text-primary hover:underline">Sign in</Link>
+                <Link to="/auth/login" className="text-primary hover:underline">
+                  Sign in
+                </Link>
               </div>
             </CardContent>
           </Card>

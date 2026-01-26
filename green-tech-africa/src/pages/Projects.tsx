@@ -9,96 +9,59 @@ import {
   Factory, 
   MapPin, 
   Calendar, 
-  Users, 
   ArrowRight,
-  ExternalLink
+  ExternalLink,
+  Loader2
 } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { publicApi, type PublicProject, type PaginatedProjectsResponse } from "@/lib/api";
 
 const Projects = () => {
-  const projects = [
-    {
-      id: 1,
-      title: "Green Valley Residential Complex",
-      category: "residential",
-      location: "Nairobi, Kenya",
-      year: "2024",
-      status: "Completed",
-      image: "/src/assets/hero-construction.jpg",
-      description: "A 200-unit eco-friendly residential complex featuring solar power, rainwater harvesting, and green spaces.",
-      area: "15,000 sqm",
-      units: "200 units",
-      features: ["Solar Power", "Rainwater Harvesting", "Green Spaces", "Smart Home Systems"]
-    },
-    {
-      id: 2,
-      title: "TechHub Commercial Center",
-      category: "commercial",
-      location: "Lagos, Nigeria",
-      year: "2023",
-      status: "Completed",
-      image: "/src/assets/project-commercial.jpg",
-      description: "Modern commercial complex designed for tech companies with flexible spaces and advanced infrastructure.",
-      area: "25,000 sqm",
-      units: "50 offices",
-      features: ["Flexible Layouts", "High-Speed Internet", "Conference Centers", "Cafeteria"]
-    },
-    {
-      id: 3,
-      title: "Sustainable Manufacturing Hub",
-      category: "industrial",
-      location: "Accra, Ghana",
-      year: "2024",
-      status: "Ongoing",
-      image: "/src/assets/team-construction.jpg",
-      description: "Industrial complex focused on sustainable manufacturing with renewable energy integration.",
-      area: "40,000 sqm",
-      units: "10 facilities",
-      features: ["Renewable Energy", "Waste Management", "Efficient Logistics", "Worker Facilities"]
-    },
-    {
-      id: 4,
-      title: "Luxury Waterfront Villas",
-      category: "residential",
-      location: "Cape Town, South Africa",
-      year: "2023",
-      status: "Completed",
-      image: "/src/assets/property-luxury.jpg",
-      description: "Exclusive waterfront villas with panoramic ocean views and premium amenities.",
-      area: "8,000 sqm",
-      units: "12 villas",
-      features: ["Ocean Views", "Private Pools", "Smart Systems", "Premium Finishes"]
-    },
-    {
-      id: 5,
-      title: "Innovation District Phase 1",
-      category: "commercial",
-      location: "Kigali, Rwanda",
-      year: "2024",
-      status: "Ongoing",
-      image: "/src/assets/hero-construction.jpg",
-      description: "Mixed-use development combining offices, retail, and residential spaces in a sustainable design.",
-      area: "35,000 sqm",
-      units: "Mixed-use",
-      features: ["Mixed-Use Design", "Public Spaces", "Transit Access", "Green Building"]
-    },
-    {
-      id: 6,
-      title: "Agricultural Processing Plant",
-      category: "industrial",
-      location: "Kampala, Uganda",
-      year: "2023",
-      status: "Completed",
-      image: "/src/assets/project-commercial.jpg",
-      description: "State-of-the-art food processing facility with sustainable practices and community integration.",
-      area: "20,000 sqm",
-      units: "4 processing lines",
-      features: ["Food Safety Standards", "Community Integration", "Sustainable Practices", "Efficient Processing"]
-    }
-  ];
+  const [searchParams, setSearchParams] = useSearchParams();
+  const category = searchParams.get('category') || 'all';
+  const status = searchParams.get('status') || '';
+  const search = searchParams.get('search') || '';
+  const page = Number(searchParams.get('page') || '1') || 1;
 
-  const filterProjects = (category: string) => {
-    if (category === "all") return projects;
-    return projects.filter(project => project.category === category);
+  // Fetch projects from API (paginated)
+  const {
+    data: projectsData,
+    isLoading: projectsLoading,
+    error: projectsError,
+  } = useQuery<PaginatedProjectsResponse>({
+    queryKey: ['projects', { category, status, search, page }],
+    queryFn: () =>
+      publicApi.getProjects({
+        category: category === 'all' ? undefined : category,
+        status: status || undefined,
+        search: search || undefined,
+        page,
+      }),
+  });
+
+  const projects = projectsData?.results || [];
+
+  // Fetch project statistics
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: ['project-stats'],
+    queryFn: () => publicApi.getProjectStats(),
+  });
+
+  const setCategory = (nextCategory: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (nextCategory === 'all') next.delete('category');
+    else next.set('category', nextCategory);
+    next.delete('page');
+    setSearchParams(next);
+  };
+
+  const setPage = (nextPage: number) => {
+    const safeNextPage = Math.max(1, nextPage);
+    const next = new URLSearchParams(searchParams);
+    if (safeNextPage === 1) next.delete('page');
+    else next.set('page', safeNextPage.toString());
+    setSearchParams(next);
   };
 
   const getIcon = (category: string) => {
@@ -110,7 +73,7 @@ const Projects = () => {
     }
   };
 
-  const ProjectCard = ({ project }: { project: typeof projects[0] }) => {
+  const ProjectCard = ({ project }: { project: PublicProject }) => {
     const IconComponent = getIcon(project.category);
     
     return (
@@ -122,8 +85,8 @@ const Projects = () => {
             className="w-full h-48 object-cover group-hover:scale-105 smooth-transition"
           />
           <div className="absolute top-4 left-4">
-            <Badge variant={project.status === "Completed" ? "default" : "secondary"}>
-              {project.status}
+            <Badge variant={project.status === "COMPLETED" ? "default" : "secondary"}>
+              {project.status_display}
             </Badge>
           </div>
           <div className="absolute top-4 right-4">
@@ -182,14 +145,44 @@ const Projects = () => {
             )}
           </div>
           
-          <Button variant="outline" className="w-full group">
-            View Details
-            <ExternalLink className="ml-2 h-4 w-4 group-hover:translate-x-1 smooth-transition" />
+          <Button variant="outline" className="w-full group" asChild>
+            <Link to={`/projects/${project.id}`}>
+              View Details
+              <ExternalLink className="ml-2 h-4 w-4 group-hover:translate-x-1 smooth-transition" />
+            </Link>
           </Button>
         </CardContent>
       </Card>
     );
   };
+
+  // Show loading state
+  if (projectsLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading projects...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Show error state
+  if (projectsError) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <p className="text-destructive mb-4">Failed to load projects</p>
+            <Button onClick={() => window.location.reload()}>Try Again</Button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -215,7 +208,7 @@ const Projects = () => {
       {/* Projects Section */}
       <section className="py-20 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Tabs defaultValue="all" className="space-y-8">
+          <Tabs value={category} onValueChange={setCategory} className="space-y-8">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div>
                 <h2 className="text-3xl font-bold mb-2">Featured Projects</h2>
@@ -242,7 +235,7 @@ const Projects = () => {
 
             <TabsContent value="residential" className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {filterProjects("residential").map((project) => (
+                {projects.map((project) => (
                   <ProjectCard key={project.id} project={project} />
                 ))}
               </div>
@@ -250,7 +243,7 @@ const Projects = () => {
 
             <TabsContent value="commercial" className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {filterProjects("commercial").map((project) => (
+                {projects.map((project) => (
                   <ProjectCard key={project.id} project={project} />
                 ))}
               </div>
@@ -258,11 +251,39 @@ const Projects = () => {
 
             <TabsContent value="industrial" className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {filterProjects("industrial").map((project) => (
+                {projects.map((project) => (
                   <ProjectCard key={project.id} project={project} />
                 ))}
               </div>
             </TabsContent>
+
+            <div className="flex items-center justify-between pt-2">
+              <div className="text-sm text-muted-foreground">
+                {projectsData ? (
+                  <span>
+                    Showing {projects.length} of {projectsData.count}
+                  </span>
+                ) : null}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(page - 1)}
+                  disabled={!projectsData?.previous || page <= 1}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(page + 1)}
+                  disabled={!projectsData?.next}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
           </Tabs>
         </div>
       </section>
@@ -270,24 +291,54 @@ const Projects = () => {
       {/* Stats Section */}
       <section className="py-20 bg-accent/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
-            <div className="space-y-2">
-              <div className="text-3xl md:text-4xl font-bold text-primary">50+</div>
-              <div className="text-muted-foreground">Projects Completed</div>
+          {statsLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="space-y-2">
+                  <div className="text-3xl md:text-4xl font-bold text-primary animate-pulse">--</div>
+                  <div className="text-muted-foreground">Loading...</div>
+                </div>
+              ))}
             </div>
-            <div className="space-y-2">
-              <div className="text-3xl md:text-4xl font-bold text-primary">15</div>
-              <div className="text-muted-foreground">African Countries</div>
+          ) : stats ? (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
+              <div className="space-y-2">
+                <div className="text-3xl md:text-4xl font-bold text-primary">{stats.total_projects}+</div>
+                <div className="text-muted-foreground">Projects Completed</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-3xl md:text-4xl font-bold text-primary">{stats.countries_served}</div>
+                <div className="text-muted-foreground">African Countries</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-3xl md:text-4xl font-bold text-primary">{stats.total_area_developed}</div>
+                <div className="text-muted-foreground">sqm Developed</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-3xl md:text-4xl font-bold text-primary">{stats.client_satisfaction}%</div>
+                <div className="text-muted-foreground">Client Satisfaction</div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <div className="text-3xl md:text-4xl font-bold text-primary">1M+</div>
-              <div className="text-muted-foreground">sqm Developed</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
+              <div className="space-y-2">
+                <div className="text-3xl md:text-4xl font-bold text-primary">50+</div>
+                <div className="text-muted-foreground">Projects Completed</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-3xl md:text-4xl font-bold text-primary">15</div>
+                <div className="text-muted-foreground">African Countries</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-3xl md:text-4xl font-bold text-primary">1M+</div>
+                <div className="text-muted-foreground">sqm Developed</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-3xl md:text-4xl font-bold text-primary">98%</div>
+                <div className="text-muted-foreground">Client Satisfaction</div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <div className="text-3xl md:text-4xl font-bold text-primary">98%</div>
-              <div className="text-muted-foreground">Client Satisfaction</div>
-            </div>
-          </div>
+          )}
         </div>
       </section>
 

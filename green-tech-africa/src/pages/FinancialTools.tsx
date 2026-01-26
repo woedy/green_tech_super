@@ -90,7 +90,19 @@ const FinancialTools: React.FC = () => {
   // Fetch government incentives
   const { data: incentives, isLoading: incentivesLoading } = useQuery<GovernmentIncentive[]>({
     queryKey: ['government-incentives'],
-    queryFn: () => api.get('/api/v1/finances/government-incentives/'),
+    queryFn: async () => {
+      const response = await api.get('/api/v1/finances/government-incentives/');
+      // Handle different response structures
+      if (Array.isArray(response)) {
+        return response;
+      } else if (response && Array.isArray(response.results)) {
+        return response.results;
+      } else if (response && Array.isArray(response.data)) {
+        return response.data;
+      } else {
+        return [];
+      }
+    },
   });
 
   const getIncentiveTypeColor = (type: string) => {

@@ -14,7 +14,7 @@ const Login = () => {
   const { login } = useAuth();
   const { toast } = useToast();
   const [email, setEmail] = useState("agent@greentech.africa");
-  const [password, setPassword] = useState("demo123");
+  const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -102,6 +102,13 @@ const Login = () => {
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Signing in..." : "Sign In"}
               </Button>
+              
+              <div className="text-center text-sm text-muted-foreground">
+                Don't have an account?{' '}
+                <Link to="/register" className="text-green-600 hover:underline font-medium">
+                  Register here
+                </Link>
+              </div>
             </form>
             
             <div className="mt-6 p-3 bg-muted/50 rounded-md">

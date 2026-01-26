@@ -1,4 +1,4 @@
-﻿import type { PlanPayload, PlanResponse, PropertyPayload, PropertyResponse, RegionPayload, RegionResponse, NotificationTemplatePayload, NotificationTemplateResponse, SiteDocumentPayload, SiteDocumentResponse, SiteDocumentVersionPayload, SiteDocumentVersionResponse } from './types/api';
+﻿import type { PlanPayload, PlanResponse, PropertyPayload, PropertyResponse, RegionPayload, RegionResponse, NotificationTemplatePayload, NotificationTemplateResponse, SiteDocumentPayload, SiteDocumentResponse, SiteDocumentVersionPayload, SiteDocumentVersionResponse, AdminDashboardMetrics } from './types/api';
 
 const explicitBase = import.meta.env.VITE_API_BASE_URL
   ? (import.meta.env.VITE_API_BASE_URL as string).replace(/\/$/, '')
@@ -13,24 +13,37 @@ const API_BASE =
     : apiPath);
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const token = localStorage.getItem('admin_access_token');
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const response = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
+    headers,
     credentials: 'include',
     ...options,
   });
 
   if (!response.ok) {
-    let detail: unknown;
+    let detail: string;
     try {
-      detail = await response.json();
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const errorData = await response.json();
+        detail = errorData.detail || errorData.message || `Request failed with status ${response.status}`;
+      } else {
+        detail = await response.text() || `Request failed with status ${response.status}`;
+      }
     } catch {
-      detail = await response.text();
+      detail = `Request failed with status ${response.status}`;
     }
-    const error = new Error(`Request failed with status ${response.status}`);
-    (error as any).detail = detail;
+    const error = new Error(detail);
+    (error as any).status = response.status;
     throw error;
   }
 
@@ -169,4 +182,56 @@ export const adminApi = {
   archiveSiteDocumentVersion(id: number): Promise<SiteDocumentVersionResponse> {
     return request<SiteDocumentVersionResponse>(`/admin/site-document-versions/${id}/archive/`, { method: 'POST' });
   },
+
+  // Dashboard API
+  getDashboardMetrics(params?: { start_date?: string; end_date?: string }): Promise<AdminDashboardMetrics> {
+    const query = params ? `?${new URLSearchParams(params).toString()}` : '';
+    return request<AdminDashboardMetrics>(`/dashboard/admin/${query}`);
+  },
 };
+
+// Authentication API
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  access: string;
+  refresh: string;
+  user: {
+    id: number;
+    email: string;
+    first_name: string;
+    last_name: string;
+    user_type: 'ADMIN' | 'AGENT' | 'BUILDER' | 'CUSTOMER';
+    is_verified: boolean;
+  };
+}
+
+export interface User {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  user_type: 'ADMIN' | 'AGENT' | 'BUILDER' | 'CUSTOMER';
+  is_verified: boolean;
+}
+
+export async function login(credentials: LoginRequest): Promise<LoginResponse> {
+  return request<LoginResponse>('/auth/login/', {
+    method: 'POST',
+    body: JSON.stringify(credentials),
+  });
+}
+
+export async function getProfile(): Promise<User> {
+  return request<User>('/auth/profile/');
+}
+
+export async function refreshToken(refreshToken: string): Promise<{ access: string }> {
+  return request<{ access: string }>('/auth/token/refresh/', {
+    method: 'POST',
+    body: JSON.stringify({ refresh: refreshToken }),
+  });
+}

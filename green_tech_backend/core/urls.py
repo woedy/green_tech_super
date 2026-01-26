@@ -22,8 +22,14 @@ urlpatterns = [
     # Health check
     path('api/health/', health_check, name='health-check'),
 
+    # Authentication endpoints (direct access)
+    path('api/auth/', include('accounts.urls')),
+
     # API v1
     path('api/v1/', include((api_patterns, 'api'), namespace='v1')),
+    
+    # Finances API
+    path('api/v1/finances/', include(('finances.urls', 'finances'), namespace='finances')),
 
     # Public APIs consumed by the frontends
     path('api/', include(('plans.urls', 'plans'), namespace='plans')),  # /api/plans, /api/build-requests
@@ -34,4 +40,5 @@ urlpatterns = [
     path('api/', include(('locations.urls', 'locations'), namespace='locations')),
     path('api/', include(('notifications.urls', 'notifications'), namespace='notifications')),
     path('api/', include(('sitecontent.urls', 'sitecontent'), namespace='sitecontent')),
+    path('api/dashboard/', include(('dashboard.urls', 'dashboard'), namespace='dashboard')),
 ]

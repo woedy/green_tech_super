@@ -36,8 +36,10 @@ INSTALLED_APPS = [
     'drf_yasg',
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
 
     # Local apps
+    'core',  # Add core app for management commands
     'accounts.apps.AccountsConfig',
     'locations.apps.LocationsConfig',
     'plans.apps.PlansConfig',
@@ -46,7 +48,9 @@ INSTALLED_APPS = [
     'notifications.apps.NotificationsConfig',
     'quotes.apps.QuotesConfig',
     'construction.apps.ConstructionConfig',
+    'finances.apps.FinancesConfig',
     'sitecontent.apps.SiteContentConfig',
+    'dashboard.apps.DashboardConfig',
 ]
 
 MIDDLEWARE = [

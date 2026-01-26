@@ -8,14 +8,20 @@ import { useParams, Link } from "react-router-dom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { api } from "@/lib/api";
 import type { QuoteDetail as QuoteDetailType, QuoteStatus } from "@/types/quote";
 
-const STATUS_BADGES: Record<QuoteStatus, { label: string; variant: "default" | "outline" | "secondary" | "destructive" }> = {
+const STATUS_BADGES: Record<string, { label: string; variant: "default" | "outline" | "secondary" | "destructive" }> = {
   draft: { label: "Draft", variant: "outline" },
+  DRAFT: { label: "Draft", variant: "outline" },
   sent: { label: "Sent", variant: "secondary" },
+  SENT: { label: "Sent", variant: "secondary" },
   viewed: { label: "Viewed", variant: "secondary" },
+  VIEWED: { label: "Viewed", variant: "secondary" },
   accepted: { label: "Accepted", variant: "default" },
+  ACCEPTED: { label: "Accepted", variant: "default" },
   declined: { label: "Declined", variant: "destructive" },
+  DECLINED: { label: "Declined", variant: "destructive" },
 };
 
 const formatCurrency = (currency: string, amount: number) => {
@@ -43,13 +49,9 @@ const QuoteDetail = () => {
     if (!id) return;
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/quotes/${id}/`);
-      if (!response.ok) {
-        throw new Error(`Unable to load quote (${response.status})`);
-      }
-      const data = (await response.json()) as QuoteDetailType;
+      const data = await api.get(`/api/quotes/${id}/`);
       setQuote(data);
-      setSignatureName((prev) => prev || data.recipient_name || user?.name || "");
+      setSignatureName((prev) => prev || data.recipient_name || `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || "");
       setSignatureEmail((prev) => prev || data.recipient_email || user?.email || "");
       setError(null);
     } catch (err) {
@@ -58,7 +60,7 @@ const QuoteDetail = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [id, user?.email, user?.name]);
+  }, [id, user?.email, user?.first_name, user?.last_name]);
 
   useEffect(() => {
     fetchQuote();
@@ -69,13 +71,11 @@ const QuoteDetail = () => {
     hasMarkedView.current = true;
     const markViewed = async () => {
       try {
-        const response = await fetch(`/api/quotes/${quote.id}/view/`, { method: "POST" });
-        if (response.ok) {
-          const payload = (await response.json()) as QuoteDetailType;
-          setQuote(payload);
-        }
+        const payload = await api.post(`/api/quotes/${quote.id}/view/`);
+        setQuote(payload);
       } catch (err) {
-        console.error("Failed to mark quote as viewed", err);
+        // Mark viewed is optional - don't show error to user
+        console.warn("Failed to mark quote as viewed", err);
       }
     };
     markViewed();
@@ -103,15 +103,10 @@ const QuoteDetail = () => {
     }
     setIsSubmitting(true);
     try {
-      const response = await fetch(`/api/quotes/${quote.id}/accept/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ signature_name: signatureName.trim(), signature_email: signatureEmail.trim() || undefined }),
+      const payload = await api.post(`/api/quotes/${quote.id}/accept/`, {
+        signature_name: signatureName.trim(),
+        signature_email: signatureEmail.trim() || undefined
       });
-      if (!response.ok) {
-        throw new Error(`Unable to accept quote (${response.status})`);
-      }
-      const payload = (await response.json()) as QuoteDetailType;
       setQuote(payload);
       toast({ title: "Quote accepted", description: `Thanks for signing ${payload.reference}.` });
     } catch (err) {
@@ -143,7 +138,9 @@ const QuoteDetail = () => {
           </div>
           <div className="text-right space-y-1">
             {quote && (
-              <Badge variant={STATUS_BADGES[quote.status].variant}>{STATUS_BADGES[quote.status].label}</Badge>
+              <Badge variant={(STATUS_BADGES[quote.status] || { variant: "outline" }).variant}>
+                {(STATUS_BADGES[quote.status] || { label: quote.status }).label}
+              </Badge>
             )}
             {quote && (
               <div className="text-xl font-semibold">

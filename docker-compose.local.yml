@@ -35,7 +35,7 @@ services:
   backend:
     build:
       context: ./green_tech_backend
-    command: python manage.py runserver 0.0.0.0:8000
+    command: daphne -b 0.0.0.0 -p 8000 core.asgi:application
     volumes:
       - ./green_tech_backend:/app
     environment:

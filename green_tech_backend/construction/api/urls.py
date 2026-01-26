@@ -17,16 +17,25 @@ from .project_views import (
     ProjectChatMessageViewSet,
 )
 
+# Import public views
+from .public_views import PublicProjectViewSet
+
+# Import API views
+from ..api_views import ConstructionRequestViewSet, EcoFeatureSelectionViewSet
+
 # Create a router and register our viewsets with it
 router = DefaultRouter()
-# TODO: Add these ViewSets when they are implemented
-# router.register(r'construction-requests', ConstructionRequestViewSet, 
-#                 basename='construction-request')
-# router.register(r'eco-feature-selections', EcoFeatureSelectionViewSet, 
-#                 basename='eco-feature-selection')
+# Register construction request endpoints
+router.register(r'construction-requests', ConstructionRequestViewSet, 
+                basename='construction-request')
+router.register(r'eco-feature-selections', EcoFeatureSelectionViewSet, 
+                basename='eco-feature-selection')
 
 # Project and Milestone endpoints
 router.register(r'projects', ProjectViewSet, basename='project')
+
+# Public endpoints (no authentication required)
+router.register(r'public/projects', PublicProjectViewSet, basename='public-project')
 
 # Nested router for project milestones
 project_router = SimpleRouter()

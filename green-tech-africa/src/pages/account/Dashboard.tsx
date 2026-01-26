@@ -1,34 +1,48 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { ProjectStatusCard } from "@/components/dashboard/ProjectStatusCard";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
-import { NotificationCenter } from "@/components/dashboard/NotificationCenter";
+import { NotificationCenter, type Notification, type NotificationPreferences } from "@/components/dashboard/NotificationCenter";
 import { SavedSearchesWidget } from "@/components/dashboard/SavedSearchesWidget";
 import { 
   ClipboardList,
   FileSpreadsheet,
   Calendar,
-  TrendingUp
+  TrendingUp,
+  Users,
+  Building,
+  CheckCircle2,
+  Loader2,
+  AlertTriangle
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { api } from "@/lib/api";
+import { api, dashboardApi, type CustomerDashboardMetrics, type CustomerNotifications } from "@/lib/api";
 import { getSavedSearches, toggleAlerts, deleteSavedSearch, type SavedSearch } from "@/lib/savedSearches";
-import { MOCK_NOTIFICATIONS, MOCK_ACTIVITIES, DEFAULT_NOTIFICATION_PREFERENCES } from "@/mocks/notifications";
 import type { ProjectSummary } from "@/types/project";
-import type { Notification, NotificationPreferences } from "@/components/dashboard/NotificationCenter";
-import type { ActivityItem } from "@/components/dashboard/ActivityFeed";
+import { useEffect, useState } from "react";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>(MOCK_NOTIFICATIONS);
-  const [activities] = useState<ActivityItem[]>(MOCK_ACTIVITIES);
-  const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferences>(DEFAULT_NOTIFICATION_PREFERENCES);
-  const [loading, setLoading] = useState(true);
+  const [projectsLoading, setProjectsLoading] = useState(true);
+
+  // Dashboard data from API
+  const { data: dashboardData, isLoading: dashboardLoading, error: dashboardError } = useQuery({
+    queryKey: ['customer-dashboard'],
+    queryFn: dashboardApi.getCustomerDashboard,
+    refetchInterval: 2 * 60 * 1000, // Refetch every 2 minutes
+  });
+
+  const { data: notificationData, isLoading: notificationsLoading } = useQuery({
+    queryKey: ['customer-notifications'],
+    queryFn: dashboardApi.getCustomerNotifications,
+    refetchInterval: 30 * 1000, // Refetch every 30 seconds
+  });
 
   useEffect(() => {
     setSavedSearches(getSavedSearches());
@@ -38,16 +52,19 @@ const Dashboard = () => {
     let cancelled = false;
     async function load() {
       try {
-        setLoading(true);
+        setProjectsLoading(true);
         const data = await api.get<ProjectSummary[]>("/api/construction/projects/");
         if (!cancelled) {
-          setProjects(data);
+          setProjects(Array.isArray(data) ? data : []);
         }
       } catch (err) {
         console.error("Failed to load projects:", err);
+        if (!cancelled) {
+          setProjects([]);
+        }
       } finally {
         if (!cancelled) {
-          setLoading(false);
+          setProjectsLoading(false);
         }
       }
     }
@@ -74,26 +91,105 @@ const Dashboard = () => {
     navigate(`/properties?${params.toString()}`);
   };
 
-  const handleMarkAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(n => n.id === id ? { ...n, read: true } : n)
-    );
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      await dashboardApi.markNotificationAsRead(id);
+      // Refetch notifications to update UI
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
   };
 
-  const handleMarkAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  const handleMarkAllAsRead = async () => {
+    try {
+      await dashboardApi.markAllNotificationsAsRead();
+      // Refetch notifications to update UI
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+    }
   };
 
-  const handleUpdatePreferences = (prefs: NotificationPreferences) => {
-    setNotificationPrefs(prefs);
-    // In a real app, this would save to backend
-    console.log("Updated notification preferences:", prefs);
+  const handleUpdatePreferences = async (preferences: NotificationPreferences) => {
+    try {
+      await dashboardApi.updateNotificationPreferences({
+        email: preferences.email,
+        sms: preferences.sms,
+        in_app: preferences.inApp,
+        project_updates: preferences.projectUpdates,
+        quote_notifications: preferences.quoteNotifications,
+        payment_reminders: preferences.paymentReminders,
+        marketing_emails: preferences.marketingEmails,
+      });
+      // Refetch notifications to update UI
+    } catch (error) {
+      console.error('Failed to update preferences:', error);
+    }
   };
 
-  const activeProjects = projects.filter(p => 
+  const activeProjects = Array.isArray(projects) ? projects.filter(p => 
     p.status.toLowerCase() === 'in_progress' || p.status.toLowerCase() === 'planning'
-  );
-  const unreadNotifications = notifications.filter(n => !n.read).length;
+  ) : [];
+
+  const unreadNotifications = notificationData?.unread_count || 0;
+
+  const notificationsForUi: Notification[] = (notificationData?.notifications || []).map((n) => ({
+    id: n.id,
+    type: n.type,
+    title: n.title,
+    message: n.message,
+    timestamp: n.timestamp,
+    read: n.read,
+    actionUrl: n.action_url,
+    actionLabel: n.action_label,
+  }));
+
+  const preferencesForUi: NotificationPreferences = {
+    email: notificationData?.preferences.email ?? true,
+    sms: notificationData?.preferences.sms ?? false,
+    inApp: notificationData?.preferences.in_app ?? true,
+    projectUpdates: notificationData?.preferences.project_updates ?? true,
+    quoteNotifications: notificationData?.preferences.quote_notifications ?? true,
+    paymentReminders: notificationData?.preferences.payment_reminders ?? true,
+    marketingEmails: notificationData?.preferences.marketing_emails ?? false,
+  };
+
+  if (dashboardError) {
+    return (
+      <Layout>
+        <section className="py-10 bg-gradient-to-br from-background via-accent/30 to-background">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col gap-2">
+              <h1 className="text-3xl md:text-4xl font-bold">Welcome back</h1>
+              <p className="text-muted-foreground">Your projects, quotes, and requests at a glance.</p>
+            </div>
+          </div>
+        </section>
+        
+        <section className="py-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center text-red-600">
+                  <AlertTriangle className="h-8 w-8 mx-auto mb-2" />
+                  <p className="font-semibold">Failed to load dashboard</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {dashboardError instanceof Error ? dashboardError.message : 'Please try again later'}
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    className="mt-4"
+                    onClick={() => window.location.reload()}
+                  >
+                    Retry
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -117,9 +213,16 @@ const Dashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-sm text-muted-foreground">Active Projects</div>
-                    <div className="text-2xl font-bold">{activeProjects.length}</div>
+                    {dashboardLoading ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm">Loading...</span>
+                      </div>
+                    ) : (
+                      <div className="text-2xl font-bold">{dashboardData?.projects.active || 0}</div>
+                    )}
                   </div>
-                  <TrendingUp className="w-8 h-8 text-primary/20" />
+                  <Building className="w-8 h-8 text-primary/20" />
                 </div>
               </CardContent>
             </Card>
@@ -127,10 +230,17 @@ const Dashboard = () => {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-sm text-muted-foreground">All Projects</div>
-                    <div className="text-2xl font-bold">{projects.length}</div>
+                    <div className="text-sm text-muted-foreground">Total Leads</div>
+                    {dashboardLoading ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm">Loading...</span>
+                      </div>
+                    ) : (
+                      <div className="text-2xl font-bold">{dashboardData?.leads.total || 0}</div>
+                    )}
                   </div>
-                  <ClipboardList className="w-8 h-8 text-primary/20" />
+                  <Users className="w-8 h-8 text-primary/20" />
                 </div>
               </CardContent>
             </Card>
@@ -138,8 +248,15 @@ const Dashboard = () => {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-sm text-muted-foreground">Notifications</div>
-                    <div className="text-2xl font-bold">{unreadNotifications}</div>
+                    <div className="text-sm text-muted-foreground">Pending Quotes</div>
+                    {dashboardLoading ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm">Loading...</span>
+                      </div>
+                    ) : (
+                      <div className="text-2xl font-bold">{dashboardData?.quotes.pending || 0}</div>
+                    )}
                   </div>
                   <FileSpreadsheet className="w-8 h-8 text-primary/20" />
                 </div>
@@ -149,8 +266,15 @@ const Dashboard = () => {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-sm text-muted-foreground">Saved Searches</div>
-                    <div className="text-2xl font-bold">{savedSearches.length}</div>
+                    <div className="text-sm text-muted-foreground">Notifications</div>
+                    {notificationsLoading ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm">Loading...</span>
+                      </div>
+                    ) : (
+                      <div className="text-2xl font-bold">{unreadNotifications}</div>
+                    )}
                   </div>
                   <Calendar className="w-8 h-8 text-primary/20" />
                 </div>
@@ -165,9 +289,9 @@ const Dashboard = () => {
               <TabsTrigger value="notifications">
                 Notifications
                 {unreadNotifications > 0 && (
-                  <span className="ml-2 px-1.5 py-0.5 text-xs bg-destructive text-destructive-foreground rounded-full">
+                  <Badge variant="destructive" className="ml-2 h-5 w-5 p-0 text-xs">
                     {unreadNotifications}
-                  </span>
+                  </Badge>
                 )}
               </TabsTrigger>
             </TabsList>
@@ -184,10 +308,13 @@ const Dashboard = () => {
                         <Link to="/account/projects">View all</Link>
                       </Button>
                     </div>
-                    {loading ? (
+                    {projectsLoading ? (
                       <Card>
-                        <CardContent className="p-6 text-sm text-muted-foreground">
-                          Loading projects...
+                        <CardContent className="p-6">
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span className="text-sm text-muted-foreground">Loading projects...</span>
+                          </div>
                         </CardContent>
                       </Card>
                     ) : activeProjects.length === 0 ? (
@@ -195,7 +322,7 @@ const Dashboard = () => {
                         <CardContent className="p-6 text-sm text-muted-foreground text-center">
                           <p>No active projects yet.</p>
                           <Button variant="hero" className="mt-4" asChild>
-                            <Link to="/plans">Start a new request</Link>
+                            <Link to="/plans">Browse Plans to Request</Link>
                           </Button>
                         </CardContent>
                       </Card>
@@ -209,7 +336,24 @@ const Dashboard = () => {
                   </div>
 
                   {/* Recent Activity */}
-                  <ActivityFeed activities={activities} maxItems={5} />
+                  <div className="space-y-4">
+                    <h2 className="text-xl font-semibold">Recent Activity</h2>
+                    {dashboardLoading ? (
+                      <Card>
+                        <CardContent className="p-6">
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span className="text-sm text-muted-foreground">Loading activities...</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <ActivityFeed 
+                        activities={dashboardData?.recent_activities || []} 
+                        maxItems={5} 
+                      />
+                    )}
+                  </div>
                 </div>
 
                 {/* Sidebar - 1 column */}
@@ -253,19 +397,51 @@ const Dashboard = () => {
 
             <TabsContent value="activity">
               <div className="max-w-4xl mx-auto">
-                <ActivityFeed activities={activities} maxItems={20} />
+                {dashboardLoading ? (
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-center">
+                        <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                        <span className="text-muted-foreground">Loading activities...</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <ActivityFeed 
+                    activities={dashboardData?.recent_activities || []} 
+                    maxItems={20} 
+                  />
+                )}
               </div>
             </TabsContent>
 
             <TabsContent value="notifications">
               <div className="max-w-4xl mx-auto">
-                <NotificationCenter
-                  notifications={notifications}
-                  preferences={notificationPrefs}
-                  onMarkAsRead={handleMarkAsRead}
-                  onMarkAllAsRead={handleMarkAllAsRead}
-                  onUpdatePreferences={handleUpdatePreferences}
-                />
+                {notificationsLoading ? (
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-center">
+                        <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                        <span className="text-muted-foreground">Loading notifications...</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : notificationData ? (
+                  <NotificationCenter
+                    notifications={notificationsForUi}
+                    preferences={preferencesForUi}
+                    onMarkAsRead={handleMarkAsRead}
+                    onMarkAllAsRead={handleMarkAllAsRead}
+                    onUpdatePreferences={handleUpdatePreferences}
+                  />
+                ) : (
+                  <Card>
+                    <CardContent className="p-6 text-center text-muted-foreground">
+                      <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p>No notifications available</p>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             </TabsContent>
           </Tabs>

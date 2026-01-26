@@ -69,6 +69,21 @@ class PlanListSerializer(serializers.ModelSerializer):
     def get_regional_estimates(self, obj: Plan):
         return obj.regional_estimates()
 
+    def get_regions(self, obj: Plan):
+        regions = []
+        for pricing in obj.pricing.select_related('region').all():
+            region = pricing.region
+            regions.append(
+                {
+                    'slug': region.slug,
+                    'name': region.name,
+                    'country': region.country,
+                    'currency_code': pricing.currency_code or region.currency_code,
+                    'cost_multiplier': str(pricing.cost_multiplier or region.cost_multiplier),
+                }
+            )
+        return regions
+
 
 class PlanDetailSerializer(serializers.ModelSerializer):
     hero_image = serializers.CharField(source='hero_image_url')
@@ -76,7 +91,7 @@ class PlanDetailSerializer(serializers.ModelSerializer):
     features = PlanFeatureSerializer(many=True)
     options = PlanOptionSerializer(many=True)
     regional_estimates = serializers.SerializerMethodField()
-    regions = RegionSerializer(source='pricing', many=True, read_only=True)
+    regions = serializers.SerializerMethodField()
 
     class Meta:
         model = Plan
@@ -104,10 +119,26 @@ class PlanDetailSerializer(serializers.ModelSerializer):
             'features',
             'options',
             'regional_estimates',
+            'regions',
         )
 
     def get_regional_estimates(self, obj: Plan):
         return obj.regional_estimates()
+
+    def get_regions(self, obj: Plan):
+        regions = []
+        for pricing in obj.pricing.select_related('region').all():
+            region = pricing.region
+            regions.append(
+                {
+                    'slug': region.slug,
+                    'name': region.name,
+                    'country': region.country,
+                    'currency_code': pricing.currency_code or region.currency_code,
+                    'cost_multiplier': str(pricing.cost_multiplier or region.cost_multiplier),
+                }
+            )
+        return regions
 
 
 class BuildRequestAttachmentSerializer(serializers.ModelSerializer):

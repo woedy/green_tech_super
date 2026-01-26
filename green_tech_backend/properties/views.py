@@ -5,14 +5,20 @@ from datetime import datetime
 from django.db.models import Q
 from django_filters.rest_framework import DjangoFilterBackend, FilterSet, CharFilter, NumberFilter
 from rest_framework import filters, status, viewsets
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from leads.services import sync_lead_from_property_inquiry
 
-from .models import Property, PropertyInquiry
-from .serializers import PropertyDetailSerializer, PropertyInquirySerializer, PropertyListSerializer
+from .models import Property, PropertyInquiry, ViewingAppointment
+from .serializers import (
+    PropertyDetailSerializer,
+    PropertyInquirySerializer,
+    PropertyListSerializer,
+    ViewingAppointmentSerializer,
+    ViewingAppointmentDetailSerializer,
+)
 from .tasks import send_inquiry_notifications
 
 
@@ -59,3 +65,29 @@ class PropertyInquiryView(APIView):
         send_inquiry_notifications.delay(str(inquiry.id))
         sync_lead_from_property_inquiry(inquiry)
         return Response(PropertyInquirySerializer(inquiry).data, status=status.HTTP_201_CREATED)
+
+
+class ViewingAppointmentViewSet(viewsets.ReadOnlyModelViewSet):
+    permission_classes = (IsAuthenticated,)
+    filter_backends = (DjangoFilterBackend, filters.OrderingFilter)
+    ordering_fields = ('scheduled_for', 'created_at')
+    ordering = ('-scheduled_for',)
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return ViewingAppointmentDetailSerializer
+        return ViewingAppointmentSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = ViewingAppointment.objects.select_related('property', 'property__region', 'inquiry', 'agent')
+
+        if user.is_staff or user.is_superuser:
+            return qs
+
+        # For agents, show appointments assigned to them
+        if qs.filter(agent=user).exists():
+            return qs.filter(agent=user)
+
+        # For customers, match by inquiry email
+        return qs.filter(inquiry__email=user.email)

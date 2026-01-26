@@ -24,7 +24,7 @@ class RegionSummarySerializer(serializers.ModelSerializer):
 class PropertyListSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
     location = serializers.SerializerMethodField()
-    eco_features = serializers.ListField(child=serializers.CharField(), source='eco_features', read_only=True)
+    eco_features = serializers.ListField(child=serializers.CharField(), read_only=True)
 
     class Meta:
         model = Property
@@ -123,3 +123,40 @@ class PropertyInquirySerializer(serializers.ModelSerializer):
                 agent=inquiry.property.listed_by,
             )
         return inquiry
+
+
+class ViewingAppointmentSerializer(serializers.ModelSerializer):
+    property_title = serializers.CharField(source='property.title', read_only=True)
+    property_slug = serializers.CharField(source='property.slug', read_only=True)
+    property_image = serializers.CharField(source='property.primary_image', read_only=True)
+    city = serializers.CharField(source='property.city', read_only=True)
+    region = serializers.CharField(source='property.region.name', read_only=True)
+    country = serializers.CharField(source='property.country', read_only=True)
+
+    class Meta:
+        model = ViewingAppointment
+        fields = (
+            'id',
+            'scheduled_for',
+            'status',
+            'notes',
+            'created_at',
+            'updated_at',
+            'property',
+            'property_title',
+            'property_slug',
+            'property_image',
+            'city',
+            'region',
+            'country',
+        )
+
+
+class ViewingAppointmentDetailSerializer(ViewingAppointmentSerializer):
+    inquiry = PropertyInquirySerializer(read_only=True)
+    property = PropertyDetailSerializer(read_only=True)
+
+    class Meta(ViewingAppointmentSerializer.Meta):
+        fields = ViewingAppointmentSerializer.Meta.fields + (
+            'inquiry',
+        )

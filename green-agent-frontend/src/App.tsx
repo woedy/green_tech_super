@@ -7,6 +7,8 @@ import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 
 // Auth
 import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
+import VerifyEmail from "./pages/auth/VerifyEmail";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 
 // Agent Portal
@@ -26,6 +28,7 @@ import MessageThread from "./pages/agent/MessageThread";
 import Profile from "./pages/account/Profile";
 import NotificationSettings from "./pages/account/NotificationSettings";
 import QuoteBuilder from "./pages/agent/QuoteBuilder";
+import ScrollToTop from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();
 
@@ -35,12 +38,18 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <ScrollToTop />
         <Routes>
           {/* Root → Dashboard */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
           {/* Auth - Public routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/auth/login" element={<Login />} />
+          <Route path="/auth/register" element={<Register />} />
+          <Route path="/auth/verify-email" element={<VerifyEmail />} />
           <Route path="/auth/forgot" element={<ForgotPassword />} />
 
           {/* Agent surfaces - Protected routes */}

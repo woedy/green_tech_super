@@ -19,9 +19,9 @@ class ConstructionMilestoneSerializer(serializers.ModelSerializer):
         model = ConstructionMilestone
         fields = [
             'id', 'title', 'description', 'due_date', 
-            'completed_date', 'is_completed', 'created_at', 'updated_at'
+            'completed_date', 'is_completed'
         ]
-        read_only_fields = ('id', 'created_at', 'updated_at')
+        read_only_fields = ('id',)
 
 
 class ConstructionDocumentSerializer(serializers.ModelSerializer):
@@ -37,9 +37,9 @@ class ConstructionDocumentSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'description', 'document_type', 
             'document_type_display', 'file', 'file_url', 'uploaded_by', 
-            'uploaded_at', 'created_at', 'updated_at'
+            'uploaded_at'
         ]
-        read_only_fields = ('id', 'uploaded_by', 'uploaded_at', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'uploaded_by', 'uploaded_at')
     
     def get_file_url(self, obj):
         """Get the absolute URL for the file."""

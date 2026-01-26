@@ -5,7 +5,7 @@ export type BackendProperty = {
   id: number | string;
   slug?: string;
   title: string;
-  type: string;
+  property_type: string;
   listing_type?: "sale" | "rent";
   location?: { city?: string; country?: string; region?: string };
   city?: string; // in case backend flattens
@@ -13,14 +13,14 @@ export type BackendProperty = {
   region?: string;
   price: string;
   currency?: string;
-  beds: number;
-  baths: number;
-  area: string;
+  bedrooms: number;
+  bathrooms: number;
+  area_sq_m: string;
   image: string;
   featured?: boolean;
   status?: string;
-  description?: string;
-  green_score?: number;
+  summary?: string;
+  sustainability_score?: number;
   eco_features?: string[];
 };
 
@@ -53,20 +53,20 @@ function mapBackendProperty(p: BackendProperty): Property {
     id: p.id,
     slug: p.slug,
     title: p.title,
-    type: p.type,
+    type: p.property_type,
     listingType: p.listing_type,
     location: { city, country },
     region,
     price: p.price,
     currency: p.currency,
-    beds: p.beds,
-    baths: p.baths,
-    area: p.area,
+    beds: p.bedrooms,
+    baths: p.bathrooms,
+    area: p.area_sq_m,
     image: p.image,
     featured: p.featured,
     status: p.status,
-    description: p.description,
-    greenScore: p.green_score,
+    description: p.summary,
+    greenScore: p.sustainability_score,
     ecoFeatures: p.eco_features,
   };
 }

@@ -16,7 +16,7 @@ from construction.serializers import (
     ConstructionRequestSerializer, ConstructionRequestEcoFeatureSerializer
 )
 from construction.ghana.models import EcoFeature, GhanaRegion
-from accounts.permissions import IsOwnerOrReadOnly, IsAdminOrReadOnly
+from construction.permissions import IsOwnerOrAdmin, CanEditConstructionRequest
 
 
 class ConstructionRequestViewSet(viewsets.ModelViewSet):
@@ -25,14 +25,25 @@ class ConstructionRequestViewSet(viewsets.ModelViewSet):
     """
     queryset = ConstructionRequest.objects.all()
     serializer_class = ConstructionRequestSerializer
-    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
+    permission_classes = [IsAuthenticated, CanEditConstructionRequest]
     
     def get_queryset(self):
-        """Return construction requests for the authenticated user."""
+        """Return construction requests for the authenticated user, filtered by status if provided."""
         user = self.request.user
+        queryset = self.queryset
+        
+        # Filter by user
         if user.is_staff:
-            return self.queryset
-        return self.queryset.filter(client=user)
+            queryset = queryset
+        else:
+            queryset = queryset.filter(client=user)
+        
+        # Filter by status if provided
+        status_param = self.request.query_params.get('status', None)
+        if status_param:
+            queryset = queryset.filter(status=status_param)
+            
+        return queryset
     
     def perform_create(self, serializer):
         """Set the client to the current user when creating a request."""
@@ -173,7 +184,7 @@ class EcoFeatureSelectionViewSet(
     """
     queryset = ConstructionRequestEcoFeature.objects.all()
     serializer_class = ConstructionRequestEcoFeatureSerializer
-    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
+    permission_classes = [IsAuthenticated, CanEditConstructionRequest]
     
     def get_queryset(self):
         """Return eco-feature selections for the authenticated user's requests."""

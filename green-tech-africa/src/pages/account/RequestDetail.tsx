@@ -4,37 +4,62 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, ClipboardList, Download, FileText } from "lucide-react";
+import { ArrowLeft, ClipboardList, Download, FileText, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { buildRequestsApi, BuildRequest } from "@/lib/api";
 
-const MOCK = {
-  id: "REQ-1024",
-  plan: {
-    name: "Green Valley Villa",
-    slug: "green-valley-villa",
-    style: "Modern",
-    beds: 4,
-    baths: 3,
-    floors: 2,
-    areaSqm: 320,
-  },
-  region: "KE-Nairobi",
-  budgetRange: "USD 120,000 - 150,000",
-  timeline: "Q2 2025",
-  options: [
-    { name: "Solar package", priceDelta: 6000 },
-    { name: "Rainwater harvesting", priceDelta: 2500 },
-  ],
-  customizations: "Increase kitchen island, add skylight in stairwell",
-  files: [
-    { name: "site-photos.zip", size: "4.2MB" },
-  ],
-  submittedAt: "2025-03-10",
-  status: "in_review",
-} as const;
+const statusLabel = (status: string) => {
+  switch (status) {
+    case "new":
+      return { label: "New", variant: "secondary" as const };
+    case "in_review":
+      return { label: "In review", variant: "default" as const };
+    case "contacted":
+      return { label: "Contacted", variant: "default" as const };
+    case "archived":
+      return { label: "Archived", variant: "outline" as const };
+    default:
+      return { label: status, variant: "secondary" as const };
+  }
+};
 
 const RequestDetail = () => {
-  const { id } = useParams();
-  const data = { ...MOCK, id: id ?? MOCK.id };
+  const { id } = useParams<{ id: string }>();
+
+  const { data: request, isLoading, error } = useQuery({
+    queryKey: ['build-request', id],
+    queryFn: () => buildRequestsApi.get(String(id)),
+    enabled: !!id,
+  });
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-96">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-2">Loading request details...</span>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error || !request) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-96">
+          <div className="text-center">
+            <h2 className="text-lg font-semibold text-red-600">Error loading request</h2>
+            <p className="text-muted-foreground">Please try again later.</p>
+            <Button variant="outline" className="mt-4" asChild>
+              <Link to="/account/requests">
+                <ArrowLeft className="w-4 h-4 mr-1" /> Back to Requests
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -43,7 +68,7 @@ const RequestDetail = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ClipboardList className="w-6 h-6" />
-              <h1 className="text-2xl md:text-3xl font-bold">Request {data.id}</h1>
+              <h1 className="text-2xl md:text-3xl font-bold">Request REQ-{String(request.id).slice(0, 8).toUpperCase()}</h1>
             </div>
             <Button variant="outline" size="sm" asChild>
               <Link to="/account/requests">
@@ -64,33 +89,58 @@ const RequestDetail = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <div className="font-medium">{data.plan.name}</div>
-                  <Badge variant="secondary">{data.status}</Badge>
+                  <div className="font-medium">{request.plan_details?.name ?? request.plan}</div>
+                  <Badge variant={statusLabel((request as any).status).variant}>{statusLabel((request as any).status).label}</Badge>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div><Label className="text-muted-foreground">Style</Label><div>{data.plan.style}</div></div>
-                  <div><Label className="text-muted-foreground">Beds</Label><div>{data.plan.beds}</div></div>
-                  <div><Label className="text-muted-foreground">Baths</Label><div>{data.plan.baths}</div></div>
-                  <div><Label className="text-muted-foreground">Area</Label><div>{data.plan.areaSqm} sqm</div></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <Label className="text-muted-foreground">Type</Label>
+                    <div>Plan build request</div>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Status</Label>
+                    <div>{statusLabel((request as any).status).label}</div>
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div>
                     <Label className="text-muted-foreground">Region</Label>
-                    <div>{data.region}</div>
+                    <div>{(request.region_details?.name ?? request.region) || 'Not specified'}</div>
                   </div>
                   <div>
-                    <Label className="text-muted-foreground">Timeline</Label>
-                    <div>{data.timeline}</div>
+                    <Label className="text-muted-foreground">City</Label>
+                    <div>Not specified</div>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div>
                     <Label className="text-muted-foreground">Budget</Label>
-                    <div>{data.budgetRange}</div>
+                    <div>
+                      {request.budget_min || request.budget_max
+                        ? `${request.budget_currency} ${request.budget_min ?? '-'} - ${request.budget_max ?? '-'}`
+                        : 'Not specified'}
+                    </div>
                   </div>
                   <div>
-                    <Label className="text-muted-foreground">Submitted</Label>
-                    <div>{data.submittedAt}</div>
+                    <Label className="text-muted-foreground">Created</Label>
+                    <div>{new Date(request.submitted_at).toLocaleDateString()}</div>
+                  </div>
+                </div>
+                {request.customizations && (
+                  <div>
+                    <Label className="text-muted-foreground">Description</Label>
+                    <div className="text-sm mt-1">{request.customizations}</div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <Label className="text-muted-foreground">Timeline</Label>
+                    <div>{request.timeline || 'Not specified'}</div>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Selected options</Label>
+                    <div>{request.options?.length ? request.options.join(', ') : 'None'}</div>
                   </div>
                 </div>
               </CardContent>
@@ -98,18 +148,10 @@ const RequestDetail = () => {
 
             <Card className="shadow-medium">
               <CardHeader>
-                <CardTitle>Selected Options</CardTitle>
+                <CardTitle>Selected Eco-Features</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                {data.options.map((o, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 rounded-md bg-muted/30">
-                    <div>{o.name}</div>
-                    <div>+ ${o.priceDelta.toLocaleString()}</div>
-                  </div>
-                ))}
-                {data.options.length === 0 && (
-                  <div className="text-muted-foreground">No options selected.</div>
-                )}
+              <CardContent className="space-y-3">
+                <div className="text-muted-foreground text-sm">Not available for plan build requests.</div>
               </CardContent>
             </Card>
 
@@ -118,7 +160,13 @@ const RequestDetail = () => {
                 <CardTitle>Customizations</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">{data.customizations}</p>
+                <div className="space-y-3">
+                  {request.customizations ? (
+                    <p className="text-sm">{request.customizations}</p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No customizations specified.</p>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -127,20 +175,30 @@ const RequestDetail = () => {
           <div className="space-y-6">
             <Card className="shadow-medium">
               <CardHeader>
-                <CardTitle>Files</CardTitle>
+                <CardTitle>Documents</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
-                {data.files.map((f, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 rounded-md bg-muted/30 text-sm">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-4 h-4" /> {f.name}
+              <CardContent className="space-y-3">
+                {request.attachments.length > 0 ? (
+                  request.attachments.map((doc, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 rounded-md bg-muted/30 border border-muted/50 hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <FileText className="w-4 h-4 text-primary" />
+                        <div>
+                          <div className="text-sm font-medium">{doc.original_name}</div>
+                          <div className="text-xs text-muted-foreground">Uploaded {new Date(doc.uploaded_at).toLocaleDateString()}</div>
+                        </div>
+                      </div>
+                      <Button variant="outline" size="sm" disabled>
+                        <Download className="w-3 h-3 mr-1" />
+                      </Button>
                     </div>
-                    <div className="text-muted-foreground">{f.size}</div>
+                  ))
+                ) : (
+                  <div className="text-muted-foreground text-sm text-center py-4">
+                    <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    No documents uploaded.
                   </div>
-                ))}
-                <Button variant="outline" className="w-full mt-2">
-                  <Download className="w-4 h-4 mr-2" /> Download All
-                </Button>
+                )}
               </CardContent>
             </Card>
 

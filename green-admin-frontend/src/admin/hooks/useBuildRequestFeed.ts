@@ -22,27 +22,32 @@ function toWebSocketUrl(base: string) {
 
 export function useBuildRequestFeed(onMessage?: (event: BuildRequestEvent) => void) {
   useEffect(() => {
-    const wsUrl = `${toWebSocketUrl(API_BASE)}/ws/admin/build-requests/`;
-    const socket = new WebSocket(wsUrl);
+    // TODO: Implement WebSocket endpoint in backend
+    // For now, disable WebSocket to prevent 404 errors
+    console.log('WebSocket feed disabled - endpoint not implemented yet');
+    
+    // Uncomment when backend WebSocket is ready:
+    // const wsUrl = `${toWebSocketUrl(API_BASE)}/ws/admin/build-requests/`;
+    // const socket = new WebSocket(wsUrl);
 
-    socket.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data) as BuildRequestEvent;
-        toast("New build request", {
-          description: `${payload.contact_name} • ${payload.plan.name} (${payload.region})`,
-        });
-        onMessage?.(payload);
-      } catch (error) {
-        console.error("Failed to parse build request event", error);
-      }
-    };
+    // socket.onmessage = (event) => {
+    //   try {
+    //     const payload = JSON.parse(event.data) as BuildRequestEvent;
+    //     toast("New build request", {
+    //       description: `${payload.contact_name} • ${payload.plan.name} (${payload.region})`,
+    //     });
+    //     onMessage?.(payload);
+    //   } catch (error) {
+    //     console.error("Failed to parse build request event", error);
+    //   }
+    // };
 
-    socket.onerror = (error) => {
-      console.error("Build request feed error", error);
-    };
+    // socket.onerror = (error) => {
+    //   console.error("Build request feed error", error);
+    // };
 
-    return () => {
-      socket.close();
-    };
+    // return () => {
+    //   socket.close();
+    // };
   }, [onMessage]);
 }

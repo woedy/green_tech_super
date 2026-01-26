@@ -207,11 +207,11 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
     
     def get_days_remaining(self, obj):
         """Calculate days remaining until project deadline."""
-        if not obj.end_date:
+        if not obj.planned_end_date:
             return None
         
         today = timezone.now().date()
-        delta = (obj.end_date - today).days
+        delta = (obj.planned_end_date - today).days
         return max(0, delta) if delta > 0 else 0
     
     def get_budget_status(self, obj):
@@ -372,8 +372,8 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
             })
         
         # Schedule risk
-        if obj.end_date and obj.end_date < today + timezone.timedelta(days=30):
-            days_left = (obj.end_date - today).days
+        if obj.planned_end_date and obj.planned_end_date < today + timezone.timedelta(days=30):
+            days_left = (obj.planned_end_date - today).days
             if days_left < 0:
                 severity = 'critical'
                 desc = f'Project is {abs(days_left)} days behind schedule'

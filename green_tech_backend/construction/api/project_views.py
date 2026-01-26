@@ -98,7 +98,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
             permission_classes = [IsAuthenticated, CanEditProject]
         elif self.action in ['update_status', 'update_phase']:
             permission_classes = [IsAuthenticated, IsProjectManagerOrAdmin]
-        elif self.action in ['dashboard', 'timeline', 'budget']:
+        elif self.action in ['dashboard', 'timeline', 'get_timeline', 'budget']:
             permission_classes = [IsAuthenticated, IsProjectTeamMember]
         else:
             permission_classes = [IsAuthenticated, IsAdminUser]

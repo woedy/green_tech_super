@@ -1,6 +1,16 @@
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { ConstructionFormData } from '@/types/construction';
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { basicInfoSchema, type BasicInfoFormData } from "@/lib/validation";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from '@/components/ui/input';
 
 interface BasicInfoStepProps {
   data: ConstructionFormData;
@@ -8,46 +18,113 @@ interface BasicInfoStepProps {
 }
 
 export const BasicInfoStep = ({ data, onUpdate }: BasicInfoStepProps) => {
+  const form = useForm<BasicInfoFormData>({
+    resolver: zodResolver(basicInfoSchema),
+    defaultValues: {
+      customerName: data.customerName || "",
+      customerEmail: data.customerEmail || "",
+      customerPhone: data.customerPhone || "",
+      projectTitle: data.projectTitle || "",
+    },
+  });
+
+  // Update parent form data when local form changes
+  const handleFieldChange = (field: keyof BasicInfoFormData, value: string) => {
+    onUpdate({ [field]: value });
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <Label htmlFor="customerName">Full Name *</Label>
-          <Input
-            id="customerName"
-            value={data.customerName}
-            onChange={(e) => onUpdate({ customerName: e.target.value })}
-            placeholder="Enter your full name"
-            required
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="customerName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Full Name *</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="Enter your full name"
+                  {...field}
+                  onChange={(e) => {
+                    field.onChange(e);
+                    handleFieldChange('customerName', e.target.value);
+                  }}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         
-        <div className="space-y-2">
-          <Label htmlFor="customerEmail">Email Address *</Label>
-          <Input
-            id="customerEmail"
-            type="email"
-            value={data.customerEmail}
-            onChange={(e) => onUpdate({ customerEmail: e.target.value })}
-            placeholder="your.email@example.com"
-            required
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="customerEmail"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email Address *</FormLabel>
+              <FormControl>
+                <Input
+                  type="email"
+                  placeholder="your.email@example.com"
+                  {...field}
+                  onChange={(e) => {
+                    field.onChange(e);
+                    handleFieldChange('customerEmail', e.target.value);
+                  }}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         
-        <div className="space-y-2">
-          <Label htmlFor="customerPhone">Phone Number</Label>
-          <Input
-            id="customerPhone"
-            type="tel"
-            value={data.customerPhone}
-            onChange={(e) => onUpdate({ customerPhone: e.target.value })}
-            placeholder="+233 XX XXX XXXX"
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="customerPhone"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Phone Number (Optional)</FormLabel>
+              <FormControl>
+                <Input
+                  type="tel"
+                  placeholder="+233 XX XXX XXXX"
+                  {...field}
+                  onChange={(e) => {
+                    field.onChange(e);
+                    handleFieldChange('customerPhone', e.target.value);
+                  }}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         
-        <div className="space-y-2">
-          <Label htmlFor="projectTitle">Project Title *</Label>
-          <Input
+        <FormField
+          control={form.control}
+          name="projectTitle"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Project Title *</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="e.g., My Dream Eco Home"
+                  {...field}
+                  onChange={(e) => {
+                    field.onChange(e);
+                    handleFieldChange('projectTitle', e.target.value);
+                  }}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+    </div>
+  );
+};
             id="projectTitle"
             value={data.projectTitle}
             onChange={(e) => onUpdate({ projectTitle: e.target.value })}

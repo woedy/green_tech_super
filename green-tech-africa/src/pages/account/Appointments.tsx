@@ -2,17 +2,32 @@ import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar as CalendarIcon } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { appointmentsApi, type ViewingAppointment } from "@/lib/api";
+import { Loader2 } from "lucide-react";
 
-const UPCOMING = [
-  { id: "APT-301", title: "Site viewing - Riverside Estate", when: "2025-03-15 10:00", location: "Nairobi" },
-  { id: "APT-302", title: "PM call - Urban Duplex A2", when: "2025-03-17 14:00", location: "Online" },
-];
+const formatDateTime = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString();
+};
 
-const PAST = [
-  { id: "APT-299", title: "Agent call - Quote QUO-551", when: "2025-03-02 09:00", location: "Online" },
-];
+const locationText = (a: ViewingAppointment) => {
+  return [a.city, a.region, a.country].filter(Boolean).join(", ");
+};
 
 const Appointments = () => {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['appointments'],
+    queryFn: () => appointmentsApi.list(),
+  });
+
+  const items = data?.results ?? [];
+  const now = new Date();
+  const upcoming = items.filter((a) => new Date(a.scheduled_for) >= now);
+  const past = items.filter((a) => new Date(a.scheduled_for) < now);
+
   return (
     <Layout>
       <section className="py-10 bg-gradient-to-br from-background via-accent/30 to-background">
@@ -29,16 +44,26 @@ const Appointments = () => {
           <Card className="shadow-medium">
             <CardHeader><CardTitle>Upcoming</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              {UPCOMING.map((a) => (
+              {isLoading && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading appointments...
+                </div>
+              )}
+              {!isLoading && error && (
+                <div className="text-sm text-destructive">{(error as any)?.message || 'Unable to load appointments.'}</div>
+              )}
+              {!isLoading && !error && upcoming.map((a) => (
                 <div key={a.id} className="flex items-center justify-between p-3 rounded-md bg-muted/30 text-sm">
                   <div>
-                    <div className="font-medium">{a.title}</div>
-                    <div className="text-muted-foreground">{a.when} • {a.location}</div>
+                    <div className="font-medium">{a.property_title}</div>
+                    <div className="text-muted-foreground">{formatDateTime(a.scheduled_for)} • {locationText(a)}</div>
                   </div>
-                  <Button variant="outline" size="sm">Details</Button>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to={`/account/appointments/${a.id}`}>Details</Link>
+                  </Button>
                 </div>
               ))}
-              {UPCOMING.length === 0 && (
+              {!isLoading && !error && upcoming.length === 0 && (
                 <div className="text-sm text-muted-foreground">No upcoming appointments.</div>
               )}
             </CardContent>
@@ -47,16 +72,18 @@ const Appointments = () => {
           <Card className="shadow-medium">
             <CardHeader><CardTitle>Past</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              {PAST.map((a) => (
+              {!isLoading && !error && past.map((a) => (
                 <div key={a.id} className="flex items-center justify-between p-3 rounded-md bg-muted/30 text-sm">
                   <div>
-                    <div className="font-medium">{a.title}</div>
-                    <div className="text-muted-foreground">{a.when} • {a.location}</div>
+                    <div className="font-medium">{a.property_title}</div>
+                    <div className="text-muted-foreground">{formatDateTime(a.scheduled_for)} • {locationText(a)}</div>
                   </div>
-                  <Button variant="outline" size="sm">Notes</Button>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to={`/account/appointments/${a.id}`}>Details</Link>
+                  </Button>
                 </div>
               ))}
-              {PAST.length === 0 && (
+              {!isLoading && !error && past.length === 0 && (
                 <div className="text-sm text-muted-foreground">No past appointments.</div>
               )}
             </CardContent>

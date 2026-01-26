@@ -1,4 +1,4 @@
-export type QuoteStatus = 'draft' | 'sent' | 'viewed' | 'accepted' | 'declined';
+export type QuoteStatus = 'draft' | 'sent' | 'viewed' | 'accepted' | 'declined' | 'DRAFT' | 'SENT' | 'VIEWED' | 'ACCEPTED' | 'DECLINED';
 
 export type QuoteLineItem = {
   id: string;

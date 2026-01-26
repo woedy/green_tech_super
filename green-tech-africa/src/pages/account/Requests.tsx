@@ -5,57 +5,76 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ClipboardList, Plus, Filter } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { buildRequestsApi, BuildRequest } from "@/lib/api";
+import { Loader2 } from "lucide-react";
 
-type RequestItem = {
-  id: string;
-  planName: string;
-  region: string;
-  submittedAt: string;
-  status: "new" | "in_review" | "quoted" | "closed";
-};
-
-const ALL_REQUESTS: RequestItem[] = [
-  { id: "REQ-1024", planName: "Green Valley Villa", region: "KE-Nairobi", submittedAt: "2025-03-10", status: "in_review" },
-  { id: "REQ-1023", planName: "Urban Duplex A2", region: "NG-Lagos", submittedAt: "2025-03-08", status: "new" },
-  { id: "REQ-1017", planName: "Eco Bungalow S1", region: "GH-Accra", submittedAt: "2025-03-01", status: "quoted" },
-];
-
-const statusLabel = (s: RequestItem["status"]) => {
-  switch (s) {
+const statusLabel = (status: string) => {
+  switch (status) {
     case "new":
-      return { label: "New", variant: "outline" as const };
+      return { label: "New", variant: "secondary" as const };
     case "in_review":
-      return { label: "In Review", variant: "secondary" as const };
-    case "quoted":
-      return { label: "Quoted", variant: "default" as const };
-    case "closed":
-      return { label: "Closed", variant: "secondary" as const };
+      return { label: "In review", variant: "default" as const };
+    case "contacted":
+      return { label: "Contacted", variant: "default" as const };
+    case "archived":
+      return { label: "Archived", variant: "outline" as const };
     default:
-      return { label: s, variant: "secondary" as const };
+      return { label: status, variant: "secondary" as const };
   }
 };
 
 const Requests = () => {
+  const { data: allRequestsData, isLoading, error } = useQuery({
+    queryKey: ['build-requests'],
+    queryFn: () => buildRequestsApi.list(),
+  });
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-96">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-2">Loading requests...</span>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-96">
+          <div className="text-center">
+            <h2 className="text-lg font-semibold text-red-600">Error loading requests</h2>
+            <p className="text-muted-foreground">Please try again later.</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  const allRequests = allRequestsData?.results || [];
+
   const counts = {
-    all: ALL_REQUESTS.length,
-    new: ALL_REQUESTS.filter((r) => r.status === "new").length,
-    in_review: ALL_REQUESTS.filter((r) => r.status === "in_review").length,
-    quoted: ALL_REQUESTS.filter((r) => r.status === "quoted").length,
+    all: allRequests.length,
   };
 
-  const renderList = (items: RequestItem[]) => (
+  const renderList = (items: BuildRequest[]) => (
     <div className="space-y-3">
-      {items.map((r) => (
-        <Card key={r.id} className="shadow-soft hover:shadow-medium smooth-transition">
+      {items.map((request) => (
+        <Card key={request.id} className="shadow-soft hover:shadow-medium smooth-transition">
           <CardContent className="p-4 flex items-center justify-between gap-4">
             <div>
-              <div className="font-medium">{r.planName}</div>
-              <div className="text-xs text-muted-foreground">{r.id} • {r.region} • {r.submittedAt}</div>
+              <div className="font-medium">{request.plan_details?.name ?? request.plan}</div>
+              <div className="text-xs text-muted-foreground">
+                REQ-{String(request.id).slice(0, 8).toUpperCase()} • {request.region_details?.name ?? request.region} • {new Date(request.submitted_at).toLocaleDateString()}
+              </div>
             </div>
             <div className="flex items-center gap-3">
-              <Badge variant={statusLabel(r.status).variant}>{statusLabel(r.status).label}</Badge>
+              <Badge variant={statusLabel((request as any).status).variant}>{statusLabel((request as any).status).label}</Badge>
               <Button variant="outline" size="sm" asChild>
-                <Link to={`/account/requests/${r.id}`}>Open</Link>
+                <Link to={`/account/requests/${request.id}`}>Open</Link>
               </Button>
             </div>
           </CardContent>
@@ -82,7 +101,7 @@ const Requests = () => {
               </Button>
               <Button variant="hero" size="sm" asChild>
                 <Link to="/plans">
-                  <Plus className="w-4 h-4 mr-1" /> New Request
+                  <Plus className="w-4 h-4 mr-1" /> Browse Plans
                 </Link>
               </Button>
             </div>
@@ -93,16 +112,10 @@ const Requests = () => {
       <section className="py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Tabs defaultValue="all" className="space-y-6">
-            <TabsList className="grid grid-cols-4 w-full md:w-auto">
+            <TabsList className="grid grid-cols-1 w-full md:w-auto">
               <TabsTrigger value="all">All ({counts.all})</TabsTrigger>
-              <TabsTrigger value="new">New ({counts.new})</TabsTrigger>
-              <TabsTrigger value="in_review">In Review ({counts.in_review})</TabsTrigger>
-              <TabsTrigger value="quoted">Quoted ({counts.quoted})</TabsTrigger>
             </TabsList>
-            <TabsContent value="all">{renderList(ALL_REQUESTS)}</TabsContent>
-            <TabsContent value="new">{renderList(ALL_REQUESTS.filter((r) => r.status === "new"))}</TabsContent>
-            <TabsContent value="in_review">{renderList(ALL_REQUESTS.filter((r) => r.status === "in_review"))}</TabsContent>
-            <TabsContent value="quoted">{renderList(ALL_REQUESTS.filter((r) => r.status === "quoted"))}</TabsContent>
+            <TabsContent value="all">{renderList(allRequests)}</TabsContent>
           </Tabs>
         </div>
       </section>

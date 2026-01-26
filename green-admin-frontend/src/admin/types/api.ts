@@ -172,3 +172,67 @@ export interface SiteDocumentVersionPayload {
   preview_url?: string;
   notes?: string;
 }
+// Dashboard types
+export interface AdminDashboardMetrics {
+  period: {
+    start_date: string;
+    end_date: string;
+  };
+  overview: {
+    total_leads: number;
+    total_quotes: number;
+    total_projects: number;
+    total_users: number;
+    active_users: number;
+    new_users: number;
+  };
+  leads: {
+    total: number;
+    recent: number;
+    status_breakdown: Record<string, number>;
+    trend: number;
+  };
+  quotes: {
+    total: number;
+    recent: number;
+    status_breakdown: Record<string, number>;
+    total_value: string;
+    accepted: number;
+    trend: number;
+  };
+  projects: {
+    total: number;
+    recent: number;
+    active: number;
+    status_breakdown: Record<string, number>;
+    trend: number;
+  };
+  properties: {
+    total: number;
+    active: number;
+    by_region: Record<string, number>;
+  };
+  plans: {
+    total: number;
+    active: number;
+    by_category: Record<string, number>;
+  };
+  regional_performance: Array<{
+    name: string;
+    leads: number;
+    projects: number;
+    properties: number;
+    total_activity: number;
+  }>;
+  sustainability: {
+    eco_plans: number;
+    solar_properties: number;
+    water_harvesting_properties: number;
+    green_score: number;
+  };
+  conversion_rates: {
+    lead_to_quote: number;
+    quote_to_project: number;
+    quote_acceptance: number;
+  };
+}

@@ -6,14 +6,20 @@ import { FileSpreadsheet, Filter } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { api } from "@/lib/api";
 import type { QuoteSummary, QuoteStatus } from "@/types/quote";
 
-const STATUS_BADGES: Record<QuoteStatus, { label: string; variant: "default" | "outline" | "secondary" | "destructive" }> = {
+const STATUS_BADGES: Record<string, { label: string; variant: "default" | "outline" | "secondary" | "destructive" }> = {
   draft: { label: "Draft", variant: "outline" },
+  DRAFT: { label: "Draft", variant: "outline" },
   sent: { label: "Sent", variant: "secondary" },
+  SENT: { label: "Sent", variant: "secondary" },
   viewed: { label: "Viewed", variant: "secondary" },
+  VIEWED: { label: "Viewed", variant: "secondary" },
   accepted: { label: "Accepted", variant: "default" },
+  ACCEPTED: { label: "Accepted", variant: "default" },
   declined: { label: "Declined", variant: "destructive" },
+  DECLINED: { label: "Declined", variant: "destructive" },
 };
 
 const formatCurrency = (currency: string, amount: number) => {
@@ -31,27 +37,39 @@ const Quotes = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
       if (!user?.email) return;
-      setIsLoading(true);
+      
       try {
-        const response = await fetch(`/api/quotes/?customer_email=${encodeURIComponent(user.email)}`);
-        if (!response.ok) {
-          throw new Error(`Unable to load quotes (${response.status})`);
-        }
-        const payload = await response.json();
-        const results: QuoteSummary[] = payload.results ?? [];
-        const sorted = results.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-        setQuotes(sorted);
+        setIsLoading(true);
         setError(null);
+        
+        const payload = await api.get<{ results?: QuoteSummary[] }>(`/api/quotes/?customer_email=${encodeURIComponent(user.email)}`);
+        
+        if (!cancelled) {
+          const results: QuoteSummary[] = Array.isArray(payload?.results) ? payload.results : [];
+          const sorted = results.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+          setQuotes(sorted);
+        }
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Failed to load quotes";
-        setError(message);
+        console.error("Failed to load quotes:", err);
+        if (!cancelled) {
+          const message = err instanceof Error ? err.message : "Failed to load quotes";
+          setError(message);
+          setQuotes([]);
+        }
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     };
+    
     load();
+    return () => {
+      cancelled = true;
+    };
   }, [user?.email]);
 
   const visibleQuotes = useMemo(() => quotes, [quotes]);
@@ -73,7 +91,7 @@ const Quotes = () => {
           {isLoading && <Card><CardContent className="p-6 text-sm text-muted-foreground">Loading quotes…</CardContent></Card>}
           {error && <Card><CardContent className="p-6 text-sm text-destructive">{error}</CardContent></Card>}
           {!isLoading && !error && visibleQuotes.map((quote) => {
-            const badge = STATUS_BADGES[quote.status];
+            const badge = STATUS_BADGES[quote.status] || { label: quote.status, variant: "outline" as const };
             return (
               <Card key={quote.id} className="shadow-soft hover:shadow-medium smooth-transition">
                 <CardContent className="p-4 flex items-center justify-between">

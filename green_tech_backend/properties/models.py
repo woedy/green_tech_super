@@ -90,6 +90,14 @@ class Property(models.Model):
         image = self.images.filter(is_primary=True).first()
         return image.image_url if image else self.hero_image_url
 
+    @property
+    def eco_features(self):
+        """Return list of eco feature names for this property."""
+        return list(
+            self.property_eco_features.select_related('eco_feature')
+            .values_list('eco_feature__name', flat=True)
+        )
+
 
 class PropertyImage(models.Model):
     property = models.ForeignKey(Property, related_name='images', on_delete=models.CASCADE)

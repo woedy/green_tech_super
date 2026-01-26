@@ -1,12 +1,15 @@
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, MapPin, Users, Building, DollarSign } from 'lucide-react';
+import { TrendingUp, TrendingDown, MapPin, Users, Building, DollarSign, Leaf, Loader2 } from 'lucide-react';
+import { adminApi } from '../api';
 
-const Kpi = ({ title, value, trend, icon: Icon }: { 
+const Kpi = ({ title, value, trend, icon: Icon, loading = false }: { 
   title: string; 
   value: string; 
   trend?: { direction: 'up' | 'down'; percentage: string };
   icon?: React.ComponentType<{ className?: string }>;
+  loading?: boolean;
 }) => (
   <Card>
     <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
@@ -14,25 +17,66 @@ const Kpi = ({ title, value, trend, icon: Icon }: {
       {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
     </CardHeader>
     <CardContent>
-      <div className="text-2xl font-semibold">{value}</div>
-      {trend && (
-        <div className="flex items-center text-xs text-muted-foreground mt-1">
-          {trend.direction === 'up' ? (
-            <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
-          ) : (
-            <TrendingDown className="h-3 w-3 text-red-500 mr-1" />
-          )}
-          <span className={trend.direction === 'up' ? 'text-green-500' : 'text-red-500'}>
-            {trend.percentage}
-          </span>
-          <span className="ml-1">from last week</span>
+      {loading ? (
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span className="text-sm text-muted-foreground">Loading...</span>
         </div>
+      ) : (
+        <>
+          <div className="text-2xl font-semibold">{value}</div>
+          {trend && (
+            <div className="flex items-center text-xs text-muted-foreground mt-1">
+              {trend.direction === 'up' ? (
+                <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
+              ) : (
+                <TrendingDown className="h-3 w-3 text-red-500 mr-1" />
+              )}
+              <span className={trend.direction === 'up' ? 'text-green-500' : 'text-red-500'}>
+                {trend.percentage}
+              </span>
+              <span className="ml-1">from last period</span>
+            </div>
+          )}
+        </>
       )}
     </CardContent>
   </Card>
 );
 
 export default function Dashboard() {
+  const { data: metrics, isLoading, error } = useQuery({
+    queryKey: ['admin-dashboard-metrics'],
+    queryFn: () => adminApi.getDashboardMetrics(),
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+  });
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+          <p className="text-muted-foreground">Platform-wide analytics and Ghana market insights</p>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center text-red-600">
+              <p>Failed to load dashboard data</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {error instanceof Error ? error.message : 'Unknown error occurred'}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const formatTrend = (trend: number) => ({
+    direction: trend >= 0 ? 'up' as const : 'down' as const,
+    percentage: `${trend >= 0 ? '+' : ''}${trend}%`
+  });
+
   return (
     <div className="space-y-6">
       <div>
@@ -43,28 +87,31 @@ export default function Dashboard() {
       {/* Key Performance Indicators */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Kpi 
-          title="New Leads (7d)" 
-          value="32" 
-          trend={{ direction: 'up', percentage: '+12%' }}
+          title="New Leads (Period)" 
+          value={metrics?.leads.total.toString() || '0'} 
+          trend={metrics ? formatTrend(metrics.leads.trend) : undefined}
           icon={Users}
+          loading={isLoading}
         />
         <Kpi 
-          title="Quotes Sent (7d)" 
-          value="14" 
-          trend={{ direction: 'up', percentage: '+8%' }}
+          title="Quotes Sent (Period)" 
+          value={metrics?.quotes.total.toString() || '0'} 
+          trend={metrics ? formatTrend(metrics.quotes.trend) : undefined}
           icon={DollarSign}
+          loading={isLoading}
         />
         <Kpi 
           title="Projects Active" 
-          value="9" 
-          trend={{ direction: 'down', percentage: '-2%' }}
+          value={metrics?.projects.active.toString() || '0'} 
+          trend={metrics ? formatTrend(metrics.projects.trend) : undefined}
           icon={Building}
+          loading={isLoading}
         />
         <Kpi 
-          title="Listings Live" 
-          value="128" 
-          trend={{ direction: 'up', percentage: '+15%' }}
+          title="Properties Live" 
+          value={metrics?.properties.active.toString() || '0'} 
           icon={MapPin}
+          loading={isLoading}
         />
       </div>
 
@@ -78,110 +125,116 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Greater Accra</span>
+            {isLoading ? (
               <div className="flex items-center gap-2">
-                <Badge variant="secondary">45 properties</Badge>
-                <span className="text-sm text-green-600">+18%</span>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm text-muted-foreground">Loading regional data...</span>
               </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Ashanti (Kumasi)</span>
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary">32 properties</Badge>
-                <span className="text-sm text-green-600">+12%</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Northern (Tamale)</span>
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary">18 properties</Badge>
-                <span className="text-sm text-green-600">+25%</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Central (Cape Coast)</span>
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary">12 properties</Badge>
-                <span className="text-sm text-green-600">+8%</span>
-              </div>
-            </div>
+            ) : metrics?.regional_performance.length ? (
+              metrics.regional_performance
+                .sort((a, b) => b.total_activity - a.total_activity)
+                .slice(0, 4)
+                .map((region) => (
+                  <div key={region.name} className="flex items-center justify-between">
+                    <span className="text-sm">{region.name}</span>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary">{region.properties} properties</Badge>
+                      <Badge variant="outline" className="text-xs">
+                        {region.leads} leads, {region.projects} projects
+                      </Badge>
+                    </div>
+                  </div>
+                ))
+            ) : (
+              <p className="text-sm text-muted-foreground">No regional data available</p>
+            )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Sustainability Metrics</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Leaf className="h-5 w-5" />
+              Sustainability Metrics
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Avg. Green Score</span>
+            {isLoading ? (
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="bg-green-50 text-green-700">7.8/10</Badge>
-                <span className="text-sm text-green-600">+0.3</span>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm text-muted-foreground">Loading sustainability data...</span>
               </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Solar Properties</span>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline">68%</Badge>
-                <span className="text-sm text-green-600">+5%</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Water Harvesting</span>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline">42%</Badge>
-                <span className="text-sm text-green-600">+8%</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Eco Materials</span>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline">55%</Badge>
-                <span className="text-sm text-green-600">+12%</span>
-              </div>
-            </div>
+            ) : metrics ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Green Score</span>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="bg-green-50 text-green-700">
+                      {metrics.sustainability.green_score}/10
+                    </Badge>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Solar Properties</span>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{metrics.sustainability.solar_properties}</Badge>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Water Harvesting</span>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{metrics.sustainability.water_harvesting_properties}</Badge>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Eco Plans</span>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{metrics.sustainability.eco_plans}</Badge>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">No sustainability data available</p>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Recent Activity */}
+      {/* Conversion Rates */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
+          <CardTitle>Conversion Rates</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-start gap-3 text-sm">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-              <div>
-                <p><strong>Plan "Eco Bungalow"</strong> updated by Jane Smith</p>
-                <p className="text-muted-foreground">Added solar panel specifications for Accra region • 2 hours ago</p>
+          {isLoading ? (
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm text-muted-foreground">Loading conversion data...</span>
+            </div>
+          ) : metrics ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-semibold text-blue-600">
+                  {metrics.conversion_rates.lead_to_quote}%
+                </div>
+                <p className="text-sm text-muted-foreground">Lead to Quote</p>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-semibold text-green-600">
+                  {metrics.conversion_rates.quote_acceptance}%
+                </div>
+                <p className="text-sm text-muted-foreground">Quote Acceptance</p>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-semibold text-purple-600">
+                  {metrics.conversion_rates.quote_to_project}%
+                </div>
+                <p className="text-sm text-muted-foreground">Quote to Project</p>
               </div>
             </div>
-            <div className="flex items-start gap-3 text-sm">
-              <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-              <div>
-                <p><strong>New property inquiry</strong> assigned to Agent #24</p>
-                <p className="text-muted-foreground">3-bedroom eco villa in Kumasi • 4 hours ago</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3 text-sm">
-              <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
-              <div>
-                <p><strong>Regional pricing update:</strong> Greater Accra multiplier changed</p>
-                <p className="text-muted-foreground">1.12 → 1.14 due to material cost increases • 6 hours ago</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3 text-sm">
-              <div className="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
-              <div>
-                <p><strong>New agent registration:</strong> Kwame Asante verified</p>
-                <p className="text-muted-foreground">Specializing in sustainable construction in Tamale • 1 day ago</p>
-              </div>
-            </div>
-          </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No conversion data available</p>
+          )}
         </CardContent>
       </Card>
     </div>

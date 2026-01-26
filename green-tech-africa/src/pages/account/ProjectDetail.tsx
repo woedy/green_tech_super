@@ -50,14 +50,37 @@ const ProjectDetail = () => {
     async function load() {
       try {
         setLoading(true);
-        const [dashboardData, timelineData] = await Promise.all([
+        const [dashboardResult, timelineResult] = await Promise.allSettled([
           api.get<ProjectDashboard>(`/api/construction/projects/${projectId}/dashboard/`),
           api.get<ProjectTimeline>(`/api/construction/projects/${projectId}/timeline/`),
         ]);
+
+        let dashboardData: ProjectDashboard | null = null;
+        let timelineData: ProjectTimeline | null = null;
+        let message: string | null = null;
+
+        if (dashboardResult.status === 'fulfilled') {
+          dashboardData = dashboardResult.value;
+        } else {
+          try {
+            dashboardData = await api.get<ProjectDashboard>(`/api/construction/projects/${projectId}/`);
+          } catch (fallbackErr) {
+            const reason = (dashboardResult.reason as any)?.message || 'Unable to load dashboard.';
+            const fallbackReason = (fallbackErr as any)?.message || '';
+            message = [reason, fallbackReason].filter(Boolean).join(' ');
+          }
+        }
+
+        if (timelineResult.status === 'fulfilled') {
+          timelineData = timelineResult.value;
+        } else {
+          const reason = (timelineResult.reason as any)?.message || 'Unable to load timeline.';
+          message = message ? `${message} ${reason}` : reason;
+        }
         if (!cancelled) {
           setDashboard(dashboardData);
           setTimeline(timelineData);
-          setError(null);
+          setError(message);
         }
       } catch (err) {
         console.error(err);

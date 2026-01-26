@@ -11,7 +11,7 @@ from django.urls import reverse
 from django_filters.rest_framework import DjangoFilterBackend, FilterSet, NumberFilter, CharFilter
 from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -94,10 +94,27 @@ class PlanViewSet(viewsets.ReadOnlyModelViewSet):
         )
 
 
-class BuildRequestViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+class BuildRequestViewSet(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet,
+):
     queryset = BuildRequest.objects.select_related('plan', 'region').prefetch_related('attachments', 'plan__options')
     serializer_class = BuildRequestSerializer
     permission_classes = (AllowAny,)
+
+    def get_permissions(self):
+        if self.action in {'create'}:
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        user = getattr(self.request, 'user', None)
+        if not user or not user.is_authenticated:
+            return queryset.none()
+        return queryset.filter(user=user)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

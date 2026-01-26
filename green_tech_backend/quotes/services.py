@@ -18,9 +18,9 @@ def _notify_customer(quote: Quote, event: QuoteEvent) -> None:
         return
 
     from notifications.models import NotificationType
-    from notifications.services import NotificationService
+    from notifications.services import GhanaNotificationService
 
-    service = NotificationService(NotificationType.IN_APP)
+    service = GhanaNotificationService()
     verbs = {
         'sent': gettext('has been sent'),
         'viewed': gettext('was viewed'),
@@ -32,7 +32,7 @@ def _notify_customer(quote: Quote, event: QuoteEvent) -> None:
         'verb': verbs[event],
         'plan': build_request.plan.name,
     }
-    service.send_notification(
+    service.create_notification(
         recipient=build_request.user,
         subject=gettext('Update on quote %(reference)s') % {'reference': quote.reference},
         message=message,

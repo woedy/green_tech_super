@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+</head>
+<body>
+    <h1>Construction Requests API Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        const BASE_URL = 'http://localhost:8000';
+        
+        // Test user credentials (testuser@example.com has requests)
+        const testUser = {
+            email: 'testuser@example.com',
+            password: 'testpass123'
+        };
+        
+        async function testAPI() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>Testing API...</p>';
+            
+            try {
+                // Step 1: Login to get token
+                const loginResponse = await fetch(`${BASE_URL}/api/auth/login/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: testUser.email,
+                        password: testUser.password
+                    })
+                });
+                
+                if (!loginResponse.ok) {
+                    throw new Error(`Login failed: ${loginResponse.status}`);
+                }
+                
+                const loginData = await loginResponse.json();
+                const token = loginData.access;
+                
+                results.innerHTML += `<p>✓ Login successful</p>`;
+                
+                // Step 2: Get construction requests
+                const requestsResponse = await fetch(`${BASE_URL}/api/construction/construction-requests/`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (!requestsResponse.ok) {
+                    throw new Error(`Requests API failed: ${requestsResponse.status}`);
+                }
+                
+                const requestsData = await requestsResponse.json();
+                results.innerHTML += `<p>✓ Found ${requestsData.count} requests</p>`;
+                
+                // Step 3: Get first request details
+                if (requestsData.results.length > 0) {
+                    const firstRequest = requestsData.results[0];
+                    const detailResponse = await fetch(`${BASE_URL}/api/construction/construction-requests/${firstRequest.id}/`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                    
+                    if (!detailResponse.ok) {
+                        throw new Error(`Request detail API failed: ${detailResponse.status}`);
+                    }
+                    
+                    const detailData = await detailResponse.json();
+                    results.innerHTML += `<p>✓ Request details: ${detailData.title}</p>`;
+                    results.innerHTML += `<p>✓ Status: ${detailData.status}</p>`;
+                    results.innerHTML += `<p>✓ Eco-features: ${detailData.selected_eco_features.length}</p>`;
+                }
+                
+                results.innerHTML += `<p><strong>All tests passed! ✅</strong></p>`;
+                
+            } catch (error) {
+                results.innerHTML = `<p><strong>❌ Error:</strong> ${error.message}</p>`;
+                console.error('API Test Error:', error);
+            }
+        }
+        
+        // Run test when page loads
+        testAPI();
+    </script>
+</body>
+</html>

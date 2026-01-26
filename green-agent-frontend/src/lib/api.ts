@@ -20,10 +20,17 @@ function withBase(url: string): string {
   if (url.startsWith("http")) {
     return url;
   }
+  
+  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  console.log('API URL from env:', import.meta.env.VITE_API_URL);
+  console.log('Using API URL:', apiUrl);
+  
   if (url.startsWith("/")) {
-    return url;
+    const fullUrl = `${apiUrl}${url}`;
+    console.log('Full URL:', fullUrl);
+    return fullUrl;
   }
-  return `/api/${url}`;
+  return `${apiUrl}/api/${url}`;
 }
 
 async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -35,6 +42,12 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
   if (method !== "GET" && method !== "HEAD" && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
+  }
+
+  // Add JWT token if available
+  const token = localStorage.getItem('gta_agent_token');
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
   const response = await fetch(withBase(path), {
@@ -308,4 +321,72 @@ export function createProjectChatSocket(projectId: string): WebSocket {
   const protocol = window.location.protocol === "https:" ? "wss" : "ws";
   const host = window.location.host;
   return new WebSocket(`${protocol}://${host}/ws/projects/${projectId}/chat/`);
+}
+
+// Authentication API
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  access: string;
+  refresh: string;
+  user: {
+    id: number;
+    email: string;
+    first_name: string;
+    last_name: string;
+    user_type: 'ADMIN' | 'AGENT' | 'BUILDER' | 'CUSTOMER';
+    is_verified: boolean;
+    phone_number?: string;
+  };
+}
+
+export interface UserProfile {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  user_type: 'ADMIN' | 'AGENT' | 'BUILDER' | 'CUSTOMER';
+  is_verified: boolean;
+  phone_number?: string;
+}
+
+export async function loginUser(credentials: LoginRequest): Promise<LoginResponse> {
+  return apiFetch<LoginResponse>('/api/auth/login/', {
+    method: 'POST',
+    body: JSON.stringify(credentials),
+  });
+}
+
+export async function getUserProfile(): Promise<UserProfile> {
+  return apiFetch<UserProfile>('/api/auth/profile/');
+}
+
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  confirm_password: string;
+  first_name: string;
+  last_name: string;
+  phone_number?: string;
+  user_type: 'AGENT' | 'BUILDER' | 'CUSTOMER';
+}
+
+export interface RegisterResponse {
+  message: string;
+}
+
+export async function registerUser(userData: RegisterRequest): Promise<RegisterResponse> {
+  return apiFetch<RegisterResponse>('/api/auth/register/', {
+    method: 'POST',
+    body: JSON.stringify(userData),
+  });
+}
+export async function refreshAccessToken(refreshToken: string): Promise<{ access: string }> {
+  return apiFetch<{ access: string }>('/api/auth/token/refresh/', {
+    method: 'POST',
+    body: JSON.stringify({ refresh: refreshToken }),
+  });
 }

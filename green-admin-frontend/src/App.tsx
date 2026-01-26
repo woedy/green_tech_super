@@ -19,15 +19,23 @@ import { PropertyForm, PropertyDetail } from "./admin/pages/PropertyDetail";
 import { UserForm, UserDetail } from "./admin/pages/UserDetail";
 import { RegionForm, RegionDetail } from "./admin/pages/RegionDetail";
 import { TemplateForm, TemplateDetail } from "./admin/pages/TemplateDetail";
+import { useAuth } from "./admin/hooks/useAuth";
+import ScrollToTop from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();
 
 function RequireAdmin() {
-  const authed = typeof window !== 'undefined' && localStorage.getItem('adminAuthed') === 'true';
+  const { user, loading } = useAuth();
   const location = useLocation();
-  if (!authed) {
+  
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
+  
+  if (!user) {
     return <Navigate to="/admin/login" replace state={{ from: location }} />;
   }
+  
   return <Outlet />;
 }
 
@@ -37,6 +45,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <ScrollToTop />
         <Routes>
           <Route path="/admin/login" element={<AdminLogin />} />
 

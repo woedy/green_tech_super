@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import About from "./pages/About";
 import Services from "./pages/Services";
 import Projects from "./pages/Projects";
+import ProjectDetail from "./pages/ProjectDetail";
 import Properties from "./pages/Properties";
 import PropertyDetail from "./pages/PropertyDetail";
 import Contact from "./pages/Contact";
@@ -28,8 +29,9 @@ import QuoteDetail from "./pages/account/QuoteDetail";
 import Messages from "./pages/account/Messages";
 import MessageThread from "./pages/account/MessageThread";
 import Appointments from "./pages/account/Appointments";
+import AppointmentDetail from "./pages/account/AppointmentDetail";
 import AccountProjects from "./pages/account/Projects";
-import ProjectDetail from "./pages/account/ProjectDetail";
+import AccountProjectDetail from "./pages/account/ProjectDetail";
 import Favorites from "./pages/account/Favorites";
 import Profile from "./pages/account/Profile";
 import NotificationSettings from "./pages/account/NotificationSettings";
@@ -38,11 +40,11 @@ import Payments from "./pages/account/Payments";
 import SavedSearches from "./pages/account/SavedSearches";
 import PropertyInquiry from "./pages/PropertyInquiry";
 import FinancialTools from "./pages/FinancialTools";
-import Community from "./pages/Community";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import { PWAInstallPrompt } from "./components/pwa/PWAInstallPrompt";
 import { OfflineIndicator } from "./components/pwa/OfflineIndicator";
+import ScrollToTop from "./components/ScrollToTop";
 import { toast } from "sonner";
 
 const queryClient = new QueryClient({
@@ -73,6 +75,7 @@ const App = () => (
       <Sonner />
       <AuthProvider>
         <BrowserRouter>
+          <ScrollToTop />
           <PWAInstallPrompt />
           <OfflineIndicator />
           <Routes>
@@ -80,12 +83,12 @@ const App = () => (
           <Route path="/about" element={<About />} />
           <Route path="/services" element={<Services />} />
           <Route path="/projects" element={<Projects />} />
+          <Route path="/projects/:id" element={<ProjectDetail />} />
           <Route path="/properties" element={<Properties />} />
           <Route path="/properties/:id" element={<PropertyDetail />} />
           <Route path="/properties/:id/inquire" element={<PropertyInquiry />} />
           <Route path="/land" element={<Properties />} />
           <Route path="/financial-tools" element={<FinancialTools />} />
-          <Route path="/community" element={<Community />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
@@ -107,8 +110,9 @@ const App = () => (
           <Route path="/account/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
           <Route path="/account/messages/:id" element={<ProtectedRoute><MessageThread /></ProtectedRoute>} />
           <Route path="/account/appointments" element={<ProtectedRoute><Appointments /></ProtectedRoute>} />
+          <Route path="/account/appointments/:id" element={<ProtectedRoute><AppointmentDetail /></ProtectedRoute>} />
           <Route path="/account/projects" element={<ProtectedRoute><AccountProjects /></ProtectedRoute>} />
-          <Route path="/account/projects/:id" element={<ProtectedRoute><ProjectDetail /></ProtectedRoute>} />
+          <Route path="/account/projects/:id" element={<ProtectedRoute><AccountProjectDetail /></ProtectedRoute>} />
           <Route path="/account/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
           <Route path="/account/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/account/notifications" element={<ProtectedRoute><NotificationSettings /></ProtectedRoute>} />

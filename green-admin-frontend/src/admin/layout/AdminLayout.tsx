@@ -5,6 +5,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
 import { useBuildRequestFeed } from '../hooks/useBuildRequestFeed';
+import { useAuth } from '../hooks/useAuth';
 
 const navSections = [
   {
@@ -38,15 +39,10 @@ const navSections = [
 ];
 
 export default function AdminLayout() {
-  const navigate = useNavigate();
+  const { logout, user } = useAuth();
   const [leadCount, setLeadCount] = useState(0);
 
   useBuildRequestFeed(() => setLeadCount((count) => count + 1));
-  
-  const logout = () => {
-    localStorage.removeItem('adminAuthed');
-    navigate('/admin/login');
-  };
 
   return (
     <div className="min-h-screen flex bg-background text-foreground">

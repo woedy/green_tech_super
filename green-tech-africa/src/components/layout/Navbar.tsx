@@ -1,21 +1,12 @@
 import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Leaf, Bell } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { user, logout, isAuthenticated } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
 
   const navItems = [
@@ -25,15 +16,14 @@ const Navbar = () => {
     { name: "Projects", path: "/projects" },
     { name: "Properties", path: "/properties" },
     { name: "Financial Tools", path: "/financial-tools" },
-    { name: "Community", path: "/community" },
     { name: "Contact", path: "/contact" },
   ];
 
   const isActive = (path: string) => location.pathname === path;
 
-  const onSignOut = () => {
+  const handleSignOut = () => {
     logout();
-    navigate("/");
+    setIsOpen(false);
   };
 
   return (
@@ -94,63 +84,19 @@ const Navbar = () => {
                 <Button variant="ghost" size="icon" className="relative">
                   <Bell className="h-5 w-5" />
                 </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold">
-                        {(
-                          user?.first_name?.[0]?.toUpperCase() ||
-                          user?.last_name?.[0]?.toUpperCase() ||
-                          user?.email?.[0]?.toUpperCase() ||
-                          "?"
-                        )}
-                      </div>
-                      <span className="hidden md:inline-block">
-                        {user?.first_name ? `${user.first_name} ${user.last_name ?? ""}`.trim() : user?.email}
-                      </span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link to="/account">Dashboard</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/account/requests">Requests</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/account/quotes">Quotes</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/account/projects">Projects</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/account/appointments">Appointments</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/account/messages">Messages</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/account/favorites">Favorites</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/account/documents">Documents</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/account/payments">Payments</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link to="/account/profile">Profile</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/account/notifications">Notifications</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={onSignOut}>Sign out</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold">
+                    {(
+                      user?.first_name?.[0]?.toUpperCase() ||
+                      user?.last_name?.[0]?.toUpperCase() ||
+                      user?.email?.[0]?.toUpperCase() ||
+                      "?"
+                    )}
+                  </div>
+                  <span className="hidden lg:inline-block text-sm font-medium">
+                    {user?.first_name ? `${user.first_name} ${user.last_name ?? ""}`.trim() : user?.email}
+                  </span>
+                </div>
               </>
             )}
           </div>
@@ -212,11 +158,6 @@ const Navbar = () => {
                       </Link>
                     </Button>
                     <Button variant="ghost" className="w-full" asChild>
-                      <Link to="/account/favorites" onClick={() => setIsOpen(false)}>
-                        Favorites
-                      </Link>
-                    </Button>
-                    <Button variant="ghost" className="w-full" asChild>
                       <Link to="/account/requests" onClick={() => setIsOpen(false)}>
                         Requests
                       </Link>
@@ -266,7 +207,7 @@ const Navbar = () => {
                         Notifications
                       </Link>
                     </Button>
-                    <Button variant="outline" className="w-full" onClick={() => { setIsOpen(false); onSignOut(); }}>
+                    <Button variant="outline" className="w-full" onClick={handleSignOut}>
                       Sign out
                     </Button>
                   </>
