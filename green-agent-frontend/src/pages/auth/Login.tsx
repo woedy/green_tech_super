@@ -21,16 +21,16 @@ const Login = () => {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
+
     try {
       await login(email, password);
-      toast({ 
-        title: "Welcome back!", 
-        description: "Successfully logged in to Agent Portal" 
+      toast({
+        title: "Welcome back!",
+        description: "Successfully logged in to Agent Portal"
       });
     } catch (error) {
-      toast({ 
-        title: "Login failed", 
+      toast({
+        title: "Login failed",
         description: error instanceof Error ? error.message : "Please try again",
         variant: "destructive"
       });
@@ -52,7 +52,7 @@ const Login = () => {
             Ghana Market
           </Badge>
         </div>
-        
+
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="text-2xl text-center">Agent Portal</CardTitle>
@@ -64,32 +64,32 @@ const Login = () => {
             <form className="space-y-4" onSubmit={onSubmit}>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="agent@greentech.africa" 
-                  value={email} 
-                  onChange={(e) => setEmail(e.target.value)} 
-                  required 
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="agent@greentech.africa"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  placeholder="••••••••" 
-                  value={password} 
-                  onChange={(e) => setPassword(e.target.value)} 
-                  required 
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
                 />
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="remember" 
-                    checked={remember} 
-                    onCheckedChange={(v) => setRemember(Boolean(v))} 
+                  <Checkbox
+                    id="remember"
+                    checked={remember}
+                    onCheckedChange={(v) => setRemember(Boolean(v))}
                   />
                   <Label htmlFor="remember" className="text-sm text-muted-foreground cursor-pointer">
                     Remember me
@@ -102,15 +102,15 @@ const Login = () => {
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Signing in..." : "Sign In"}
               </Button>
-              
-              <div className="text-center text-sm text-muted-foreground">
-                Don't have an account?{' '}
-                <Link to="/register" className="text-green-600 hover:underline font-medium">
-                  Register here
-                </Link>
+
+              <div className="pt-6 border-t text-center">
+                <p className="text-sm text-muted-foreground font-medium mb-4">New to Green Tech Africa?</p>
+                <Button asChild variant="outline" className="w-full hover:bg-accent/50 smooth-transition">
+                  <Link to="/register">Get Started as Agent/Builder</Link>
+                </Button>
               </div>
             </form>
-            
+
             <div className="mt-6 p-3 bg-muted/50 rounded-md">
               <p className="text-xs text-muted-foreground text-center">
                 Demo credentials pre-filled. Click "Sign In" to continue.

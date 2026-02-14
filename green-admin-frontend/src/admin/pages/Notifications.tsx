@@ -19,12 +19,23 @@ export default function Notifications() {
         setLoading(true);
         const data = await adminApi.listNotificationTemplates();
         if (!cancelled) {
-          setTemplates(data);
-          setError(null);
+          // Ensure data is an array
+          if (Array.isArray(data)) {
+            setTemplates(data);
+            setError(null);
+          } else {
+            console.error('API returned non-array response:', data);
+            setTemplates([]);
+            setError('Invalid response format from server.');
+          }
         }
       } catch (err) {
         console.error('Failed to load templates', err);
-        if (!cancelled) setError('Unable to load templates.');
+        if (!cancelled) {
+          const errorMessage = err instanceof Error ? err.message : 'Unable to load templates.';
+          setError(errorMessage);
+          setTemplates([]);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -48,7 +59,7 @@ export default function Notifications() {
             <div className="py-6 text-sm text-muted-foreground">Loading templates…</div>
           ) : error ? (
             <div className="py-6 text-sm text-destructive">{error}</div>
-          ) : templates.length === 0 ? (
+          ) : !Array.isArray(templates) || templates.length === 0 ? (
             <div className="py-6 text-sm text-muted-foreground">No templates found.</div>
           ) : (
             <Table>

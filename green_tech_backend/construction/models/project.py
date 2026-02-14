@@ -214,7 +214,7 @@ class Project(models.Model):
     def progress_percentage(self):
         """Calculate the project's progress percentage based on completed milestones."""
         if not self.milestones.exists():
-            return 0
+            return 0.0
             
         total_milestones = self.milestones.count()
         completed_milestones = self.milestones.filter(
@@ -246,8 +246,10 @@ class Project(models.Model):
         """Calculate the percentage of budget utilized."""
         if self.estimated_budget == 0:
             return 0
-            
-        return round((self.actual_cost / self.estimated_budget) * 100, 2)
+        
+        from decimal import Decimal
+        utilization = (float(self.actual_cost) / float(self.estimated_budget)) * 100
+        return round(utilization, 2)
     
     def update_progress(self):
         """Update project progress based on milestones and tasks."""

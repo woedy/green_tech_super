@@ -19,12 +19,23 @@ export default function SiteContent() {
         setLoading(true);
         const data = await adminApi.listSiteDocuments();
         if (!cancelled) {
-          setDocuments(data);
-          setError(null);
+          // Ensure data is an array
+          if (Array.isArray(data)) {
+            setDocuments(data);
+            setError(null);
+          } else {
+            console.error('API returned non-array response:', data);
+            setDocuments([]);
+            setError('Invalid response format from server.');
+          }
         }
       } catch (err) {
         console.error('Failed to load site documents', err);
-        if (!cancelled) setError('Unable to load documents.');
+        if (!cancelled) {
+          const errorMessage = err instanceof Error ? err.message : 'Unable to load documents.';
+          setError(errorMessage);
+          setDocuments([]);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -48,7 +59,7 @@ export default function SiteContent() {
             <div className="py-6 text-sm text-muted-foreground">Loading documents…</div>
           ) : error ? (
             <div className="py-6 text-sm text-destructive">{error}</div>
-          ) : documents.length === 0 ? (
+          ) : !Array.isArray(documents) || documents.length === 0 ? (
             <div className="py-6 text-sm text-muted-foreground">No documents yet.</div>
           ) : (
             <Table>

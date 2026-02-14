@@ -1,64 +1,71 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, DollarSign, Users, MapPin, Leaf, Target, Activity } from 'lucide-react';
-import type { PlatformMetrics } from '../../types';
-import { AnalyticsService } from '../../data/analytics';
+import { Card, CardContent } from '@/components/ui/card';
+import { TrendingUp, TrendingDown, DollarSign, Users, MapPin, Leaf, Target, Building } from 'lucide-react';
+import type { AdminDashboardMetrics } from '../../types/api';
 
 interface PlatformOverviewProps {
-  metrics: PlatformMetrics;
+  metrics: AdminDashboardMetrics;
 }
 
 export function PlatformOverview({ metrics }: PlatformOverviewProps) {
-  const formatCurrency = (amount: number) => AnalyticsService.formatCurrency(amount);
-  const formatPercentage = (value: number) => AnalyticsService.formatPercentage(value);
+  const formatCurrency = (amount: string) => {
+    const num = parseFloat(amount);
+    return new Intl.NumberFormat('en-GH', {
+      style: 'currency',
+      currency: 'GHS',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(num);
+  };
+
+  const formatNumber = (value: number) => new Intl.NumberFormat('en-GH').format(value);
 
   const metricCards = [
     {
-      title: 'Total Revenue',
-      value: formatCurrency(metrics.total_revenue),
+      title: 'Total Quote Value',
+      value: formatCurrency(metrics.quotes.total_value),
       icon: DollarSign,
-      trend: metrics.monthly_growth,
-      trendLabel: 'from last month',
+      trend: metrics.quotes.trend,
+      trendLabel: 'from last period',
       color: 'text-green-600'
     },
     {
       title: 'Active Properties',
-      value: AnalyticsService.formatNumber(metrics.active_properties),
+      value: formatNumber(metrics.properties.active),
       icon: MapPin,
-      trend: 8.2,
-      trendLabel: 'from last month',
+      trend: null,
+      trendLabel: 'live properties',
       color: 'text-blue-600'
     },
     {
       title: 'Total Users',
-      value: AnalyticsService.formatNumber(metrics.total_users),
+      value: formatNumber(metrics.overview.total_users),
       icon: Users,
-      trend: 12.5,
-      trendLabel: 'from last month',
+      trend: null,
+      trendLabel: `${metrics.overview.new_users} new`,
       color: 'text-purple-600'
     },
     {
-      title: 'Avg Green Score',
-      value: `${metrics.avg_sustainability_score}/10`,
+      title: 'Green Score',
+      value: `${metrics.sustainability.green_score}/10`,
       icon: Leaf,
-      trend: 0.3,
-      trendLabel: 'from last month',
+      trend: null,
+      trendLabel: `${metrics.sustainability.eco_plans} eco plans`,
       color: 'text-green-600'
     },
     {
-      title: 'Conversion Rate',
-      value: formatPercentage(metrics.conversion_rate),
+      title: 'Lead to Quote',
+      value: `${metrics.conversion_rates.lead_to_quote}%`,
       icon: Target,
-      trend: 2.1,
-      trendLabel: 'from last month',
+      trend: null,
+      trendLabel: 'conversion rate',
       color: 'text-orange-600'
     },
     {
-      title: 'Platform Health',
-      value: '99.8%',
-      icon: Activity,
-      trend: 0.1,
-      trendLabel: 'uptime',
+      title: 'Active Projects',
+      value: formatNumber(metrics.projects.active),
+      icon: Building,
+      trend: metrics.projects.trend,
+      trendLabel: 'from last period',
       color: 'text-emerald-600'
     }
   ];
@@ -67,7 +74,8 @@ export function PlatformOverview({ metrics }: PlatformOverviewProps) {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {metricCards.map((metric) => {
         const Icon = metric.icon;
-        const isPositiveTrend = metric.trend > 0;
+        const hasTrend = metric.trend !== null && metric.trend !== undefined;
+        const isPositiveTrend = hasTrend && metric.trend > 0;
         
         return (
           <Card key={metric.title}>
@@ -80,14 +88,20 @@ export function PlatformOverview({ metrics }: PlatformOverviewProps) {
                 <Icon className={`h-8 w-8 ${metric.color}`} />
               </div>
               <div className="flex items-center text-xs mt-2">
-                {isPositiveTrend ? (
-                  <TrendingUp className="h-3 w-3 mr-1 text-green-600" />
+                {hasTrend ? (
+                  <>
+                    {isPositiveTrend ? (
+                      <TrendingUp className="h-3 w-3 mr-1 text-green-600" />
+                    ) : (
+                      <TrendingDown className="h-3 w-3 mr-1 text-red-600" />
+                    )}
+                    <span className={isPositiveTrend ? 'text-green-600' : 'text-red-600'}>
+                      {isPositiveTrend ? '+' : ''}{metric.trend}% {metric.trendLabel}
+                    </span>
+                  </>
                 ) : (
-                  <TrendingDown className="h-3 w-3 mr-1 text-red-600" />
+                  <span className="text-muted-foreground">{metric.trendLabel}</span>
                 )}
-                <span className={isPositiveTrend ? 'text-green-600' : 'text-red-600'}>
-                  {isPositiveTrend ? '+' : ''}{metric.trend}% {metric.trendLabel}
-                </span>
               </div>
             </CardContent>
           </Card>

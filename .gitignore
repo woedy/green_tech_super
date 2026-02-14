@@ -1,0 +1,62 @@
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*~
+
+# Build artifacts
+dist/
+build/
+*.timestamp-*.mjs
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Django
+staticfiles/
+media/
+*.sqlite3
+db.sqlite3
+
+# Backups
+backups/
+*.sql
+*.backup
+
+# Documentation (temporary/generated)
+*_README.md
+*_SETUP*.md
+*_SUMMARY.md
+*_IMPLEMENTATION.md
+UserTest.md
+
+# Test files at root
+test_*.py
+test_*.html

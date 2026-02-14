@@ -1,6 +1,8 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.utils import timezone
+from datetime import timedelta
 
 
 class UserManager(BaseUserManager):
@@ -101,3 +103,39 @@ class UserProfile(models.Model):
     class Meta:
         verbose_name = _('user profile')
         verbose_name_plural = _('user profiles')
+
+
+class EmailVerificationOTP(models.Model):
+    """OTP codes for email verification."""
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='verification_otps'
+    )
+    otp_code = models.CharField(_('OTP code'), max_length=4)
+    created_at = models.DateTimeField(_('created at'), auto_now_add=True)
+    expires_at = models.DateTimeField(_('expires at'))
+    is_used = models.BooleanField(_('is used'), default=False)
+
+    class Meta:
+        verbose_name = _('email verification OTP')
+        verbose_name_plural = _('email verification OTPs')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"OTP {self.otp_code} for {self.user.email}"
+
+    def save(self, *args, **kwargs):
+        # Set expiration time to 10 minutes from creation if not set
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(minutes=10)
+        super().save(*args, **kwargs)
+
+    def is_valid(self):
+        """Check if OTP is valid (not expired and not used)."""
+        return not self.is_used and timezone.now() <= self.expires_at
+
+    def mark_as_used(self):
+        """Mark OTP as used."""
+        self.is_used = True
+        self.save(update_fields=['is_used'])

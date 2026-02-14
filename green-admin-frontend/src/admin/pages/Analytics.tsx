@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,8 @@ import {
   Activity, 
   Download,
   RefreshCw,
-  Calendar
+  Calendar,
+  Loader2
 } from 'lucide-react';
 
 // Import analytics components
@@ -21,36 +23,29 @@ import { FinancialReport } from '../components/analytics/FinancialReport';
 import { SustainabilityReport } from '../components/analytics/SustainabilityReport';
 import { SystemHealthMonitor } from '../components/analytics/SystemHealthMonitor';
 
-// Import analytics service
-import { AnalyticsService } from '../data/analytics';
+// Import API
+import { adminApi } from '../api';
 
 export default function Analytics() {
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(new Date());
 
-  // Load analytics data
-  const platformMetrics = AnalyticsService.getPlatformMetrics();
-  const userActivityMetrics = AnalyticsService.getUserActivityMetrics();
-  const financialMetrics = AnalyticsService.getFinancialMetrics();
-  const sustainabilityMetrics = AnalyticsService.getSustainabilityMetrics();
-  const systemHealthMetrics = AnalyticsService.getSystemHealthMetrics();
+  // Fetch real analytics data from backend
+  const { data: metrics, isLoading, error, refetch, isRefetching } = useQuery({
+    queryKey: ['admin-analytics-metrics'],
+    queryFn: () => adminApi.getDashboardMetrics(),
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+  });
 
   const handleRefresh = async () => {
-    setIsRefreshing(true);
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await refetch();
     setLastUpdated(new Date());
-    setIsRefreshing(false);
   };
 
   const handleExportReport = () => {
-    // In a real implementation, this would generate and download a comprehensive report
+    if (!metrics) return;
+    
     const reportData = {
-      platform: platformMetrics,
-      users: userActivityMetrics,
-      financial: financialMetrics,
-      sustainability: sustainabilityMetrics,
-      system: systemHealthMetrics,
+      ...metrics,
       generated_at: new Date().toISOString()
     };
     
@@ -64,6 +59,29 @@ export default function Analytics() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">Analytics & Reporting</h1>
+          <p className="text-muted-foreground">
+            Comprehensive platform analytics and Ghana market performance insights
+          </p>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center text-red-600">
+              <p>Failed to load analytics data</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {error instanceof Error ? error.message : 'Unknown error occurred'}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -84,15 +102,16 @@ export default function Analytics() {
             variant="outline"
             size="sm"
             onClick={handleRefresh}
-            disabled={isRefreshing}
+            disabled={isRefetching}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefetching ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={handleExportReport}
+            disabled={!metrics}
           >
             <Download className="h-4 w-4 mr-2" />
             Export Report
@@ -109,7 +128,13 @@ export default function Analytics() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <PlatformOverview metrics={platformMetrics} />
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : metrics ? (
+            <PlatformOverview metrics={metrics} />
+          ) : null}
         </CardContent>
       </Card>
 
@@ -143,7 +168,13 @@ export default function Analytics() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <UserActivityReport metrics={userActivityMetrics} />
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : metrics ? (
+                <UserActivityReport metrics={metrics} />
+              ) : null}
             </CardContent>
           </Card>
         </TabsContent>
@@ -157,7 +188,13 @@ export default function Analytics() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <FinancialReport metrics={financialMetrics} />
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : metrics ? (
+                <FinancialReport metrics={metrics} />
+              ) : null}
             </CardContent>
           </Card>
         </TabsContent>
@@ -171,7 +208,13 @@ export default function Analytics() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <SustainabilityReport metrics={sustainabilityMetrics} />
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : metrics ? (
+                <SustainabilityReport metrics={metrics} />
+              ) : null}
             </CardContent>
           </Card>
         </TabsContent>
@@ -185,7 +228,13 @@ export default function Analytics() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <SystemHealthMonitor metrics={systemHealthMetrics} />
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <SystemHealthMonitor />
+              )}
             </CardContent>
           </Card>
         </TabsContent>

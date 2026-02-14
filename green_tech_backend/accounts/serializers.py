@@ -54,10 +54,17 @@ class RegistrationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         password = validated_data.pop('password')
+        user_type = validated_data.get('user_type')
+        
         user = User.objects.create_user(password=password, **validated_data)
+        
+        # Set is_staff=True for ADMIN users to enable admin permissions
+        if user_type == 'ADMIN':
+            user.is_staff = True
+        
         # New users must verify their email before gaining access
         user.is_verified = False
-        user.save(update_fields=['is_verified'])
+        user.save(update_fields=['is_verified', 'is_staff'])
         return user
 
 
@@ -83,3 +90,20 @@ class LoginSerializer(TokenObtainPairSerializer):
 
         data['user'] = UserSerializer(self.user).data
         return data
+
+
+class VerifyOTPSerializer(serializers.Serializer):
+    """Serializer for OTP verification."""
+    email = serializers.EmailField()
+    otp_code = serializers.CharField(max_length=4, min_length=4)
+
+    def validate_otp_code(self, value):
+        """Ensure OTP is exactly 4 digits."""
+        if not value.isdigit():
+            raise serializers.ValidationError(_('OTP must contain only digits.'))
+        return value
+
+
+class ResendOTPSerializer(serializers.Serializer):
+    """Serializer for resending OTP."""
+    email = serializers.EmailField()

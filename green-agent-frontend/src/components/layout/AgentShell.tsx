@@ -23,18 +23,16 @@ export default function AgentShell({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + "/");
 
-  const userInitials = user?.name
-    ?.split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase() || 'A';
+  const userInitials = user?.first_name?.[0] || user?.name?.[0] || 'U';
 
   return (
     <div className="min-h-screen bg-background text-foreground flex">
       {/* Sidebar */}
       <aside className="hidden md:flex w-64 flex-col border-r">
         <div className="h-16 flex items-center justify-between px-4 border-b">
-          <Link to="/dashboard" className="font-bold text-lg">Agent Portal</Link>
+          <Link to="/dashboard" className="font-bold text-lg">
+            {user?.role === 'builder' ? 'Builder Portal' : 'Agent Portal'}
+          </Link>
           <Badge variant="outline" className="text-xs">
             <MapPin className="w-3 h-3 mr-1" />
             Ghana
@@ -68,7 +66,9 @@ export default function AgentShell({ children }: { children: ReactNode }) {
         {/* Topbar */}
         <header className="h-16 border-b flex items-center justify-between px-4 gap-2">
           <div className="flex items-center gap-2 md:hidden">
-            <Link to="/dashboard" className="font-semibold">Agent Portal</Link>
+            <Link to="/dashboard" className="font-semibold">
+              {user?.role === 'builder' ? 'Builder Portal' : 'Agent Portal'}
+            </Link>
             <Badge variant="outline" className="text-xs">
               <MapPin className="w-3 h-3 mr-1" />
               Ghana
@@ -96,7 +96,9 @@ export default function AgentShell({ children }: { children: ReactNode }) {
                   <Avatar className="h-7 w-7">
                     <AvatarFallback className="text-xs">{userInitials}</AvatarFallback>
                   </Avatar>
-                  <span className="hidden sm:inline text-sm">{user?.name || 'Agent'}</span>
+                  <span className="hidden sm:inline text-sm">
+                    {user?.first_name || (user?.role === 'builder' ? 'Builder' : 'Agent')}
+                  </span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-64">
@@ -116,8 +118,11 @@ export default function AgentShell({ children }: { children: ReactNode }) {
                       {user.location}
                     </div>
                   )}
-                  {user?.verified_agent && (
+                  {user?.role === 'agent' && user?.verified_agent && (
                     <Badge variant="secondary" className="text-xs">Verified Agent</Badge>
+                  )}
+                  {user?.role === 'builder' && (
+                    <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 hover:bg-blue-100">Verified Builder</Badge>
                   )}
                   <div className="pt-2 border-t space-y-1">
                     <Link to="/profile" className="block px-2 py-1.5 text-sm rounded hover:bg-accent">

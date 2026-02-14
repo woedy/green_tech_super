@@ -28,8 +28,8 @@ export function useAuth() {
                 email: profile.email,
                 first_name: profile.first_name,
                 last_name: profile.last_name,
-                role: profile.user_type === 'AGENT' ? 'agent' : 
-                      profile.user_type === 'BUILDER' ? 'builder' : 'customer',
+                role: profile.user_type === 'AGENT' ? 'agent' :
+                  profile.user_type === 'BUILDER' ? 'builder' : 'customer',
                 phone_number: profile.phone_number,
                 is_verified: profile.is_verified,
                 verified_agent: profile.user_type === 'AGENT',
@@ -48,8 +48,8 @@ export function useAuth() {
                     email: profile.email,
                     first_name: profile.first_name,
                     last_name: profile.last_name,
-                    role: profile.user_type === 'AGENT' ? 'agent' : 
-                          profile.user_type === 'BUILDER' ? 'builder' : 'customer',
+                    role: profile.user_type === 'AGENT' ? 'agent' :
+                      profile.user_type === 'BUILDER' ? 'builder' : 'customer',
                     phone_number: profile.phone_number,
                     is_verified: profile.is_verified,
                     verified_agent: profile.user_type === 'AGENT',
@@ -82,17 +82,17 @@ export function useAuth() {
   const login = useCallback(async (email: string, password: string): Promise<void> => {
     try {
       const response = await loginUser({ email, password });
-      
+
       if (response.user.user_type !== 'AGENT' && response.user.user_type !== 'BUILDER') {
         throw new Error('Access denied. Agent or builder privileges required.');
       }
-      
+
       if (!response.user.is_verified) {
         throw new Error('Please verify your email before signing in.');
       }
-      
+
       setAuth(response.user, response.access, response.refresh);
-      
+
       const user: User = {
         id: response.user.id,
         email: response.user.email,
@@ -103,7 +103,7 @@ export function useAuth() {
         is_verified: response.user.is_verified,
         verified_agent: response.user.user_type === 'AGENT',
       };
-      
+
       setUserState(user);
       navigate('/dashboard');
     } catch (error) {
@@ -126,7 +126,7 @@ export function useAuth() {
         confirm_password: userData.password
       });
       // Registration successful - redirect to verification page
-      navigate('/verify-email');
+      navigate('/verify-email', { state: { email: userData.email } });
     } catch (error) {
       console.error('Registration failed:', error);
       throw error;

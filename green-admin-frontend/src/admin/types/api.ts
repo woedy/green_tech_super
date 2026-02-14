@@ -172,6 +172,75 @@ export interface SiteDocumentVersionPayload {
   preview_url?: string;
   notes?: string;
 }
+
+// User Management types
+export interface UserProfileResponse {
+  bio?: string;
+  company_name?: string;
+  license_number?: string;
+  years_of_experience?: number;
+  website?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  facebook?: string;
+  twitter?: string;
+  linkedin?: string;
+  instagram?: string;
+}
+
+export interface UserResponse {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  phone_number: string;
+  user_type: 'CUSTOMER' | 'AGENT' | 'BUILDER' | 'ADMIN';
+  is_active: boolean;
+  is_verified: boolean;
+  is_staff: boolean;
+  is_superuser: boolean;
+  date_of_birth: string | null;
+  profile_picture: string | null;
+  created_at: string;
+  updated_at: string;
+  last_login: string | null;
+  profile: UserProfileResponse | null;
+}
+
+export interface UserPayload {
+  email: string;
+  password?: string;
+  first_name: string;
+  last_name: string;
+  phone_number?: string;
+  user_type: 'CUSTOMER' | 'AGENT' | 'BUILDER' | 'ADMIN';
+  is_active?: boolean;
+  is_verified?: boolean;
+  is_staff?: boolean;
+  date_of_birth?: string | null;
+  profile?: UserProfileResponse | null;
+}
+
+export interface BulkUserUpdate {
+  id: number;
+  patch: {
+    is_active?: boolean;
+    is_verified?: boolean;
+    user_type?: string;
+    first_name?: string;
+    last_name?: string;
+    phone_number?: string;
+  };
+}
+
+export interface BulkUpdateResponse {
+  success: number[];
+  errors: Array<{
+    id: number | null;
+    error: string;
+  }>;
+}
 // Dashboard types
 export interface AdminDashboardMetrics {
   period: {

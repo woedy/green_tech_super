@@ -20,11 +20,11 @@ function withBase(url: string): string {
   if (url.startsWith("http")) {
     return url;
   }
-  
+
   const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
   console.log('API URL from env:', import.meta.env.VITE_API_URL);
   console.log('Using API URL:', apiUrl);
-  
+
   if (url.startsWith("/")) {
     const fullUrl = `${apiUrl}${url}`;
     console.log('Full URL:', fullUrl);
@@ -270,12 +270,12 @@ export async function updateProjectMilestone(
   }
 ): Promise<ProjectMilestoneItem> {
   const formData = new FormData();
-  
+
   if (payload.title) formData.append('title', payload.title);
   if (payload.status) formData.append('status', payload.status);
   if (payload.progress !== undefined) formData.append('progress', payload.progress.toString());
   if (payload.notes) formData.append('notes', payload.notes);
-  
+
   if (payload.photos) {
     payload.photos.forEach((photo, index) => {
       formData.append(`photos[${index}]`, photo);
@@ -382,6 +382,13 @@ export async function registerUser(userData: RegisterRequest): Promise<RegisterR
   return apiFetch<RegisterResponse>('/api/auth/register/', {
     method: 'POST',
     body: JSON.stringify(userData),
+  });
+}
+
+export async function verifyEmail(data: { email: string; otp_code: string }): Promise<{ message: string }> {
+  return apiFetch<{ message: string }>('/api/auth/verify-email/', {
+    method: 'POST',
+    body: JSON.stringify(data),
   });
 }
 export async function refreshAccessToken(refreshToken: string): Promise<{ access: string }> {

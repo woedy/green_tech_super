@@ -39,23 +39,46 @@ export interface PropertyImage {
 
 export interface User {
   id: number;
-  name: string;
   email: string;
-  role: 'admin' | 'agent' | 'builder' | 'customer';
-  active: boolean;
+  first_name: string;
+  last_name: string;
+  phone_number?: string;
+  user_type: 'CUSTOMER' | 'AGENT' | 'BUILDER' | 'ADMIN';
+  is_active: boolean;
+  is_verified?: boolean;
+  is_staff?: boolean;
+  is_superuser?: boolean;
+  date_of_birth?: string | null;
+  profile_picture?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  last_login?: string | null;
+  profile?: UserProfile;
+  // Legacy fields for backward compatibility
+  name?: string;
+  role?: 'admin' | 'agent' | 'builder' | 'customer';
+  active?: boolean;
   phone?: string;
   location?: string;
   verified?: boolean;
-  created_at?: string;
-  last_login?: string;
-  profile?: UserProfile;
 }
 
 export interface UserProfile {
   bio?: string;
+  company_name?: string;
+  license_number?: string;
+  years_of_experience?: number;
+  website?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  facebook?: string;
+  twitter?: string;
+  linkedin?: string;
+  instagram?: string;
+  // Legacy fields
   avatar_url?: string;
   company?: string;
-  license_number?: string;
   specializations?: string[];
   ghana_regions?: string[];
 }

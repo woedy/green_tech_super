@@ -20,6 +20,9 @@ from .project_views import (
 # Import public views
 from .public_views import PublicProjectViewSet
 
+# Import admin views
+from .admin_views import ProjectAdminViewSet, ProjectMilestoneAdminViewSet
+
 # Import API views
 from ..api_views import ConstructionRequestViewSet, EcoFeatureSelectionViewSet
 
@@ -33,6 +36,9 @@ router.register(r'eco-feature-selections', EcoFeatureSelectionViewSet,
 
 # Project and Milestone endpoints
 router.register(r'projects', ProjectViewSet, basename='project')
+
+# Admin endpoints (admin authentication required)
+router.register(r'admin/projects', ProjectAdminViewSet, basename='admin-project')
 
 # Public endpoints (no authentication required)
 router.register(r'public/projects', PublicProjectViewSet, basename='public-project')
@@ -50,6 +56,11 @@ project_router.register(r'tasks', ProjectTaskViewSet,
 project_router.register(r'chat-messages', ProjectChatMessageViewSet,
                        basename='project-chat-message')
 
+# Admin nested router for project milestones
+admin_project_router = SimpleRouter()
+admin_project_router.register(r'milestones', ProjectMilestoneAdminViewSet,
+                              basename='admin-project-milestone')
+
 # Quote endpoints now handled by quotes app
 # quote_router = SimpleRouter()
 # quote_router.register(r'quotes', QuoteViewSet, basename='quote')
@@ -66,6 +77,9 @@ urlpatterns = [
     
     # Project nested routes
     path('projects/<int:project_pk>/', include(project_router.urls)),
+    
+    # Admin project nested routes
+    path('admin/projects/<int:project_pk>/', include(admin_project_router.urls)),
     
     # Quote URLs now handled by quotes app
     # path('', include(quote_router.urls)),

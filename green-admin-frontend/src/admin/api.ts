@@ -1,4 +1,4 @@
-﻿import type { PlanPayload, PlanResponse, PropertyPayload, PropertyResponse, RegionPayload, RegionResponse, NotificationTemplatePayload, NotificationTemplateResponse, SiteDocumentPayload, SiteDocumentResponse, SiteDocumentVersionPayload, SiteDocumentVersionResponse, AdminDashboardMetrics } from './types/api';
+﻿import type { PlanPayload, PlanResponse, PropertyPayload, PropertyResponse, RegionPayload, RegionResponse, NotificationTemplatePayload, NotificationTemplateResponse, SiteDocumentPayload, SiteDocumentResponse, SiteDocumentVersionPayload, SiteDocumentVersionResponse, AdminDashboardMetrics, UserResponse, UserPayload, BulkUserUpdate, BulkUpdateResponse } from './types/api';
 
 const explicitBase = import.meta.env.VITE_API_BASE_URL
   ? (import.meta.env.VITE_API_BASE_URL as string).replace(/\/$/, '')
@@ -18,7 +18,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     'Content-Type': 'application/json',
     ...options.headers,
   };
-  
+
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
@@ -42,6 +42,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     } catch {
       detail = `Request failed with status ${response.status}`;
     }
+    
+    // Handle permission errors specifically
+    if (response.status === 403) {
+      detail = 'Access denied. Admin privileges required. Please ensure your account has admin permissions.';
+    }
+    
     const error = new Error(detail);
     (error as any).status = response.status;
     throw error;
@@ -54,9 +60,19 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+// Paginated response type
+interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
 export const adminApi = {
-  listPlans(): Promise<PlanResponse[]> {
-    return request<PlanResponse[]>('/admin/plans/');
+  async listPlans(): Promise<PlanResponse[]> {
+    const response = await request<PlanResponse[] | PaginatedResponse<PlanResponse>>('/admin/plans/');
+    // Handle both paginated and non-paginated responses
+    return Array.isArray(response) ? response : response.results;
   },
   getPlan(id: number): Promise<PlanResponse> {
     return request<PlanResponse>(`/admin/plans/${id}/`);
@@ -76,15 +92,52 @@ export const adminApi = {
   deletePlan(id: number): Promise<void> {
     return request<void>(`/admin/plans/${id}/`, { method: 'DELETE' });
   },
-  publishPlan(id: number): Promise<PlanResponse> {
-    return request<PlanResponse>(`/admin/plans/${id}/publish/`, { method: 'POST' });
-  },
-  unpublishPlan(id: number): Promise<PlanResponse> {
-    return request<PlanResponse>(`/admin/plans/${id}/unpublish/`, { method: 'POST' });
+  uploadPlanImage(file: File): Promise<{ url: string; filename: string; size: number }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const token = localStorage.getItem('admin_access_token');
+    return fetch(`${API_BASE}/admin/plans/upload-image/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : '',
+      },
+      credentials: 'include',
+      body: formData,
+    }).then(async (response) => {
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: 'Upload failed' }));
+        throw new Error(error.detail || 'Upload failed');
+      }
+      return response.json();
+    });
   },
 
-  listProperties(): Promise<PropertyResponse[]> {
-    return request<PropertyResponse[]>('/admin/properties/');
+  uploadPropertyImage(file: File): Promise<{ url: string; filename: string; size: number }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const token = localStorage.getItem('admin_access_token');
+    return fetch(`${API_BASE}/admin/properties/upload-image/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : '',
+      },
+      credentials: 'include',
+      body: formData,
+    }).then(async (response) => {
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: 'Upload failed' }));
+        throw new Error(error.detail || 'Upload failed');
+      }
+      return response.json();
+    });
+  },
+
+
+  async listProperties(): Promise<PropertyResponse[]> {
+    const response = await request<PropertyResponse[] | PaginatedResponse<PropertyResponse>>('/admin/properties/');
+    return Array.isArray(response) ? response : response.results;
   },
   getProperty(id: number): Promise<PropertyResponse> {
     return request<PropertyResponse>(`/admin/properties/${id}/`);
@@ -105,8 +158,9 @@ export const adminApi = {
     return request<void>(`/admin/properties/${id}/`, { method: 'DELETE' });
   },
 
-  listRegions(): Promise<RegionResponse[]> {
-    return request<RegionResponse[]>('/admin/regions/');
+  async listRegions(): Promise<RegionResponse[]> {
+    const response = await request<RegionResponse[] | PaginatedResponse<RegionResponse>>('/admin/regions/');
+    return Array.isArray(response) ? response : response.results;
   },
   getRegion(id: number): Promise<RegionResponse> {
     return request<RegionResponse>(`/admin/regions/${id}/`);
@@ -127,8 +181,9 @@ export const adminApi = {
     return request<void>(`/admin/regions/${id}/`, { method: 'DELETE' });
   },
 
-  listNotificationTemplates(): Promise<NotificationTemplateResponse[]> {
-    return request<NotificationTemplateResponse[]>('/admin/notifications/templates/');
+  async listNotificationTemplates(): Promise<NotificationTemplateResponse[]> {
+    const response = await request<NotificationTemplateResponse[] | PaginatedResponse<NotificationTemplateResponse>>('/admin/notifications/templates/');
+    return Array.isArray(response) ? response : response.results;
   },
   getNotificationTemplate(id: string): Promise<NotificationTemplateResponse> {
     return request<NotificationTemplateResponse>(`/admin/notifications/templates/${id}/`);
@@ -149,8 +204,9 @@ export const adminApi = {
     return request<void>(`/admin/notifications/templates/${id}/`, { method: 'DELETE' });
   },
 
-  listSiteDocuments(): Promise<SiteDocumentResponse[]> {
-    return request<SiteDocumentResponse[]>('/admin/site-documents/');
+  async listSiteDocuments(): Promise<SiteDocumentResponse[]> {
+    const response = await request<SiteDocumentResponse[] | PaginatedResponse<SiteDocumentResponse>>('/admin/site-documents/');
+    return Array.isArray(response) ? response : response.results;
   },
   getSiteDocument(id: number): Promise<SiteDocumentResponse> {
     return request<SiteDocumentResponse>(`/admin/site-documents/${id}/`);
@@ -187,6 +243,98 @@ export const adminApi = {
   getDashboardMetrics(params?: { start_date?: string; end_date?: string }): Promise<AdminDashboardMetrics> {
     const query = params ? `?${new URLSearchParams(params).toString()}` : '';
     return request<AdminDashboardMetrics>(`/dashboard/admin/${query}`);
+  },
+
+  // User Management API
+  async listUsers(params?: { user_type?: string; is_active?: boolean; is_verified?: boolean; search?: string }): Promise<UserResponse[]> {
+    const query = params ? `?${new URLSearchParams(params as any).toString()}` : '';
+    const response = await request<UserResponse[] | PaginatedResponse<UserResponse>>(`/auth/admin/users/${query}`);
+    return Array.isArray(response) ? response : response.results;
+  },
+  getUser(id: number): Promise<UserResponse> {
+    return request<UserResponse>(`/auth/admin/users/${id}/`);
+  },
+  createUser(payload: UserPayload): Promise<UserResponse> {
+    return request<UserResponse>('/auth/admin/users/', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+  updateUser(id: number, payload: Partial<UserPayload>): Promise<UserResponse> {
+    return request<UserResponse>(`/auth/admin/users/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+  },
+  deleteUser(id: number): Promise<void> {
+    return request<void>(`/auth/admin/users/${id}/`, { method: 'DELETE' });
+  },
+  bulkUpdateUsers(updates: BulkUserUpdate[]): Promise<BulkUpdateResponse> {
+    return request<BulkUpdateResponse>('/auth/admin/users/bulk_update/', {
+      method: 'POST',
+      body: JSON.stringify({ updates }),
+    });
+  },
+  toggleUserActive(id: number): Promise<UserResponse> {
+    return request<UserResponse>(`/auth/admin/users/${id}/toggle_active/`, { method: 'POST' });
+  },
+  toggleUserVerified(id: number): Promise<UserResponse> {
+    return request<UserResponse>(`/auth/admin/users/${id}/toggle_verified/`, { method: 'POST' });
+  },
+
+  // Project Management API
+  projects: {
+    async list(params?: { status?: string; phase?: string; search?: string }): Promise<PaginatedResponse<any>> {
+      // Filter out undefined values
+      const cleanParams: Record<string, string> = {};
+      if (params?.status && params.status !== 'all') cleanParams.status = params.status;
+      if (params?.phase && params.phase !== 'all') cleanParams.phase = params.phase;
+      if (params?.search) cleanParams.search = params.search;
+      
+      const query = Object.keys(cleanParams).length > 0 
+        ? `?${new URLSearchParams(cleanParams).toString()}` 
+        : '';
+      return request<PaginatedResponse<any>>(`/construction/admin/projects/${query}`);
+    },
+    get(id: number): Promise<any> {
+      return request<any>(`/construction/admin/projects/${id}/`);
+    },
+    create(payload: any): Promise<any> {
+      return request<any>('/construction/admin/projects/', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+    },
+    update(id: number, payload: any): Promise<any> {
+      return request<any>(`/construction/admin/projects/${id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      });
+    },
+    delete(id: number): Promise<void> {
+      return request<void>(`/construction/admin/projects/${id}/`, { method: 'DELETE' });
+    },
+    stats(): Promise<any> {
+      return request<any>('/construction/admin/projects/stats/');
+    },
+    updateStatus(id: number, status: string, notes?: string): Promise<any> {
+      return request<any>(`/construction/admin/projects/${id}/update_status/`, {
+        method: 'POST',
+        body: JSON.stringify({ status, notes }),
+      });
+    },
+    assignManager(id: number, managerId: number): Promise<any> {
+      return request<any>(`/construction/admin/projects/${id}/assign_manager/`, {
+        method: 'POST',
+        body: JSON.stringify({ manager_id: managerId }),
+      });
+    },
+    assignSupervisor(id: number, supervisorId: number): Promise<any> {
+      return request<any>(`/construction/admin/projects/${id}/assign_supervisor/`, {
+        method: 'POST',
+        body: JSON.stringify({ supervisor_id: supervisorId }),
+      });
+    },
   },
 };
 
@@ -227,6 +375,20 @@ export async function login(credentials: LoginRequest): Promise<LoginResponse> {
 
 export async function getProfile(): Promise<User> {
   return request<User>('/auth/profile/');
+}
+
+export async function register(data: any): Promise<any> {
+  return request<any>('/auth/register/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function verifyEmail(email: string, otp_code: string): Promise<any> {
+  return request<any>('/auth/verify-email/', {
+    method: 'POST',
+    body: JSON.stringify({ email, otp_code }),
+  });
 }
 
 export async function refreshToken(refreshToken: string): Promise<{ access: string }> {

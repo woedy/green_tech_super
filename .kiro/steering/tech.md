@@ -1,100 +1,80 @@
-# Technology Stack
+# Tech Stack
 
-## Backend (Django)
-- **Framework**: Django 4.x with Django REST Framework (DRF)
-- **Database**: PostgreSQL (production), SQLite (development)
-- **Authentication**: JWT tokens via `djangorestframework-simplejwt`
-- **Async Tasks**: Celery with Redis broker
-- **Real-time**: Django Channels (WebSockets) for chat and live updates
-- **File Storage**: S3-compatible storage with django-storages
-- **API Documentation**: drf-yasg (Swagger/OpenAPI)
+## Frontend Stack
 
-## Frontend (React)
-- **Framework**: React 18 with TypeScript
-- **Build Tool**: Vite
-- **Styling**: Tailwind CSS with shadcn/ui components
-- **State Management**: TanStack Query for server state
-- **Forms**: React Hook Form with Zod validation
-- **Routing**: React Router DOM
-- **Charts**: Recharts for analytics dashboards
+All three frontends share the same technology stack:
 
-## Infrastructure
-- **Containerization**: Docker with docker-compose for local development
-- **Database**: PostgreSQL 16 (production), SQLite (development)
-- **Cache/Broker**: Redis 7 for Celery and caching
-- **Web Server**: Nginx (production), Vite dev server (development)
+- **Framework**: React 18.3 with TypeScript 5.8
+- **Build Tool**: Vite 5.4 with SWC plugin for fast compilation
+- **Styling**: Tailwind CSS 3.4 with custom design tokens
+- **UI Components**: Radix UI primitives with shadcn/ui patterns
+- **Routing**: React Router DOM 6.30
+- **State Management**: TanStack Query (React Query) 5.83
+- **Forms**: React Hook Form 7.61 with Zod validation
+- **Icons**: Lucide React
+- **Charts**: Recharts 2.15
+- **Testing**: Vitest with React Testing Library
 
-## Development Tools
-- **Code Quality**: ESLint, Black (Python), Flake8, isort
-- **Testing**: Vitest (frontend), pytest (backend)
-- **Package Management**: npm/Node 20 (frontend), pip/venv (backend)
+## Backend Stack
+
+- **Framework**: Django with Daphne ASGI server
+- **Database**: PostgreSQL 16
+- **Cache/Queue**: Redis 7
+- **Task Queue**: Celery
+- **Containerization**: Docker with Docker Compose
 
 ## Common Commands
 
-### Backend Development
-```bash
-# Setup virtual environment
-cd green_tech_backend
-python -m venv venv
-venv\Scripts\activate  # Windows
-source venv/bin/activate  # Linux/Mac
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Database operations
-python manage.py makemigrations
-python manage.py migrate
-python manage.py createsuperuser
-
-# Run development server
-python manage.py runserver
-
-# Run Celery worker
-celery -A core worker -l info
-
-# Run tests
-pytest
-```
-
 ### Frontend Development
+
 ```bash
-# Install dependencies (any frontend)
-cd green-tech-africa  # or green-agent-frontend, green-admin-frontend
+# Install dependencies
 npm install
 
-# Development server
+# Start development server
 npm run dev
 
 # Build for production
 npm run build
 
+# Build for development
+npm run build:dev
+
+# Run linter
+npm run lint
+
 # Run tests
 npm run test
-npm run test:run  # Single run without watch mode
 
-# Linting
-npm run lint
+# Run tests once (non-watch mode)
+npm run test:run
 ```
 
 ### Docker Development
-```bash
-# Full stack local development
-docker compose -f docker-compose.local.yml up --build
 
-# Production-like build
-docker compose --env-file .env.coolify -f docker-compose.coolify.yml up --build
+```bash
+# Start all services
+docker-compose -f docker-compose.local.yml up
+
+# Start specific service
+docker-compose -f docker-compose.local.yml up frontend_admin
+
+# Stop all services
+docker-compose -f docker-compose.local.yml down
+
+# View logs
+docker-compose -f docker-compose.local.yml logs -f [service_name]
 ```
 
-## Environment Configuration
-- Use `.env` files for environment-specific configuration
-- Backend uses `python-dotenv` for environment variable loading
-- Frontend uses Vite's built-in environment variable support (`VITE_` prefix)
-- Docker compose configurations handle service orchestration
+## TypeScript Configuration
 
-## API Conventions
-- RESTful endpoints under `/api/` prefix
-- JWT authentication for protected endpoints
-- Pagination using DRF's PageNumberPagination (20 items per page)
-- CORS configured for all frontend origins in development
-- OpenAPI documentation available at `/swagger/` and `/redoc/`
+- Path alias `@/*` maps to `./src/*`
+- Relaxed type checking: `noImplicitAny: false`, `strictNullChecks: false`
+- Project references for app and node configs
+
+## Environment Variables
+
+Each frontend uses `.env` files with:
+- `VITE_API_URL` - Backend API endpoint
+- `VITE_APP_ENV` - Environment (local/dev/prod)
+- `VITE_API_BASE_PATH` - API base path (admin only)

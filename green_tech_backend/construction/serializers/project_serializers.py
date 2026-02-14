@@ -100,6 +100,21 @@ class ProjectSerializer(serializers.ModelSerializer):
     site_supervisor = UserSerializer(read_only=True)
     contractors = UserSerializer(many=True, read_only=True)
     
+    # Write-only fields for creating/updating
+    project_manager_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(is_active=True),
+        source='project_manager',
+        write_only=True,
+        required=True
+    )
+    site_supervisor_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(is_active=True),
+        source='site_supervisor',
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
+    
     class Meta:
         model = Project
         fields = [
@@ -108,7 +123,8 @@ class ProjectSerializer(serializers.ModelSerializer):
             'contractors', 'planned_start_date', 'actual_start_date',
             'planned_end_date', 'actual_end_date', 'estimated_budget',
             'actual_cost', 'currency', 'progress_percentage', 'is_behind_schedule',
-            'budget_utilization', 'created_at', 'updated_at', 'property'
+            'budget_utilization', 'created_at', 'updated_at', 'property',
+            'project_manager_id', 'site_supervisor_id'
         ]
         read_only_fields = [
             'created_at', 'updated_at', 'progress_percentage', 

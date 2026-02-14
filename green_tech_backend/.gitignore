@@ -26,7 +26,18 @@ MANIFEST
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
-media/
+media/*
+!media/README.md
+!media/plans/
+media/plans/*
+!media/plans/images/
+media/plans/images/*
+!media/plans/images/.gitkeep
+!media/properties/
+media/properties/*
+!media/properties/images/
+media/properties/images/*
+!media/properties/images/.gitkeep
 
 # Environment variables
 .env

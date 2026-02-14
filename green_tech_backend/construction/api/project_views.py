@@ -553,14 +553,14 @@ class ProjectMilestoneViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """
-        Set the project for new milestones based on URL parameter.
+        Set the project and created_by for new milestones based on URL parameter.
         """
         project_pk = self.kwargs.get('project_pk')
         if project_pk:
             project = get_object_or_404(Project, pk=project_pk)
-            serializer.save(project=project)
+            serializer.save(project=project, created_by=self.request.user)
         else:
-            serializer.save()
+            serializer.save(created_by=self.request.user)
 
     @action(detail=True, methods=['post'])
     def update_status(self, request, project_pk=None, pk=None):
