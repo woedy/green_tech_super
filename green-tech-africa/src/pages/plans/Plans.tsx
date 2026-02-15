@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { usePlans, usePlanFilters } from "@/hooks/usePlans";
-import { Search, Filter } from "lucide-react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Search, Filter, CheckCircle2 } from "lucide-react";
+import { Link, useSearchParams, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 const skeletonCards = Array.from({ length: 6 }).map((_, index) => (
   <Card key={index} className="overflow-hidden shadow-medium">
@@ -26,10 +28,25 @@ const skeletonCards = Array.from({ length: 6 }).map((_, index) => (
 
 const Plans = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const [showSuccess, setShowSuccess] = useState(false);
+  
   const q = searchParams.get("q") ?? "";
   const style = searchParams.get("style") ?? "all";
   const beds = searchParams.get("beds") ?? "all";
   const maxBudget = searchParams.get("maxBudget") ?? "";
+
+  // Show success message if redirected after request submission
+  useEffect(() => {
+    if (location.state?.requestSubmitted) {
+      setShowSuccess(true);
+      // Clear the state
+      window.history.replaceState({}, document.title);
+      // Hide after 10 seconds
+      const timer = setTimeout(() => setShowSuccess(false), 10000);
+      return () => clearTimeout(timer);
+    }
+  }, [location]);
 
   const { data: filters } = usePlanFilters();
   const { data, isLoading, isError, error } = usePlans({
@@ -68,6 +85,15 @@ const Plans = () => {
 
       <section className="py-8 border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {showSuccess && (
+            <Alert className="mb-6 border-green-500 bg-green-50 dark:bg-green-950">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800 dark:text-green-200">
+                Your build request has been submitted successfully! Our team will review it and contact you shortly. 
+                Check your email for confirmation details.
+              </AlertDescription>
+            </Alert>
+          )}
           <div className="flex flex-col md:flex-row gap-3 items-center">
             <div className="relative w-full md:flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

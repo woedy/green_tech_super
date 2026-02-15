@@ -336,6 +336,130 @@ export const adminApi = {
       });
     },
   },
+
+  // Client Request Management API
+  requests: {
+    // Build Requests
+    buildRequests: {
+      async list(params?: { status?: string; search?: string }): Promise<PaginatedResponse<any>> {
+        const cleanParams: Record<string, string> = {};
+        if (params?.status && params.status !== 'all') cleanParams.status = params.status;
+        if (params?.search) cleanParams.search = params.search;
+        
+        const query = Object.keys(cleanParams).length > 0 
+          ? `?${new URLSearchParams(cleanParams).toString()}` 
+          : '';
+        return request<PaginatedResponse<any>>(`/admin/build-requests/${query}`);
+      },
+      get(id: string): Promise<any> {
+        return request<any>(`/admin/build-requests/${id}/`);
+      },
+      update(id: string, payload: any): Promise<any> {
+        return request<any>(`/admin/build-requests/${id}/`, {
+          method: 'PATCH',
+          body: JSON.stringify(payload),
+        });
+      },
+      updateStatus(id: string, status: string, notes?: string): Promise<any> {
+        return request<any>(`/admin/build-requests/${id}/update_status/`, {
+          method: 'POST',
+          body: JSON.stringify({ status, notes }),
+        });
+      },
+      convertToConstructionRequest(id: string, data?: { title?: string; description?: string }): Promise<any> {
+        return request<any>(`/admin/build-requests/${id}/convert_to_construction_request/`, {
+          method: 'POST',
+          body: JSON.stringify(data || {}),
+        });
+      },
+      stats(): Promise<any> {
+        return request<any>('/admin/build-requests/stats/');
+      },
+    },
+    
+    // Construction Requests
+    constructionRequests: {
+      async list(params?: { status?: string; construction_type?: string; search?: string }): Promise<PaginatedResponse<any>> {
+        const cleanParams: Record<string, string> = {};
+        if (params?.status && params.status !== 'all') cleanParams.status = params.status;
+        if (params?.construction_type && params.construction_type !== 'all') cleanParams.construction_type = params.construction_type;
+        if (params?.search) cleanParams.search = params.search;
+        
+        const query = Object.keys(cleanParams).length > 0 
+          ? `?${new URLSearchParams(cleanParams).toString()}` 
+          : '';
+        return request<PaginatedResponse<any>>(`/construction/admin/construction-requests/${query}`);
+      },
+      get(id: number): Promise<any> {
+        return request<any>(`/construction/admin/construction-requests/${id}/`);
+      },
+      update(id: number, payload: any): Promise<any> {
+        return request<any>(`/construction/admin/construction-requests/${id}/`, {
+          method: 'PATCH',
+          body: JSON.stringify(payload),
+        });
+      },
+      convertToProject(id: number, data: { project_manager_id: number; site_supervisor_id?: number; property_id?: number }): Promise<any> {
+        return request<any>(`/construction/admin/construction-requests/${id}/convert_to_project/`, {
+          method: 'POST',
+          body: JSON.stringify(data),
+        });
+      },
+    },
+  },
+
+  // Property Transaction Management API
+  transactions: {
+    async list(params?: { status?: string; transaction_type?: string; assigned_agent?: string; search?: string }): Promise<PaginatedResponse<any>> {
+      const cleanParams: Record<string, string> = {};
+      if (params?.status && params.status !== 'all') cleanParams.status = params.status;
+      if (params?.transaction_type && params.transaction_type !== 'all') cleanParams.transaction_type = params.transaction_type;
+      if (params?.assigned_agent) cleanParams.assigned_agent = params.assigned_agent;
+      if (params?.search) cleanParams.search = params.search;
+      
+      const query = Object.keys(cleanParams).length > 0 
+        ? `?${new URLSearchParams(cleanParams).toString()}` 
+        : '';
+      return request<PaginatedResponse<any>>(`/admin/transactions/${query}`);
+    },
+    get(id: string): Promise<any> {
+      return request<any>(`/admin/transactions/${id}/`);
+    },
+    update(id: string, payload: any): Promise<any> {
+      return request<any>(`/admin/transactions/${id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      });
+    },
+    assignAgent(id: string, agentId: number): Promise<any> {
+      return request<any>(`/admin/transactions/${id}/assign-agent/`, {
+        method: 'POST',
+        body: JSON.stringify({ agent_id: agentId }),
+      });
+    },
+    approve(id: string): Promise<any> {
+      return request<any>(`/admin/transactions/${id}/approve/`, {
+        method: 'POST',
+      });
+    },
+    reject(id: string, reason: string): Promise<any> {
+      return request<any>(`/admin/transactions/${id}/reject/`, {
+        method: 'POST',
+        body: JSON.stringify({ reason }),
+      });
+    },
+    markCompleted(id: string): Promise<any> {
+      return request<any>(`/admin/transactions/${id}/mark-completed/`, {
+        method: 'POST',
+      });
+    },
+    addNote(id: string, content: string, isInternal: boolean = false): Promise<any> {
+      return request<any>(`/admin/transactions/${id}/notes/`, {
+        method: 'POST',
+        body: JSON.stringify({ content, is_internal: isInternal }),
+      });
+    },
+  },
 };
 
 // Authentication API

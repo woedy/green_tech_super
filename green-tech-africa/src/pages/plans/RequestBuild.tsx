@@ -8,11 +8,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { usePlan } from "@/hooks/usePlans";
-import { useState } from "react";
-import { useToast } from "@/components/ui/use-toast";
+import { useState, useMemo } from "react";
+import { useToast } from "@/hooks/use-toast";
 import { uploadBuildRequestFile, UploadedFileMeta } from "@/lib/uploads";
 import { api } from "@/lib/api";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 const steps = [
   "Contact",
@@ -29,6 +29,13 @@ const RequestBuild = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { data: plan, isLoading } = usePlan(slug, { enabled: Boolean(slug) });
+  
+  // Fetch regions from the plans filters endpoint (public, no auth required)
+  const { data: filtersData } = useQuery({
+    queryKey: ['plan-filters'],
+    queryFn: () => api.get('/api/plans/filters/'),
+  });
+  
   const [step, setStep] = useState(0);
   const [attachments, setAttachments] = useState<UploadedFileMeta[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -44,12 +51,27 @@ const RequestBuild = () => {
     customizations: "",
   });
 
+  // Calculate region options from filters data
+  const regionOptions = useMemo(() => {
+    if (!filtersData || !filtersData.regions || filtersData.regions.length === 0) {
+      return [{ slug: "default", label: "Any region" }];
+    }
+    return filtersData.regions.map((region: any) => ({ 
+      slug: region.slug, 
+      label: region.name 
+    }));
+  }, [filtersData]);
+
   const buildRequestMutation = useMutation({
     mutationFn: async () => {
       if (!plan) throw new Error("Plan not found");
+      
+      // Determine the region to use
+      const selectedRegion = form.region || regionOptions[0]?.slug;
+      
       const payload = {
         plan: plan.slug,
-        region: form.region || plan.regional_estimates[0]?.region_slug,
+        region: selectedRegion,
         contact_name: form.contactName,
         contact_email: form.contactEmail,
         contact_phone: form.contactPhone,
@@ -63,34 +85,78 @@ const RequestBuild = () => {
       };
       return api.post("/api/build-requests/", payload);
     },
-    onSuccess: () => {
-      toast({ title: "Request submitted", description: "Our team will contact you shortly." });
-      navigate("/account/requests");
+    onSuccess: (data) => {
+      toast({ 
+        title: "Request submitted successfully!", 
+        description: "Our team will contact you shortly. Check your email for confirmation." 
+      });
+      navigate("/plans", { state: { requestSubmitted: true } });
     },
     onError: (error: Error) => {
       toast({ title: "Submission failed", description: error.message, variant: "destructive" });
     },
   });
 
-  const next = () => setStep((s) => Math.min(s + 1, steps.length - 1));
+  const next = () => {
+    // Validate current step before proceeding
+    if (step === 0) {
+      if (!form.contactName || !form.contactEmail || !form.contactPhone) {
+        toast({ 
+          title: "Required fields missing", 
+          description: "Please fill in all contact information", 
+          variant: "destructive" 
+        });
+        return;
+      }
+      // Basic email validation
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.contactEmail)) {
+        toast({ 
+          title: "Invalid email", 
+          description: "Please enter a valid email address", 
+          variant: "destructive" 
+        });
+        return;
+      }
+    }
+    setStep((s) => Math.min(s + 1, steps.length - 1));
+  };
+  
   const prev = () => setStep((s) => Math.max(s - 1, 0));
 
   const onFilePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     if (!files.length) return;
-    try {
-      setUploading(true);
-      const uploaded = [] as UploadedFileMeta[];
-      for (const file of files) {
+    
+    setUploading(true);
+    const uploaded = [] as UploadedFileMeta[];
+    const failed = [] as string[];
+    
+    for (const file of files) {
+      try {
         const result = await uploadBuildRequestFile(file);
         uploaded.push(result);
+      } catch (err) {
+        console.error(`Failed to upload ${file.name}:`, err);
+        failed.push(file.name);
       }
-      setAttachments((existing) => [...existing, ...uploaded]);
-      toast({ title: "Files uploaded", description: `${uploaded.length} file(s) ready` });
-    } catch (err) {
-      toast({ title: "Upload failed", description: (err as Error).message, variant: "destructive" });
-    } finally {
-      setUploading(false);
+    }
+    
+    setAttachments((existing) => [...existing, ...uploaded]);
+    setUploading(false);
+    
+    if (uploaded.length > 0) {
+      toast({ 
+        title: "Files uploaded", 
+        description: `${uploaded.length} file(s) uploaded successfully` 
+      });
+    }
+    
+    if (failed.length > 0) {
+      toast({ 
+        title: "Some uploads failed", 
+        description: `Failed to upload: ${failed.join(", ")}. You can continue without these files.`,
+        variant: "destructive" 
+      });
     }
   };
 
@@ -108,10 +174,6 @@ const RequestBuild = () => {
       </Layout>
     );
   }
-
-  const regionOptions = plan.regional_estimates.length
-    ? plan.regional_estimates.map((estimate) => ({ slug: estimate.region_slug, label: estimate.region_name }))
-    : [{ slug: "", label: "Any region" }];
 
   return (
     <Layout>
@@ -164,7 +226,7 @@ const RequestBuild = () => {
                   <div>
                     <Label>Region</Label>
                     <Select
-                      value={form.region || plan.regional_estimates[0]?.region_slug}
+                      value={form.region || regionOptions[0]?.slug || "default"}
                       onValueChange={(value) => setForm({ ...form, region: value })}
                     >
                       <SelectTrigger><SelectValue placeholder="Select region" /></SelectTrigger>
@@ -218,10 +280,12 @@ const RequestBuild = () => {
 
               {step === 5 && (
                 <div className="space-y-3">
-                  <Label htmlFor="files">Upload reference files</Label>
+                  <Label htmlFor="files">Upload reference files (optional)</Label>
                   <Input id="files" type="file" multiple onChange={onFilePick} disabled={uploading} />
                   <div className="text-sm text-muted-foreground">
-                    {attachments.length > 0 ? attachments.map((file) => file.original_name).join(", ") : "No files uploaded"}
+                    {uploading && "Uploading..."}
+                    {!uploading && attachments.length > 0 && `${attachments.length} file(s): ${attachments.map((file) => file.original_name).join(", ")}`}
+                    {!uploading && attachments.length === 0 && "No files uploaded. You can skip this step if you don't have files to attach."}
                   </div>
                 </div>
               )}
@@ -245,8 +309,8 @@ const RequestBuild = () => {
                 {step < steps.length - 1 ? (
                   <Button onClick={next}>Next</Button>
                 ) : (
-                  <Button onClick={() => buildRequestMutation.mutate()} disabled={buildRequestMutation.isLoading || uploading}>
-                    {buildRequestMutation.isLoading ? "Submitting..." : "Submit Request"}
+                  <Button onClick={() => buildRequestMutation.mutate()} disabled={buildRequestMutation.isPending || uploading}>
+                    {buildRequestMutation.isPending ? "Submitting..." : "Submit Request"}
                   </Button>
                 )}
               </div>

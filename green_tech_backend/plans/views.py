@@ -114,12 +114,23 @@ class BuildRequestViewSet(
         user = getattr(self.request, 'user', None)
         if not user or not user.is_authenticated:
             return queryset.none()
-        return queryset.filter(user=user)
+        # Show requests where user matches OR email matches (for requests created before login)
+        from django.db.models import Q
+        return queryset.filter(Q(user=user) | Q(contact_email=user.email))
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         instance = serializer.save()
+        
+        # If user is authenticated and there are existing requests with their email but no user,
+        # link them to this user
+        if request.user and request.user.is_authenticated:
+            BuildRequest.objects.filter(
+                contact_email=request.user.email,
+                user__isnull=True
+            ).update(user=request.user)
+        
         self._attach_files(instance, request.data.get('attachments'))
         dispatch_build_request_confirmation.delay(str(instance.id))
         dispatch_build_request_internal_alert.delay(str(instance.id))

@@ -1,5 +1,5 @@
 ﻿import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { ChartBar, FileText, Home, Layers, Map, Megaphone, Package, Users, LogOut, Globe, Shield, Settings, Briefcase } from 'lucide-react';
+import { ChartBar, FileText, Home, Layers, Map, Megaphone, Package, Users, LogOut, Globe, Shield, Settings, Briefcase, ClipboardList, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +21,8 @@ const navSections = [
       { to: '/admin/plans', label: 'Plans', icon: Layers },
       { to: '/admin/properties', label: 'Properties', icon: Package },
       { to: '/admin/projects', label: 'Projects', icon: Briefcase },
+      { to: '/admin/requests', label: 'Client Requests', icon: ClipboardList },
+      { to: '/admin/property-transactions', label: 'Property Transactions', icon: Receipt },
       { to: '/admin/content', label: 'Content', icon: FileText },
     ]
   },

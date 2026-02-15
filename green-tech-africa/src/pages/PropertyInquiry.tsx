@@ -1,193 +1,278 @@
-import Layout from "@/components/layout/Layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { useParams, useNavigate, Link } from "react-router-dom";
-import { useToast } from "@/components/ui/use-toast";
-import { useProperty } from "@/hooks/useProperties";
-import { useMutation } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams, useSearchParams, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { propertyInquirySchema, type PropertyInquiryFormData } from "@/lib/validation";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { useMutation } from "@tanstack/react-query";
+import Layout from "@/components/layout/Layout";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/use-toast";
+import { ArrowLeft, Loader2, Info } from "lucide-react";
+import { api } from "@/lib/api";
+import { useProperty } from "@/hooks/useProperties";
+import { loadAuthState } from "@/lib/authStorage";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+type InquiryFormData = {
+  name: string;
+  email: string;
+  phone: string;
+  message: string;
+  scheduled_viewing?: string;
+};
 
 const PropertyInquiry = () => {
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { data: property, isLoading } = useProperty(id);
+  const [searchParams] = useSearchParams();
+  const transactionType = searchParams.get("type") as 'rent' | 'lease' | 'buy' | null;
+  const isAuthenticated = !!loadAuthState();
 
-  const form = useForm<PropertyInquiryFormData>({
-    resolver: zodResolver(propertyInquirySchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      phone: "",
-      message: "",
-      viewing: "",
-    },
-  });
+  const { data: property } = useProperty(id);
 
-  const mutation = useMutation({
-    mutationFn: async (data: PropertyInquiryFormData) => {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+  } = useForm<InquiryFormData>();
+
+  useEffect(() => {
+    if (property && transactionType) {
+      const typeMessages = {
+        rent: `I am interested in renting this property: ${property.title}`,
+        lease: `I am interested in leasing this property: ${property.title}`,
+        buy: `I am interested in purchasing this property: ${property.title}`,
+      };
+      setValue("message", typeMessages[transactionType] || "");
+    }
+  }, [property, transactionType, setValue]);
+
+  const createInquiryMutation = useMutation({
+    mutationFn: async (data: InquiryFormData) => {
       const payload = {
-        property: property.id,
+        property: property?.id,
         name: data.name,
         email: data.email,
         phone: data.phone,
         message: data.message,
-        scheduled_viewing: data.viewing ? new Date(data.viewing).toISOString() : undefined,
+        scheduled_viewing: data.scheduled_viewing || null,
       };
-      return api.post("/api/properties/inquiries/", payload);
+      return api.post("/api/properties/properties/inquiries/", payload);
     },
     onSuccess: () => {
-      toast({ 
-        title: "Inquiry sent successfully", 
-        description: "We'll get back to you within 24 hours with more information about this property." 
+      toast({
+        title: "Inquiry submitted successfully",
+        description: "We'll get back to you shortly.",
       });
-      navigate("/account/messages");
+      navigate("/properties");
     },
-    onError: (error: Error) => {
-      toast({ 
-        title: "Failed to send inquiry", 
-        description: error.message || "Please check your information and try again.", 
-        variant: "destructive" 
+    onError: (error: any) => {
+      console.error("Inquiry error:", error);
+      const errorMessage = error.response?.data?.detail 
+        || error.response?.data?.message 
+        || error.message 
+        || "Please try again later.";
+      toast({
+        title: "Failed to submit inquiry",
+        description: errorMessage,
+        variant: "destructive",
       });
     },
   });
 
-  const onSubmit = (data: PropertyInquiryFormData) => {
-    mutation.mutate(data);
+  const onSubmit = (data: InquiryFormData) => {
+    createInquiryMutation.mutate(data);
   };
 
-  if (isLoading || !property) {
-    return (
-      <Layout>
-        <section className="py-12 text-center text-muted-foreground">Loading property...</section>
-      </Layout>
-    );
-  }
+  const getTitle = () => {
+    if (transactionType) {
+      const titles = {
+        rent: 'Request to Rent',
+        lease: 'Request to Lease',
+        buy: 'Request to Buy',
+      };
+      return titles[transactionType];
+    }
+    return 'Property Inquiry';
+  };
+
+  const handleLoginRedirect = () => {
+    // Redirect to login with return URL
+    navigate(`/auth/login?redirect=/account/property-transactions/new?property=${id}&type=${transactionType}`);
+  };
 
   return (
     <Layout>
-      <section className="py-10 bg-gradient-to-br from-background via-accent/30 to-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold">Property Inquiry</h1>
-            <p className="text-muted-foreground text-sm">{property.title}</p>
-          </div>
-          <Button variant="outline" asChild>
-            <Link to={`/properties/${property.slug}`}>Back to Property</Link>
-          </Button>
-        </div>
-      </section>
-      <section className="py-8">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Card className="shadow-medium">
-            <CardHeader>
-              <CardTitle>Tell us about your interest</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Your Full Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Jane Doe" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email Address</FormLabel>
-                          <FormControl>
-                            <Input type="email" placeholder="jane@example.com" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="phone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Phone Number (Optional)</FormLabel>
-                          <FormControl>
-                            <Input placeholder="+233 XX XXX XXXX" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  
-                  <FormField
-                    control={form.control}
-                    name="viewing"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Preferred Viewing Time (Optional)</FormLabel>
-                        <FormControl>
-                          <Input type="datetime-local" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="message"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Your Message</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="I'm interested in this property. Please provide more information about..." 
-                            rows={4} 
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
-                    disabled={form.formState.isSubmitting || mutation.isPending}
+      <div className="min-h-screen bg-background">
+        <section className="py-8">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="mb-6">
+              <Link to={`/properties/${id}`}>
+                <Button variant="outline" size="sm">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Property
+                </Button>
+              </Link>
+            </div>
+
+            {isAuthenticated && transactionType && (
+              <Alert className="mb-6">
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  You're logged in! For better tracking and status updates, we recommend using the{" "}
+                  <Link 
+                    to={`/account/property-transactions/new?property=${id}&type=${transactionType}`}
+                    className="font-medium underline"
                   >
-                    {form.formState.isSubmitting || mutation.isPending ? "Sending inquiry..." : "Send Inquiry"}
-                  </Button>
+                    full transaction request form
+                  </Link>.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-2xl">{getTitle()}</CardTitle>
+                <p className="text-muted-foreground">
+                  {transactionType 
+                    ? "Submit your request and our team will contact you shortly."
+                    : "Fill out the form below to inquire about this property or schedule a viewing."
+                  }
+                </p>
+              </CardHeader>
+              <CardContent>
+                {property && (
+                  <div className="mb-6 p-4 bg-accent/50 rounded-lg">
+                    <h3 className="font-semibold mb-2">Property Details</h3>
+                    <p className="text-sm text-muted-foreground">{property.title}</p>
+                    {property.city && property.region?.name && (
+                      <p className="text-sm text-muted-foreground">
+                        Location: {property.city}, {property.region.name}
+                      </p>
+                    )}
+                    {property.price && (
+                      <p className="text-sm text-muted-foreground">
+                        Price: {property.currency} {Number(property.price).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Your Name *</Label>
+                      <Input
+                        id="name"
+                        {...register("name", { required: "Name is required" })}
+                        placeholder="Full name"
+                      />
+                      {errors.name && (
+                        <p className="text-sm text-destructive">{errors.name.message}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email *</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        {...register("email", {
+                          required: "Email is required",
+                          pattern: {
+                            value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                            message: "Invalid email address",
+                          },
+                        })}
+                        placeholder="your@email.com"
+                      />
+                      {errors.email && (
+                        <p className="text-sm text-destructive">{errors.email.message}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number *</Label>
+                    <Input
+                      id="phone"
+                      {...register("phone", { required: "Phone number is required" })}
+                      placeholder="+233 XX XXX XXXX"
+                    />
+                    {errors.phone && (
+                      <p className="text-sm text-destructive">{errors.phone.message}</p>
+                    )}
+                  </div>
+
+                  {!transactionType && (
+                    <div className="space-y-2">
+                      <Label htmlFor="scheduled_viewing">Preferred Viewing Date (Optional)</Label>
+                      <Input
+                        id="scheduled_viewing"
+                        type="datetime-local"
+                        {...register("scheduled_viewing")}
+                      />
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="message">Message *</Label>
+                    <Textarea
+                      id="message"
+                      {...register("message", { required: "Message is required" })}
+                      placeholder="Tell us about your interest in this property"
+                      rows={5}
+                    />
+                    {errors.message && (
+                      <p className="text-sm text-destructive">{errors.message.message}</p>
+                    )}
+                  </div>
+
+                  <div className="flex gap-4">
+                    <Button
+                      type="submit"
+                      disabled={createInquiryMutation.isPending}
+                      className="flex-1"
+                    >
+                      {createInquiryMutation.isPending && (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      )}
+                      Submit Inquiry
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => navigate(-1)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+
+                  {!isAuthenticated && transactionType && (
+                    <div className="pt-4 border-t">
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Have an account? Login for better tracking and status updates.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={handleLoginRedirect}
+                      >
+                        Login to Submit Full Request
+                      </Button>
+                    </div>
+                  )}
                 </form>
-              </Form>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+      </div>
     </Layout>
   );
 };

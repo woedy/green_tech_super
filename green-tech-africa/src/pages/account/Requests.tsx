@@ -3,13 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ClipboardList, Plus, Filter } from "lucide-react";
+import { ClipboardList, Plus, Filter, Building2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { buildRequestsApi, BuildRequest } from "@/lib/api";
+import { buildRequestsApi, BuildRequest, constructionRequestsApi, ConstructionRequest } from "@/lib/api";
 import { Loader2 } from "lucide-react";
 
-const statusLabel = (status: string) => {
+const buildRequestStatusLabel = (status: string) => {
   switch (status) {
     case "new":
       return { label: "New", variant: "secondary" as const };
@@ -24,11 +24,40 @@ const statusLabel = (status: string) => {
   }
 };
 
+const constructionRequestStatusLabel = (status: string) => {
+  switch (status) {
+    case "DRAFT":
+      return { label: "Draft", variant: "secondary" as const };
+    case "PENDING":
+      return { label: "Pending Approval", variant: "default" as const };
+    case "APPROVED":
+      return { label: "Approved", variant: "default" as const };
+    case "IN_PROGRESS":
+      return { label: "In Progress", variant: "default" as const };
+    case "ON_HOLD":
+      return { label: "On Hold", variant: "outline" as const };
+    case "COMPLETED":
+      return { label: "Completed", variant: "outline" as const };
+    case "CANCELLED":
+      return { label: "Cancelled", variant: "destructive" as const };
+    default:
+      return { label: status, variant: "secondary" as const };
+  }
+};
+
 const Requests = () => {
-  const { data: allRequestsData, isLoading, error } = useQuery({
+  const { data: buildRequestsData, isLoading: buildLoading, error: buildError } = useQuery({
     queryKey: ['build-requests'],
     queryFn: () => buildRequestsApi.list(),
   });
+
+  const { data: constructionRequestsData, isLoading: constructionLoading, error: constructionError } = useQuery({
+    queryKey: ['construction-requests'],
+    queryFn: () => constructionRequestsApi.getConstructionRequests(),
+  });
+
+  const isLoading = buildLoading || constructionLoading;
+  const error = buildError || constructionError;
 
   if (isLoading) {
     return (
@@ -54,25 +83,30 @@ const Requests = () => {
     );
   }
 
-  const allRequests = allRequestsData?.results || [];
+  const buildRequests = buildRequestsData?.results || [];
+  const constructionRequests = constructionRequestsData?.results || [];
 
   const counts = {
-    all: allRequests.length,
+    build: buildRequests.length,
+    construction: constructionRequests.length,
+    all: buildRequests.length + constructionRequests.length,
   };
 
-  const renderList = (items: BuildRequest[]) => (
+  const renderBuildRequests = (items: BuildRequest[]) => (
     <div className="space-y-3">
       {items.map((request) => (
         <Card key={request.id} className="shadow-soft hover:shadow-medium smooth-transition">
           <CardContent className="p-4 flex items-center justify-between gap-4">
-            <div>
+            <div className="flex-1">
               <div className="font-medium">{request.plan_details?.name ?? request.plan}</div>
               <div className="text-xs text-muted-foreground">
                 REQ-{String(request.id).slice(0, 8).toUpperCase()} • {request.region_details?.name ?? request.region} • {new Date(request.submitted_at).toLocaleDateString()}
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Badge variant={statusLabel((request as any).status).variant}>{statusLabel((request as any).status).label}</Badge>
+              <Badge variant={buildRequestStatusLabel((request as any).status).variant}>
+                {buildRequestStatusLabel((request as any).status).label}
+              </Badge>
               <Button variant="outline" size="sm" asChild>
                 <Link to={`/account/requests/${request.id}`}>Open</Link>
               </Button>
@@ -81,7 +115,49 @@ const Requests = () => {
         </Card>
       ))}
       {items.length === 0 && (
-        <div className="text-sm text-muted-foreground">No requests found.</div>
+        <div className="text-center py-8 text-muted-foreground">
+          <ClipboardList className="w-12 h-12 mx-auto mb-2 opacity-50" />
+          <p>No build requests yet.</p>
+          <Button variant="link" asChild className="mt-2">
+            <Link to="/plans">Browse Plans to Request</Link>
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderConstructionRequests = (items: ConstructionRequest[]) => (
+    <div className="space-y-3">
+      {items.map((request) => (
+        <Card key={request.id} className="shadow-soft hover:shadow-medium smooth-transition">
+          <CardContent className="p-4 flex items-center justify-between gap-4">
+            <div className="flex-1">
+              <div className="font-medium">{request.title}</div>
+              <div className="text-xs text-muted-foreground">
+                {request.construction_type_display} • {request.region || request.city} • {new Date(request.created_at).toLocaleDateString()}
+              </div>
+              {request.budget && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  Budget: {request.currency} {Number(request.budget).toLocaleString()}
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <Badge variant={constructionRequestStatusLabel(request.status).variant}>
+                {constructionRequestStatusLabel(request.status).label}
+              </Badge>
+              <Button variant="outline" size="sm" asChild>
+                <Link to={`/account/construction-requests/${request.id}`}>Open</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+      {items.length === 0 && (
+        <div className="text-center py-8 text-muted-foreground">
+          <Building2 className="w-12 h-12 mx-auto mb-2 opacity-50" />
+          <p>No construction requests yet.</p>
+        </div>
       )}
     </div>
   );
@@ -93,11 +169,13 @@ const Requests = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ClipboardList className="w-6 h-6" />
-              <h1 className="text-2xl md:text-3xl font-bold">Requests to Build</h1>
+              <h1 className="text-2xl md:text-3xl font-bold">My Requests</h1>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm">
-                <Filter className="w-4 h-4 mr-1" /> Filters
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/account/construction-requests/new">
+                  <Plus className="w-4 h-4 mr-1" /> New Construction Request
+                </Link>
               </Button>
               <Button variant="hero" size="sm" asChild>
                 <Link to="/plans">
@@ -112,10 +190,39 @@ const Requests = () => {
       <section className="py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Tabs defaultValue="all" className="space-y-6">
-            <TabsList className="grid grid-cols-1 w-full md:w-auto">
+            <TabsList className="grid grid-cols-3 w-full md:w-auto">
               <TabsTrigger value="all">All ({counts.all})</TabsTrigger>
+              <TabsTrigger value="build">Build Requests ({counts.build})</TabsTrigger>
+              <TabsTrigger value="construction">Construction ({counts.construction})</TabsTrigger>
             </TabsList>
-            <TabsContent value="all">{renderList(allRequests)}</TabsContent>
+            <TabsContent value="all">
+              <div className="space-y-6">
+                {counts.build > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-muted-foreground mb-3">Build Requests</h3>
+                    {renderBuildRequests(buildRequests)}
+                  </div>
+                )}
+                {counts.construction > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-muted-foreground mb-3">Construction Requests</h3>
+                    {renderConstructionRequests(constructionRequests)}
+                  </div>
+                )}
+                {counts.all === 0 && (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <ClipboardList className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg mb-2">No requests yet</p>
+                    <p className="text-sm mb-4">Start by browsing our building plans</p>
+                    <Button variant="hero" asChild>
+                      <Link to="/plans">Browse Plans</Link>
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+            <TabsContent value="build">{renderBuildRequests(buildRequests)}</TabsContent>
+            <TabsContent value="construction">{renderConstructionRequests(constructionRequests)}</TabsContent>
           </Tabs>
         </div>
       </section>

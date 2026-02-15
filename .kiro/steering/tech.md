@@ -1,80 +1,131 @@
-# Tech Stack
+# Technology Stack
 
-## Frontend Stack
+## Backend
 
-All three frontends share the same technology stack:
-
-- **Framework**: React 18.3 with TypeScript 5.8
-- **Build Tool**: Vite 5.4 with SWC plugin for fast compilation
-- **Styling**: Tailwind CSS 3.4 with custom design tokens
-- **UI Components**: Radix UI primitives with shadcn/ui patterns
-- **Routing**: React Router DOM 6.30
-- **State Management**: TanStack Query (React Query) 5.83
-- **Forms**: React Hook Form 7.61 with Zod validation
-- **Icons**: Lucide React
-- **Charts**: Recharts 2.15
-- **Testing**: Vitest with React Testing Library
-
-## Backend Stack
-
-- **Framework**: Django with Daphne ASGI server
-- **Database**: PostgreSQL 16
-- **Cache/Queue**: Redis 7
+- **Framework**: Django with Django REST Framework
+- **Language**: Python
+- **ASGI Server**: Daphne (for WebSocket support)
+- **Database**: PostgreSQL (production), SQLite (development)
+- **Caching/Message Broker**: Redis
 - **Task Queue**: Celery
-- **Containerization**: Docker with Docker Compose
+- **Real-time**: Django Channels for WebSocket connections
+- **Authentication**: JWT via djangorestframework-simplejwt
+- **API Documentation**: drf-yasg (Swagger/OpenAPI)
 
-## Common Commands
+### Backend Apps Structure
+- `accounts`: User management and authentication
+- `construction`: Project tracking, milestones, documents
+- `plans`: Building plans and templates
+- `properties`: Property listings and management
+- `quotes`: Quote requests and responses
+- `notifications`: Real-time notification system
+- `finances`: Financial tracking
+- `leads`: Lead management
+- `locations`: Location data (regions, cities)
+- `sitecontent`: CMS functionality
+- `dashboard`: Analytics and reporting
 
-### Frontend Development
+## Frontend
+
+- **Framework**: React 18 with TypeScript
+- **Build Tool**: Vite
+- **UI Library**: Radix UI primitives
+- **Styling**: Tailwind CSS
+- **Forms**: React Hook Form with Zod validation
+- **Routing**: React Router v6
+- **State Management**: TanStack Query (React Query)
+- **Icons**: Lucide React
+
+### Frontend Apps
+1. **green-tech-africa** (port 5173): Public website
+2. **green-agent-frontend** (port 5174): Agent portal
+3. **green-admin-frontend** (port 5175): Admin dashboard
+
+## Development Environment
+
+### Local Development with Docker Compose
+
+Start all services:
+```bash
+docker-compose -f docker-compose.local.yml up
+```
+
+Services:
+- Backend API: http://localhost:8000
+- Public Frontend: http://localhost:5173
+- Agent Frontend: http://localhost:5174
+- Admin Frontend: http://localhost:5175
+- PostgreSQL: localhost:5432
+- Redis: localhost:6379
+
+### Backend Commands
 
 ```bash
+# Navigate to backend directory
+cd green_tech_backend
+
+# Run migrations
+python manage.py migrate
+
+# Create superuser
+python manage.py createsuperuser
+
+# Run development server (without Docker)
+python manage.py runserver
+
+# Run Celery worker
+celery -A core worker -l info
+
+# Run tests
+pytest
+
+# Code formatting
+black .
+isort .
+flake8
+```
+
+### Frontend Commands
+
+```bash
+# Navigate to any frontend directory
+cd green-admin-frontend  # or green-agent-frontend or green-tech-africa
+
 # Install dependencies
 npm install
 
-# Start development server
+# Run development server
 npm run dev
 
 # Build for production
 npm run build
 
-# Build for development
-npm run build:dev
-
-# Run linter
-npm run lint
-
 # Run tests
 npm run test
 
-# Run tests once (non-watch mode)
-npm run test:run
+# Lint code
+npm run lint
 ```
 
-### Docker Development
+## Testing
 
-```bash
-# Start all services
-docker-compose -f docker-compose.local.yml up
+- **Backend**: pytest with pytest-django, factory-boy for fixtures
+- **Frontend**: Vitest with React Testing Library, jsdom
 
-# Start specific service
-docker-compose -f docker-compose.local.yml up frontend_admin
+## Deployment
 
-# Stop all services
-docker-compose -f docker-compose.local.yml down
-
-# View logs
-docker-compose -f docker-compose.local.yml logs -f [service_name]
-```
-
-## TypeScript Configuration
-
-- Path alias `@/*` maps to `./src/*`
-- Relaxed type checking: `noImplicitAny: false`, `strictNullChecks: false`
-- Project references for app and node configs
+Production deployment uses Coolify with separate Docker containers for each service. See `docker-compose.coolify.yml` for production configuration.
 
 ## Environment Variables
 
-Each frontend uses `.env` files with:
-- `VITE_API_URL` - Backend API endpoint
-- `VITE_APP_ENV` - Environment (local/dev/prod)
-- `VITE_API_BASE_PATH` - API base path (admin only)
+Backend requires:
+- `DJANGO_SECRET_KEY`
+- `POSTGRES_*` (database credentials)
+- `REDIS_URL`
+- `DJANGO_ALLOWED_HOSTS`
+- `DJANGO_CORS_ALLOWED_ORIGINS`
+- `FRONTEND_URL`, `SITE_URL`
+
+Frontend requires:
+- `VITE_API_URL`: Backend API endpoint
+- `VITE_APP_ENV`: Environment (local/production)

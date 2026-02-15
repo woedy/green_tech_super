@@ -25,6 +25,11 @@ import PropertyNew from "./admin/pages/PropertyNew";
 import { UserForm, UserDetail } from "./admin/pages/UserDetail";
 import { RegionForm, RegionDetail } from "./admin/pages/RegionDetail";
 import { TemplateForm, TemplateDetail } from "./admin/pages/TemplateDetail";
+import Requests from "./admin/pages/Requests";
+import BuildRequestDetail from "./admin/pages/BuildRequestDetail";
+import ConstructionRequestDetail from "./admin/pages/ConstructionRequestDetail";
+import PropertyTransactions from "./admin/pages/PropertyTransactions";
+import PropertyTransactionDetail from "./admin/pages/PropertyTransactionDetail";
 import { useAuth } from "./admin/hooks/useAuth";
 import ScrollToTop from "./components/ScrollToTop";
 
@@ -99,6 +104,13 @@ const App = () => (
               <Route path="/admin/content/new" element={<SiteDocumentForm />} />
               <Route path="/admin/content/:id" element={<SiteDocumentDetail />} />
               <Route path="/admin/content/:id/edit" element={<SiteDocumentForm />} />
+
+              <Route path="/admin/requests" element={<Requests />} />
+              <Route path="/admin/requests/build/:id" element={<BuildRequestDetail />} />
+              <Route path="/admin/requests/construction/:id" element={<ConstructionRequestDetail />} />
+
+              <Route path="/admin/property-transactions" element={<PropertyTransactions />} />
+              <Route path="/admin/property-transactions/:id" element={<PropertyTransactionDetail />} />
 
               <Route path="/admin/analytics" element={<AdminAnalytics />} />
             </Route>

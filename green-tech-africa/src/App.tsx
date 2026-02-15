@@ -21,6 +21,16 @@ import VerifyEmail from "./pages/auth/VerifyEmail";
 import AccountDashboard from "./pages/account/Dashboard";
 import Requests from "./pages/account/Requests";
 import RequestDetail from "./pages/account/RequestDetail";
+import RequestNew from "./pages/account/RequestNew";
+import ConstructionRequestDetail from "./pages/account/ConstructionRequestDetail";
+import ConstructionRequestForm from "./pages/account/ConstructionRequestForm";
+import PropertiesCatalog from "./pages/account/PropertiesCatalog";
+import ProjectsCatalog from "./pages/account/ProjectsCatalog";
+import PropertyDetailAuth from "./pages/account/PropertyDetailAuth";
+import ProjectDetailAuth from "./pages/account/ProjectDetailAuth";
+import MyProperties from "./pages/account/MyProperties";
+import MyProjects from "./pages/account/MyProjects";
+import MyProjectDetail from "./pages/account/MyProjectDetail";
 import Plans from "./pages/plans/Plans";
 import PlanDetail from "./pages/plans/PlanDetail";
 import RequestBuild from "./pages/plans/RequestBuild";
@@ -28,17 +38,21 @@ import Quotes from "./pages/account/Quotes";
 import QuoteDetail from "./pages/account/QuoteDetail";
 import Messages from "./pages/account/Messages";
 import MessageThread from "./pages/account/MessageThread";
+import PropertyTransactions from "./pages/account/PropertyTransactions";
+import PropertyTransactionNew from "./pages/account/PropertyTransactionNew";
+import PropertyTransactionDetail from "./pages/account/PropertyTransactionDetail";
+import PropertyInquiry from "./pages/PropertyInquiry";
 import Appointments from "./pages/account/Appointments";
 import AppointmentDetail from "./pages/account/AppointmentDetail";
 import AccountProjects from "./pages/account/Projects";
 import AccountProjectDetail from "./pages/account/ProjectDetail";
 import Favorites from "./pages/account/Favorites";
 import Profile from "./pages/account/Profile";
+import Notifications from "./pages/account/Notifications";
 import NotificationSettings from "./pages/account/NotificationSettings";
 import Documents from "./pages/account/Documents";
 import Payments from "./pages/account/Payments";
 import SavedSearches from "./pages/account/SavedSearches";
-import PropertyInquiry from "./pages/PropertyInquiry";
 import FinancialTools from "./pages/FinancialTools";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./routes/ProtectedRoute";
@@ -103,8 +117,21 @@ const App = () => (
           <Route path="/plans/:slug/request" element={<RequestBuild />} />
           {/* Customer Dashboard */}
           <Route path="/account" element={<ProtectedRoute><AccountDashboard /></ProtectedRoute>} />
+          <Route path="/account/properties" element={<ProtectedRoute><PropertiesCatalog /></ProtectedRoute>} />
+          <Route path="/account/properties/:id" element={<ProtectedRoute><PropertyDetailAuth /></ProtectedRoute>} />
+          <Route path="/account/property-transactions" element={<ProtectedRoute><PropertyTransactions /></ProtectedRoute>} />
+          <Route path="/account/property-transactions/new" element={<ProtectedRoute><PropertyTransactionNew /></ProtectedRoute>} />
+          <Route path="/account/property-transactions/:id" element={<ProtectedRoute><PropertyTransactionDetail /></ProtectedRoute>} />
+          <Route path="/account/projects" element={<ProtectedRoute><ProjectsCatalog /></ProtectedRoute>} />
+          <Route path="/account/projects/:id" element={<ProtectedRoute><ProjectDetailAuth /></ProtectedRoute>} />
+          <Route path="/account/my-properties" element={<ProtectedRoute><MyProperties /></ProtectedRoute>} />
+          <Route path="/account/my-projects" element={<ProtectedRoute><MyProjects /></ProtectedRoute>} />
+          <Route path="/account/my-projects/:id" element={<ProtectedRoute><MyProjectDetail /></ProtectedRoute>} />
           <Route path="/account/requests" element={<ProtectedRoute><Requests /></ProtectedRoute>} />
+          <Route path="/account/requests/new" element={<ProtectedRoute><RequestNew /></ProtectedRoute>} />
           <Route path="/account/requests/:id" element={<ProtectedRoute><RequestDetail /></ProtectedRoute>} />
+          <Route path="/account/construction-requests/new" element={<ProtectedRoute><ConstructionRequestForm /></ProtectedRoute>} />
+          <Route path="/account/construction-requests/:id" element={<ProtectedRoute><ConstructionRequestDetail /></ProtectedRoute>} />
           <Route path="/account/quotes" element={<ProtectedRoute><Quotes /></ProtectedRoute>} />
           <Route path="/account/quotes/:id" element={<ProtectedRoute><QuoteDetail /></ProtectedRoute>} />
           <Route path="/account/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
@@ -115,7 +142,8 @@ const App = () => (
           <Route path="/account/projects/:id" element={<ProtectedRoute><AccountProjectDetail /></ProtectedRoute>} />
           <Route path="/account/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
           <Route path="/account/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-          <Route path="/account/notifications" element={<ProtectedRoute><NotificationSettings /></ProtectedRoute>} />
+          <Route path="/account/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+          <Route path="/account/notification-settings" element={<ProtectedRoute><NotificationSettings /></ProtectedRoute>} />
           <Route path="/account/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
           <Route path="/account/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
           <Route path="/account/saved-searches" element={<ProtectedRoute><SavedSearches /></ProtectedRoute>} />

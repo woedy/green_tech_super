@@ -8,12 +8,200 @@ from rest_framework.permissions import IsAdminUser
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q, Count, Sum, Avg
 from django.utils import timezone
+from django.db import transaction
+from django.utils.translation import gettext_lazy as _
 
-from construction.models import Project, ProjectStatus, ProjectPhase
+from construction.models import (
+    Project, ProjectStatus, ProjectPhase,
+    ProjectMilestone, MilestoneStatus
+)
+from construction.models.request import ConstructionRequest
 from construction.serializers.project_serializers import (
     ProjectSerializer,
     ProjectDetailSerializer,
 )
+
+
+class ConstructionRequestAdminViewSet(viewsets.ModelViewSet):
+    """
+    Admin viewset for managing construction requests with conversion capability.
+    """
+    queryset = ConstructionRequest.objects.select_related('client', 'property').all()
+    permission_classes = [IsAdminUser]
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
+    filterset_fields = ('status', 'construction_type')
+    search_fields = ('title', 'description', 'client__email')
+    ordering = ('-created_at',)
+    
+    def get_serializer_class(self):
+        from construction.serializers import ConstructionRequestSerializer
+        return ConstructionRequestSerializer
+    
+    @action(detail=True, methods=['post'])
+    @transaction.atomic
+    def convert_to_project(self, request, pk=None):
+        """
+        Convert a construction request to an active project.
+        
+        This creates a new Project based on the ConstructionRequest data
+        and updates the ConstructionRequest status to 'IN_PROGRESS'.
+        """
+        construction_request = self.get_object()
+        
+        # Check if already converted
+        if hasattr(construction_request, 'project'):
+            return Response(
+                {
+                    'error': _('This construction request has already been converted to a project.'),
+                    'project_id': construction_request.project.id
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if approved
+        if construction_request.status != 'APPROVED':
+            return Response(
+                {'error': _('Construction request must be approved before conversion to project.')},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get required data from request body
+        data = request.data
+        project_manager_id = data.get('project_manager_id')
+        
+        if not project_manager_id:
+            return Response(
+                {'error': _('project_manager_id is required')},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate project manager
+        from accounts.models import User
+        try:
+            project_manager = User.objects.get(id=project_manager_id, is_staff=True)
+        except User.DoesNotExist:
+            return Response(
+                {'error': _('Invalid project manager')},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get optional site supervisor
+        site_supervisor = None
+        site_supervisor_id = data.get('site_supervisor_id')
+        if site_supervisor_id:
+            try:
+                site_supervisor = User.objects.get(id=site_supervisor_id, is_staff=True)
+            except User.DoesNotExist:
+                pass
+        
+        # Get or create property if needed
+        property_obj = construction_request.property
+        if not property_obj and data.get('property_id'):
+            from properties.models import Property
+            try:
+                property_obj = Property.objects.get(id=data['property_id'])
+            except Property.DoesNotExist:
+                return Response(
+                    {'error': _('Invalid property')},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        if not property_obj:
+            return Response(
+                {'error': _('Property is required for project creation')},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Create project
+        project = Project.objects.create(
+            title=construction_request.title,
+            description=construction_request.description or '',
+            status=ProjectStatus.PLANNING,
+            current_phase=ProjectPhase.SITE_PREPARATION,
+            project_manager=project_manager,
+            site_supervisor=site_supervisor,
+            construction_request=construction_request,
+            property=property_obj,
+            planned_start_date=construction_request.start_date or data.get('planned_start_date'),
+            planned_end_date=construction_request.estimated_end_date or data.get('planned_end_date'),
+            estimated_budget=construction_request.estimated_cost or construction_request.budget or 0,
+            currency=construction_request.currency,
+            created_by=request.user,
+        )
+        
+        # Create initial milestones based on construction type
+        self._create_initial_milestones(project, construction_request)
+        
+        # Update construction request status
+        construction_request.status = 'IN_PROGRESS'
+        construction_request.save(update_fields=['status'])
+        
+        serializer = ProjectSerializer(project)
+        
+        return Response({
+            'message': _('Construction request successfully converted to project.'),
+            'project': serializer.data,
+            'construction_request_id': construction_request.id,
+        }, status=status.HTTP_201_CREATED)
+    
+    def _create_initial_milestones(self, project, construction_request):
+        """Create initial milestones based on construction type."""
+        from datetime import timedelta
+        
+        # Define milestone templates based on construction type
+        milestone_templates = {
+            'NEW': [
+                ('Site Preparation', ProjectPhase.SITE_PREPARATION, 5),
+                ('Foundation', ProjectPhase.FOUNDATION, 10),
+                ('Framing', ProjectPhase.FRAMING, 15),
+                ('Roofing', ProjectPhase.ROOFING, 10),
+                ('Plumbing', ProjectPhase.PLUMBING, 10),
+                ('Electrical', ProjectPhase.ELECTRICAL, 10),
+                ('Insulation', ProjectPhase.INSULATION, 5),
+                ('Drywall', ProjectPhase.DRYWALL, 10),
+                ('Interior Finishes', ProjectPhase.INTERIOR, 15),
+                ('Final Inspection', ProjectPhase.FINAL_INSPECTION, 5),
+            ],
+            'RENO': [
+                ('Site Assessment', ProjectPhase.SITE_PREPARATION, 5),
+                ('Demolition', ProjectPhase.SITE_PREPARATION, 10),
+                ('Structural Work', ProjectPhase.FRAMING, 20),
+                ('Systems Upgrade', ProjectPhase.PLUMBING, 15),
+                ('Interior Renovation', ProjectPhase.INTERIOR, 30),
+                ('Final Inspection', ProjectPhase.FINAL_INSPECTION, 5),
+            ],
+            'EXT': [
+                ('Planning & Design', ProjectPhase.SITE_PREPARATION, 10),
+                ('Foundation Extension', ProjectPhase.FOUNDATION, 15),
+                ('Structural Extension', ProjectPhase.FRAMING, 25),
+                ('Integration Work', ProjectPhase.INTERIOR, 30),
+                ('Final Inspection', ProjectPhase.FINAL_INSPECTION, 5),
+            ],
+        }
+        
+        templates = milestone_templates.get(
+            construction_request.construction_type,
+            milestone_templates['NEW']
+        )
+        
+        start_date = project.planned_start_date or timezone.now().date()
+        current_date = start_date
+        
+        for idx, (title, phase, duration_days) in enumerate(templates):
+            end_date = current_date + timedelta(days=duration_days)
+            
+            ProjectMilestone.objects.create(
+                project=project,
+                title=title,
+                phase=phase,
+                status=MilestoneStatus.NOT_STARTED,
+                planned_start_date=current_date,
+                planned_end_date=end_date,
+                estimated_cost=project.estimated_budget * (duration_days / 100),  # Rough estimate
+                created_by=project.created_by,
+            )
+            
+            current_date = end_date + timedelta(days=1)
 
 
 class ProjectAdminViewSet(viewsets.ModelViewSet):

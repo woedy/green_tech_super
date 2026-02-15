@@ -1,33 +1,29 @@
 # Product Overview
 
-Green Tech Africa is a multi-tenant real estate platform with three distinct frontend applications:
+Green Tech Africa is a construction and real estate platform serving the African market. The system manages the complete lifecycle of construction projects, property listings, and client interactions.
 
-## Applications
+## Core Features
 
-1. **Public Frontend** (green-tech-africa) - Port 5173
-   - Public-facing website for property browsing and information
-   - Marketing and informational content
+- Property catalog and listings management
+- Construction project planning and tracking
+- Build request and quote management
+- User account management (customers, agents, admins)
+- Real-time notifications via WebSockets
+- Financial tracking and reporting
+- Location-based services
+- Lead management system
 
-2. **Agent Frontend** (green-agent-frontend) - Port 5174
-   - Real estate agent portal
-   - Project management and quote handling
-   - Client interaction tools
+## User Roles
 
-3. **Admin Frontend** (green-admin-frontend) - Port 5175
-   - Administrative dashboard
-   - Manage plans, properties, users, regions
-   - Site content management
-   - Notification templates
-   - Analytics and reporting
+- **Public Users**: Browse properties and plans, submit build requests
+- **Agents**: Manage client projects, respond to quotes, track construction
+- **Admins**: Full system access, user management, content management
 
-## Backend Services
+## Architecture
 
-- **Django Backend** - Port 8000
-  - REST API serving all frontends
-  - PostgreSQL database
-  - Redis for caching and task queue
-  - Celery for async task processing
+Multi-frontend architecture with three separate React applications:
+- `green-tech-africa`: Public-facing website
+- `green-agent-frontend`: Agent portal
+- `green-admin-frontend`: Admin dashboard
 
-## Domain
-
-Real estate management platform focused on African markets, providing tools for property listings, agent workflows, and administrative oversight.
+Single Django REST API backend serving all frontends with role-based access control.

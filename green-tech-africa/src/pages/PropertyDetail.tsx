@@ -78,12 +78,23 @@ const PropertyDetail = () => {
               </div>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2">
+              {property.listing_type === 'rent' ? (
+                <>
+                  <Button size="sm" asChild>
+                    <Link to={`/properties/${id}/inquire?type=rent`}>Request to Rent</Link>
+                  </Button>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to={`/properties/${id}/inquire?type=lease`}>Request to Lease</Link>
+                  </Button>
+                </>
+              ) : (
+                <Button size="sm" asChild>
+                  <Link to={`/properties/${id}/inquire?type=buy`}>Request to Buy</Link>
+                </Button>
+              )}
               <Button variant="outline" size="sm" asChild>
-                <Link to={`/properties/${property.slug}/inquiry`}>Schedule Viewing</Link>
-              </Button>
-              <Button variant="default" size="sm" asChild>
-                <Link to="/account/messages">Contact Agent</Link>
+                <Link to={`/properties/${id}/inquire`}>Schedule Viewing</Link>
               </Button>
             </div>
           </div>

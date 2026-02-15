@@ -21,10 +21,14 @@ from .project_views import (
 from .public_views import PublicProjectViewSet
 
 # Import admin views
-from .admin_views import ProjectAdminViewSet, ProjectMilestoneAdminViewSet
+from .admin_views import (
+    ProjectAdminViewSet,
+    ProjectMilestoneAdminViewSet,
+    ConstructionRequestAdminViewSet,
+)
 
 # Import API views
-from ..api_views import ConstructionRequestViewSet, EcoFeatureSelectionViewSet
+from ..api_views import ConstructionRequestViewSet, EcoFeatureSelectionViewSet, EcoFeatureViewSet
 
 # Create a router and register our viewsets with it
 router = DefaultRouter()
@@ -33,12 +37,15 @@ router.register(r'construction-requests', ConstructionRequestViewSet,
                 basename='construction-request')
 router.register(r'eco-feature-selections', EcoFeatureSelectionViewSet, 
                 basename='eco-feature-selection')
+router.register(r'eco-features', EcoFeatureViewSet, 
+                basename='eco-feature')
 
 # Project and Milestone endpoints
 router.register(r'projects', ProjectViewSet, basename='project')
 
 # Admin endpoints (admin authentication required)
 router.register(r'admin/projects', ProjectAdminViewSet, basename='admin-project')
+router.register(r'admin/construction-requests', ConstructionRequestAdminViewSet, basename='admin-construction-request')
 
 # Public endpoints (no authentication required)
 router.register(r'public/projects', PublicProjectViewSet, basename='public-project')
