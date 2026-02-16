@@ -17,24 +17,23 @@ const Layout = ({ children }: LayoutProps) => {
       <Navbar />
       <div className="flex flex-1">
         {isAuthenticated && (
-          <Sidebar 
-            isCollapsed={sidebarCollapsed} 
+          <Sidebar
+            isCollapsed={sidebarCollapsed}
             onToggleCollapse={setSidebarCollapsed}
           />
         )}
-        <main 
-          className={`flex-grow transition-all duration-300 ${
-            isAuthenticated 
-              ? sidebarCollapsed 
-                ? "md:ml-16" 
+        <main
+          className={`flex-grow transition-all duration-300 ${isAuthenticated
+              ? sidebarCollapsed
+                ? "md:ml-16"
                 : "md:ml-64"
               : ""
-          }`}
+            }`}
         >
           {children}
         </main>
       </div>
-      <Footer />
+      {!isAuthenticated && <Footer />}
     </div>
   );
 };

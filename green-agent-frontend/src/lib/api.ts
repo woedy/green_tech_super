@@ -13,6 +13,11 @@ import {
 } from "@/types/project";
 import { Lead } from "@/types/lead";
 import { QuoteSummary } from "@/types/quote";
+import {
+  Property,
+  PropertyTransaction,
+  ViewingAppointment,
+} from "@/types/property";
 
 type HttpMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
 
@@ -40,7 +45,7 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (!headers.has("Accept")) {
     headers.set("Accept", "application/json");
   }
-  if (method !== "GET" && method !== "HEAD" && !headers.has("Content-Type")) {
+  if (method !== "GET" && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -161,9 +166,124 @@ export async function postProjectChatMessage(
   });
 }
 
+export async function fetchLeads(params: { status?: string; priority?: string; page_size?: number } = {}): Promise<PaginatedResponse<Lead>> {
+  const query = toQuery({ status: params.status, priority: params.priority, page_size: params.page_size });
+  return apiFetch<PaginatedResponse<Lead>>(`/api/leads/${query}`);
+}
+
 export async function fetchRecentLeads(limit = 5): Promise<PaginatedResponse<Lead>> {
   const query = toQuery({ page_size: limit });
   return apiFetch<PaginatedResponse<Lead>>(`/api/leads/${query}`);
+}
+
+export async function fetchLeadDetail(id: string): Promise<Lead> {
+  return apiFetch<Lead>(`/api/leads/${id}/`);
+}
+
+export async function updateLead(id: string, payload: Partial<Pick<Lead, "status" | "priority" | "is_unread">>): Promise<Lead> {
+  return apiFetch<Lead>(`/api/leads/${id}/`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function fetchLeadNotes(id: string): Promise<import("@/types/lead").LeadNote[]> {
+  return apiFetch<import("@/types/lead").LeadNote[]>(`/api/leads/${id}/notes/`);
+}
+
+export async function createLeadNote(id: string, body: string): Promise<import("@/types/lead").LeadNote> {
+  return apiFetch<import("@/types/lead").LeadNote>(`/api/leads/${id}/notes/`, {
+    method: "POST",
+    body: JSON.stringify({ body }),
+  });
+}
+
+export async function fetchLeadActivity(id: string): Promise<import("@/types/lead").LeadActivity[]> {
+  return apiFetch<import("@/types/lead").LeadActivity[]>(`/api/leads/${id}/activity/`);
+}
+
+// Property Management
+export async function fetchProperties(params: { type?: string; status?: string; region?: string } = {}): Promise<PaginatedResponse<Property>> {
+  const query = toQuery(params);
+  return apiFetch<PaginatedResponse<Property>>(`/api/admin/properties/${query}`);
+}
+
+export async function fetchPropertyDetails(idOrSlug: string): Promise<Property> {
+  return apiFetch<Property>(`/api/admin/properties/${idOrSlug}/`);
+}
+
+export async function createProperty(data: any): Promise<Property> {
+  return apiFetch<Property>(`/api/admin/properties/`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateProperty(id: string, data: any): Promise<Property> {
+  return apiFetch<Property>(`/api/admin/properties/${id}/`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteProperty(idOrSlug: string): Promise<void> {
+  await apiFetch(`/api/admin/properties/${idOrSlug}/`, {
+    method: "DELETE",
+  });
+}
+
+export async function uploadPropertyImage(file: File): Promise<{ url: string; filename: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  // Use withBase to get the correct absolute URL
+  const url = withBase("/api/admin/properties/upload-image/");
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('gta_agent_token')}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to upload image');
+  }
+
+  return response.json();
+}
+
+export async function fetchPropertyTransactions(params: { status?: string; type?: string } = {}): Promise<PaginatedResponse<PropertyTransaction>> {
+  const query = toQuery(params);
+  return apiFetch<PaginatedResponse<PropertyTransaction>>(`/api/transactions/${query}`);
+}
+
+export async function updatePropertyTransaction(id: string, payload: Partial<Pick<PropertyTransaction, "status" | "admin_notes">>): Promise<PropertyTransaction> {
+  return apiFetch<PropertyTransaction>(`/api/transactions/${id}/`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function addTransactionNote(id: string, content: string): Promise<any> {
+  return apiFetch<any>(`/api/transactions/${id}/add_note/`, {
+    method: "POST",
+    body: JSON.stringify({ content }),
+  });
+}
+
+// Viewing Appointments
+export async function fetchAppointments(): Promise<PaginatedResponse<ViewingAppointment>> {
+  return apiFetch<PaginatedResponse<ViewingAppointment>>(`/api/appointments/`);
+}
+
+export async function updateAppointment(id: string, payload: Partial<Pick<ViewingAppointment, "status" | "notes">>): Promise<ViewingAppointment> {
+  return apiFetch<ViewingAppointment>(`/api/appointments/${id}/`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function fetchRecentQuotes(limit = 5): Promise<PaginatedResponse<QuoteSummary>> {
@@ -362,6 +482,13 @@ export async function loginUser(credentials: LoginRequest): Promise<LoginRespons
 
 export async function getUserProfile(): Promise<UserProfile> {
   return apiFetch<UserProfile>('/api/auth/profile/');
+}
+
+export async function updateUserProfile(data: Partial<UserProfile>): Promise<UserProfile> {
+  return apiFetch<UserProfile>('/api/auth/profile/update/', {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
 }
 
 export interface RegisterRequest {

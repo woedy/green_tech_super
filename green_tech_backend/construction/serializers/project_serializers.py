@@ -25,7 +25,11 @@ from construction.models import (
     ProjectTaskStatus,
     ProjectTaskPriority,
     ProjectChatMessage,
-    ProjectMessageReceipt
+    ProjectMessageReceipt,
+    ChangeOrder,
+    ChangeOrderItem,
+    ChangeOrderStatus,
+    ChangeOrderItemType
 )
 # Quote serializers now handled by quotes app
 
@@ -634,3 +638,39 @@ class ProjectDetailSerializer(ProjectSerializer):
         read_only_fields = ProjectSerializer.Meta.read_only_fields + [
             'created_by'
         ]
+
+
+class ChangeOrderItemSerializer(serializers.ModelSerializer):
+    item_type_display = serializers.CharField(source='get_item_type_display', read_only=True)
+
+    class Meta:
+        model = ChangeOrderItem
+        fields = [
+            'id', 'description', 'item_type', 'item_type_display',
+            'quantity', 'unit_cost', 'labor_hours', 'material_cost'
+        ]
+
+
+class ChangeOrderSerializer(serializers.ModelSerializer):
+    items = ChangeOrderItemSerializer(many=True, required=False)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
+    approved_by_name = serializers.CharField(source='approved_by.get_full_name', read_only=True)
+
+    class Meta:
+        model = ChangeOrder
+        fields = [
+            'id', 'project', 'title', 'description', 'reason',
+            'status', 'status_display', 'total_cost_impact',
+            'estimated_days_impact', 'created_at', 'updated_at',
+            'created_by', 'created_by_name', 'approved_by',
+            'approved_by_name', 'approved_at', 'items'
+        ]
+        read_only_fields = ['created_at', 'updated_at', 'created_by', 'approved_by', 'approved_at']
+
+    def create(self, validated_data):
+        items_data = validated_data.pop('items', [])
+        change_order = ChangeOrder.objects.create(**validated_data)
+        for item_data in items_data:
+            ChangeOrderItem.objects.create(change_order=change_order, **item_data)
+        return change_order

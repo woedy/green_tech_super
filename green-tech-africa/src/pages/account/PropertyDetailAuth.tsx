@@ -26,8 +26,8 @@ const PropertyDetailAuth = () => {
     enabled: !!property?.id,
   });
 
-  const existingTransaction = transactionCheck?.has_active_transaction 
-    ? transactionCheck.transaction 
+  const existingTransaction = transactionCheck?.has_active_transaction
+    ? transactionCheck.transaction
     : null;
 
   useEffect(() => setFavoriteIds(getFavorites()), []);
@@ -44,7 +44,7 @@ const PropertyDetailAuth = () => {
   };
 
   const handleRequestProperty = (transactionType: 'rent' | 'lease' | 'buy') => {
-    if (!property?.id) {
+    if (!property?.slug) {
       toast({
         title: "Error",
         description: "Property information not loaded. Please try again.",
@@ -52,7 +52,7 @@ const PropertyDetailAuth = () => {
       });
       return;
     }
-    navigate(`/account/property-transactions/new?property=${property.id}&type=${transactionType}`);
+    navigate(`/account/property-transactions/new?property=${property.slug}&type=${transactionType}`);
   };
 
   if (isLoading) {
@@ -83,12 +83,12 @@ const PropertyDetailAuth = () => {
   }
 
   const hero = property.featured_image || property.image || property.hero_image_url;
-  const formattedPrice = property.currency_code 
+  const formattedPrice = property.currency_code
     ? `${property.currency_code} ${Number(property.price).toLocaleString()}`
     : property.currency
-    ? `${property.currency} ${Number(property.price).toLocaleString()}`
-    : `${Number(property.price).toLocaleString()}`;
-  const locationText = property.city && property.region?.name 
+      ? `${property.currency} ${Number(property.price).toLocaleString()}`
+      : `${Number(property.price).toLocaleString()}`;
+  const locationText = property.city && property.region?.name
     ? `${property.city}, ${property.region.name}`
     : property.location || 'Location not specified';
 
@@ -157,9 +157,9 @@ const PropertyDetailAuth = () => {
                           </Link>
                         </Button>
                         {existingTransaction.status === 'draft' || existingTransaction.status === 'submitted' ? (
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
+                          <Button
+                            variant="outline"
+                            size="sm"
                             className="w-full"
                             onClick={() => navigate(`/account/property-transactions/${existingTransaction.id}`)}
                           >
@@ -190,9 +190,9 @@ const PropertyDetailAuth = () => {
                 </>
               )}
               <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="lg" 
+                <Button
+                  variant="outline"
+                  size="lg"
                   className="flex-1"
                   onClick={handleToggleFavorite}
                 >

@@ -25,6 +25,7 @@ type AuthContextValue = {
   isLoading: boolean;
   login: (payload: { email: string; password: string }) => Promise<void>;
   register: (payload: RegisterPayload) => Promise<void>;
+  updateUser: (user: AuthUser) => void;
   logout: () => void;
 };
 
@@ -92,6 +93,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setState(null);
   }, []);
 
+  const updateUser = useCallback((user: AuthUser) => {
+    setState(prev => {
+      if (!prev) return null;
+      const next = { ...prev, user };
+      saveAuthState(next);
+      return next;
+    });
+  }, []);
+
   const value = useMemo<AuthContextValue>(() => ({
     user: state?.user ?? null,
     isAuthenticated: Boolean(state?.accessToken && state?.user?.is_verified),
@@ -99,7 +109,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     login,
     register,
     logout,
-  }), [state, isLoading, login, register, logout]);
+    updateUser,
+  }), [state, isLoading, login, register, logout, updateUser]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

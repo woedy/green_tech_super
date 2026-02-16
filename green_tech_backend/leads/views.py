@@ -41,6 +41,17 @@ class LeadViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Updat
             )
         ).order_by('priority_rank', '-last_activity_at')
 
+        user = self.request.user
+        if hasattr(user, 'user_type') and user.user_type == 'AGENT' and not user.is_staff:
+            from properties.models import Property
+            property_ids = Property.objects.filter(listed_by=user).values_list('id', flat=True)
+            qs = qs.filter(Q(assigned_to=user) | Q(metadata__property__id__in=list(property_ids)))
+        elif not user.is_staff and not user.is_superuser:
+            # For regular users (customers), only show leads assigned to them if any, 
+            # or maybe they shouldn't see leads at all?
+            # Leads are primarily for agents.
+            qs = qs.filter(assigned_to=user)
+
         status_param = self.request.query_params.get('status')
         priority_param = self.request.query_params.get('priority')
         search = self.request.query_params.get('search')

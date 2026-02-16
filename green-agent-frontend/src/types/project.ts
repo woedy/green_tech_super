@@ -125,3 +125,32 @@ export interface ProjectDashboardPayload {
   actual_cost: number;
   currency: string;
 }
+
+export interface ChangeOrderItem {
+  id?: string;
+  description: string;
+  type: "addition" | "removal" | "modification";
+  quantity: number;
+  unitCost: number;
+  laborHours?: number;
+  materialCost?: number;
+  item_type_display?: string;
+}
+
+export interface ChangeOrder {
+  id: string;
+  project: string;
+  title: string;
+  description: string;
+  reason: string;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "VOIDED";
+  status_display: string;
+  total_cost_impact: number;
+  estimated_days_impact: number;
+  created_at: string;
+  updated_at: string;
+  created_by_name?: string;
+  approved_by_name?: string;
+  approved_at?: string | null;
+  items: ChangeOrderItem[];
+}

@@ -19,6 +19,7 @@ class PropertyImageAdminSerializer(serializers.ModelSerializer):
 
 
 class PropertyAdminSerializer(serializers.ModelSerializer):
+    slug = serializers.SlugField(required=False)
     images = PropertyImageAdminSerializer(many=True, required=False)
     region = serializers.SlugRelatedField(slug_field='slug', queryset=Region.objects.all())
     eco_features = serializers.ListField(

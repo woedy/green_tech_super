@@ -62,6 +62,11 @@ class PropertyTransactionViewSet(viewsets.ModelViewSet):
         if user.is_staff or user.is_superuser:
             return qs
 
+        # Agents can see transactions assigned to them OR on properties they listed
+        if hasattr(user, 'user_type') and user.user_type == 'AGENT':
+            from django.db.models import Q
+            return qs.filter(Q(assigned_agent=user) | Q(property_ref__listed_by=user))
+
         # Regular users can only see their own transactions
         return qs.filter(client=user)
     
@@ -104,9 +109,15 @@ class PropertyTransactionViewSet(viewsets.ModelViewSet):
         })
 
     def get_serializer_class(self):
+        user = self.request.user
+        is_agent = hasattr(user, 'user_type') and user.user_type == 'AGENT'
+        
         if self.action == 'create':
             return PropertyTransactionCreateSerializer
         elif self.action in ['update', 'partial_update']:
+            if user.is_staff or is_agent:
+                from .serializers_transactions import PropertyTransactionAdminUpdateSerializer
+                return PropertyTransactionAdminUpdateSerializer
             return PropertyTransactionUpdateSerializer
         elif self.action == 'retrieve':
             return PropertyTransactionDetailSerializer
@@ -139,8 +150,12 @@ class PropertyTransactionViewSet(viewsets.ModelViewSet):
         """
         transaction = self.get_object()
 
-        # Check if user owns this transaction
-        if transaction.client != request.user and not request.user.is_staff:
+        # Check permissions: Client, Assigned Agent, or Property Lister
+        is_client = transaction.client == request.user
+        is_assigned_agent = transaction.assigned_agent == request.user
+        is_property_lister = transaction.property_ref.listed_by == request.user
+        
+        if not (is_client or is_assigned_agent or is_property_lister or request.user.is_staff):
             return Response(
                 {'detail': 'You do not have permission to submit this transaction.'},
                 status=status.HTTP_403_FORBIDDEN
@@ -173,8 +188,12 @@ class PropertyTransactionViewSet(viewsets.ModelViewSet):
         """
         transaction = self.get_object()
 
-        # Check if user owns this transaction
-        if transaction.client != request.user and not request.user.is_staff:
+        # Check permissions: Client, Assigned Agent, or Property Lister
+        is_client = transaction.client == request.user
+        is_assigned_agent = transaction.assigned_agent == request.user
+        is_property_lister = transaction.property_ref.listed_by == request.user
+        
+        if not (is_client or is_assigned_agent or is_property_lister or request.user.is_staff):
             return Response(
                 {'detail': 'You do not have permission to cancel this transaction.'},
                 status=status.HTTP_403_FORBIDDEN
@@ -220,8 +239,12 @@ class PropertyTransactionViewSet(viewsets.ModelViewSet):
         """Upload a document for a transaction."""
         transaction = self.get_object()
 
-        # Check permissions
-        if transaction.client != request.user and not request.user.is_staff:
+        # Check permissions: Client, Assigned Agent, or Property Lister
+        is_client = transaction.client == request.user
+        is_assigned_agent = transaction.assigned_agent == request.user
+        is_property_lister = transaction.property_ref.listed_by == request.user
+        
+        if not (is_client or is_assigned_agent or is_property_lister or request.user.is_staff):
             return Response(
                 {'detail': 'You do not have permission to upload documents for this transaction.'},
                 status=status.HTTP_403_FORBIDDEN
@@ -254,8 +277,12 @@ class PropertyTransactionViewSet(viewsets.ModelViewSet):
         """Add a note to a transaction."""
         transaction = self.get_object()
 
-        # Check permissions
-        if transaction.client != request.user and not request.user.is_staff:
+        # Check permissions: Client, Assigned Agent, or Property Lister
+        is_client = transaction.client == request.user
+        is_assigned_agent = transaction.assigned_agent == request.user
+        is_property_lister = transaction.property_ref.listed_by == request.user
+        
+        if not (is_client or is_assigned_agent or is_property_lister or request.user.is_staff):
             return Response(
                 {'detail': 'You do not have permission to add notes to this transaction.'},
                 status=status.HTTP_403_FORBIDDEN

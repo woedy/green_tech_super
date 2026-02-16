@@ -80,19 +80,12 @@ const PropertyTransactionNew = () => {
 
   const createTransactionMutation = useMutation({
     mutationFn: async (data: TransactionFormData) => {
-      if (!propertyId) {
-        throw new Error('Property ID is missing from URL');
+      if (!property?.id) {
+        throw new Error('Property details not loaded. Please wait and try again.');
       }
-      
-      const propertyIdInt = parseInt(propertyId, 10);
-      
-      if (isNaN(propertyIdInt) || propertyIdInt <= 0) {
-        console.error('Invalid property ID:', propertyId, 'parsed as:', propertyIdInt);
-        throw new Error(`Invalid property ID: "${propertyId}". Expected a positive number.`);
-      }
-      
+
       const payload = {
-        property: propertyIdInt,
+        property: property.id,
         transaction_type: transactionType,
         contact_name: data.contact_name,
         contact_email: data.contact_email,
@@ -105,11 +98,9 @@ const PropertyTransactionNew = () => {
         budget: data.budget || '',
         financing_required: data.financing_required || false,
       };
-      
+
       console.log('Sending transaction payload:', payload);
-      console.log('Property ID (original):', propertyId);
-      console.log('Property ID (parsed):', propertyIdInt);
-      
+
       return api.post("/api/transactions/", payload);
     },
     onSuccess: () => {
@@ -121,9 +112,9 @@ const PropertyTransactionNew = () => {
     },
     onError: (error: any) => {
       console.error("Transaction error:", error);
-      const errorMessage = error.response?.data?.detail 
-        || error.response?.data?.message 
-        || error.message 
+      const errorMessage = error.response?.data?.detail
+        || error.response?.data?.message
+        || error.message
         || "Please try again later.";
       toast({
         title: "Failed to submit request",

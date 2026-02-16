@@ -17,6 +17,11 @@ import AgentAnalytics from "./pages/agent/Analytics";
 import Leads from "./pages/agent/Leads";
 import LeadDetail from "./pages/agent/LeadDetail";
 import Calendar from "./pages/agent/Calendar";
+import Properties from "./pages/agent/Properties";
+import PropertyDetail from "./pages/agent/PropertyDetail";
+import PropertyForm from "./pages/agent/PropertyForm";
+import PropertyRequests from "./pages/agent/PropertyRequests";
+import ViewingAppointments from "./pages/agent/ViewingAppointments";
 
 // Reuse existing account components for quotes/projects/messages/profile
 import Quotes from "./pages/agent/Quotes";
@@ -65,6 +70,12 @@ const App = () => (
           <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
           <Route path="/messages/:id" element={<ProtectedRoute><MessageThread /></ProtectedRoute>} />
           <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
+          <Route path="/properties" element={<ProtectedRoute><Properties /></ProtectedRoute>} />
+          <Route path="/properties/new" element={<ProtectedRoute><PropertyForm /></ProtectedRoute>} />
+          <Route path="/properties/:id" element={<ProtectedRoute><PropertyDetail /></ProtectedRoute>} />
+          <Route path="/properties/:id/edit" element={<ProtectedRoute><PropertyForm /></ProtectedRoute>} />
+          <Route path="/property-requests" element={<ProtectedRoute><PropertyRequests /></ProtectedRoute>} />
+          <Route path="/appointments" element={<ProtectedRoute><ViewingAppointments /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute><NotificationSettings /></ProtectedRoute>} />
 

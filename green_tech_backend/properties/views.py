@@ -85,9 +85,10 @@ class ViewingAppointmentViewSet(viewsets.ReadOnlyModelViewSet):
         if user.is_staff or user.is_superuser:
             return qs
 
-        # For agents, show appointments assigned to them
-        if qs.filter(agent=user).exists():
-            return qs.filter(agent=user)
+        # For agents, show appointments assigned to them OR on properties they listed
+        if hasattr(user, 'user_type') and user.user_type == 'AGENT':
+            from django.db.models import Q
+            return qs.filter(Q(agent=user) | Q(property__listed_by=user))
 
         # For customers, match by inquiry email
         return qs.filter(inquiry__email=user.email)

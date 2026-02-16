@@ -21,6 +21,8 @@ from .project import (
     ProjectChatMessage,
     ProjectMessageReceipt,
 )
+from .change_order import ChangeOrder, ChangeOrderItem, ChangeOrderStatus, ChangeOrderItemType
+
 from .request import ConstructionRequest, ConstructionMilestone, ConstructionDocument, ConstructionRequestEcoFeature, ConstructionRequestStep
 
 # Make models available at the package level
@@ -49,5 +51,10 @@ __all__ = [
     'ConstructionDocument',
     'ConstructionRequestEcoFeature',
     'ConstructionRequestStep',
+    # Change Order models
+    'ChangeOrder',
+    'ChangeOrderItem',
+    'ChangeOrderStatus',
+    'ChangeOrderItemType',
 ]
 

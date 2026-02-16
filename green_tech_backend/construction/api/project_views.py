@@ -31,7 +31,9 @@ from construction.models import (
     ProjectUpdate,
     ProjectChatMessage,
     ProjectMessageAttachment,
-    ProjectMessageReceipt
+    ProjectMessageReceipt,
+    ChangeOrder,
+    ChangeOrderItem
 )
 
 from construction.serializers.project_serializers import (
@@ -48,7 +50,9 @@ from construction.serializers.project_serializers import (
     ProjectTaskSerializer,
     ProjectTaskWriteSerializer,
     ProjectUpdateSerializer,
-    ProjectMessageSerializer
+    ProjectMessageSerializer,
+    ChangeOrderSerializer,
+    ChangeOrderItemSerializer
 )
 
 from construction.permissions import (
@@ -809,3 +813,55 @@ class ProjectChatMessageViewSet(
         output = self.get_serializer(message)
         headers = self.get_success_headers(output.data)
         return Response(output.data, status=status.HTTP_201_CREATED, headers=headers)
+
+class ChangeOrderViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for managing project change orders.
+    """
+    queryset = ChangeOrder.objects.all()
+    serializer_class = ChangeOrderSerializer
+    permission_classes = [IsAuthenticated, IsProjectTeamMember]
+
+    def get_queryset(self):
+        project_pk = self.kwargs.get('project_pk')
+        if project_pk:
+            return self.queryset.filter(project_id=project_pk)
+        return self.queryset
+
+    def perform_create(self, serializer):
+        project_pk = self.kwargs.get('project_pk')
+        if project_pk:
+            project = get_object_or_404(Project, pk=project_pk)
+            serializer.save(project=project, created_by=self.request.user)
+        else:
+            serializer.save(created_by=self.request.user)
+
+    @action(detail=True, methods=['post'])
+    def approve(self, request, project_pk=None, pk=None):
+        """Approve a change order and apply its impact to the project."""
+        change_order = self.get_object()
+        if change_order.status != 'PENDING':
+            return Response(
+                {"error": "Only pending change orders can be approved."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        with transaction.atomic():
+            change_order.status = 'APPROVED'
+            change_order.approved_by = request.user
+            change_order.approved_at = timezone.now()
+            change_order.save()
+            
+            # Apply impact to project - in a real app, you might have specific logic
+            # for updating budgets or timelines automatically.
+            # For now, we just mark it as approved.
+            
+        return Response(self.get_serializer(change_order).data)
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, project_pk=None, pk=None):
+        """Reject a change order."""
+        change_order = self.get_object()
+        change_order.status = 'REJECTED'
+        change_order.save()
+        return Response(self.get_serializer(change_order).data)

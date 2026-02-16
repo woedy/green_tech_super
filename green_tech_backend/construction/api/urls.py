@@ -15,6 +15,7 @@ from .project_views import (
     ProjectUpdateViewSet,
     ProjectTaskViewSet,
     ProjectChatMessageViewSet,
+    ChangeOrderViewSet,
 )
 
 # Import public views
@@ -62,6 +63,9 @@ project_router.register(r'tasks', ProjectTaskViewSet,
                        basename='project-task')
 project_router.register(r'chat-messages', ProjectChatMessageViewSet,
                        basename='project-chat-message')
+project_router.register(r'change-orders', ChangeOrderViewSet,
+                       basename='change-order')
+
 
 # Admin nested router for project milestones
 admin_project_router = SimpleRouter()
@@ -78,7 +82,7 @@ admin_project_router.register(r'milestones', ProjectMilestoneAdminViewSet,
 
 # The API URLs are now determined automatically by the router
 urlpatterns = [
-    path('analytics/agent-dashboard', AgentAnalyticsDashboardView.as_view(), name='agent-analytics-dashboard'),
+    path('analytics/agent-dashboard/', AgentAnalyticsDashboardView.as_view(), name='agent-analytics-dashboard'),
     # Main API endpoints
     path('', include(router.urls)),
     
