@@ -3,8 +3,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MapPin, Bed, Bath, Square, Heart, Leaf } from "lucide-react";
 import { Link } from "react-router-dom";
+import { BASE_URL } from "@/lib/api";
 
 export type PropertyCardProps = {
+  // ... existing props
   id: number | string;
   slug?: string;
   title: string;
@@ -48,11 +50,13 @@ export default function PropertyCard({
   onToggleFavorite,
   isFavorite,
 }: PropertyCardProps) {
+  const imageUrl = image?.startsWith('http') ? image : `${BASE_URL}${image}`;
+
   return (
     <Card className="group hover:shadow-elegant smooth-transition overflow-hidden">
       <div className="relative overflow-hidden">
         <img
-          src={image}
+          src={imageUrl}
           alt={title}
           className="w-full h-48 object-cover group-hover:scale-105 smooth-transition"
         />

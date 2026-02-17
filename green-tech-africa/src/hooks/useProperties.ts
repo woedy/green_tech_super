@@ -120,3 +120,17 @@ export function useProperty(slug: string) {
     enabled: Boolean(slug),
   });
 }
+
+export function useMyProperties() {
+  return useQuery({
+    queryKey: ["my-properties"],
+    queryFn: async () => {
+      const data = await api.get<{ count: number; results: BackendProperty[] }>(`/api/properties/my_properties/`);
+      return {
+        count: data.count,
+        results: data.results.map(mapBackendProperty),
+      };
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}

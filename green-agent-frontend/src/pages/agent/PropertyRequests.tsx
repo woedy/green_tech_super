@@ -8,7 +8,7 @@ import { fetchPropertyTransactions, updatePropertyTransaction, addTransactionNot
 import { PropertyTransaction, TransactionStatus } from "@/types/property";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MessageSquarePlus } from "lucide-react";
+import { MessageSquarePlus, Eye } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -30,6 +30,7 @@ export default function PropertyRequests() {
     const [transactions, setTransactions] = useState<PropertyTransaction[]>([]);
     const [loading, setLoading] = useState(true);
     const [noteTxId, setNoteTxId] = useState<string | null>(null);
+    const [selectedTx, setSelectedTx] = useState<PropertyTransaction | null>(null);
     const [noteContent, setNoteContent] = useState("");
     const [submittingNote, setSubmittingNote] = useState(false);
 
@@ -130,6 +131,14 @@ export default function PropertyRequests() {
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
+                                                        onClick={() => setSelectedTx(tx)}
+                                                        title="View Details"
+                                                    >
+                                                        <Eye className="w-4 h-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
                                                         onClick={() => setNoteTxId(tx.id)}
                                                         title="Add Note"
                                                     >
@@ -160,6 +169,67 @@ export default function PropertyRequests() {
                     </CardContent>
                 </Card>
             </div>
+
+            <Dialog open={!!selectedTx} onOpenChange={(open) => !open && setSelectedTx(null)}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Request Details</DialogTitle>
+                    </DialogHeader>
+                    {selectedTx && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
+                            <div className="space-y-4">
+                                <div>
+                                    <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-1">Contact</h4>
+                                    <div className="font-medium">{selectedTx.contact_name}</div>
+                                    <div className="text-sm">{selectedTx.contact_email}</div>
+                                    <div className="text-sm">{selectedTx.contact_phone}</div>
+                                </div>
+                                <div>
+                                    <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-1">Property</h4>
+                                    <div className="font-medium">{selectedTx.property_ref?.title}</div>
+                                    <div className="text-sm capitalize">{selectedTx.transaction_type} • {selectedTx.property_ref?.property_type}</div>
+                                </div>
+                                <div>
+                                    <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-1">Financials</h4>
+                                    {selectedTx.transaction_type === "buy" ? (
+                                        <div className="text-sm">Proposed Price: {selectedTx.proposed_price || "N/A"}</div>
+                                    ) : (
+                                        <div className="text-sm">Proposed Rent: {selectedTx.proposed_rent || "N/A"}</div>
+                                    )}
+                                    <div className="text-sm">Budget: {selectedTx.budget || "N/A"}</div>
+                                    {selectedTx.transaction_type === "buy" && (
+                                        <div className="text-sm">Financing Required: {selectedTx.financing_required ? "Yes" : "No"}</div>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="space-y-4">
+                                <div>
+                                    <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-1">Timeline</h4>
+                                    <div className="text-sm">Move-in Date: {selectedTx.move_in_date || "Not specified"}</div>
+                                    <div className="text-sm">Lease Duration: {selectedTx.lease_duration_months ? `${selectedTx.lease_duration_months} months` : "N/A"}</div>
+                                </div>
+                                <div>
+                                    <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-1">Message</h4>
+                                    <p className="text-sm whitespace-pre-wrap bg-muted/30 p-3 rounded-md border">
+                                        {selectedTx.message || "No message provided."}
+                                    </p>
+                                </div>
+                                {selectedTx.admin_notes && (
+                                    <div>
+                                        <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-1">Internal Notes</h4>
+                                        <p className="text-sm whitespace-pre-wrap italic text-muted-foreground bg-accent/10 p-3 rounded-md border border-accent/20">
+                                            {selectedTx.admin_notes}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button onClick={() => setSelectedTx(null)}>Close</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <Dialog open={!!noteTxId} onOpenChange={(open) => !open && setNoteTxId(null)}>
                 <DialogContent>

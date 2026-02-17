@@ -7,6 +7,7 @@ import { useParams, Link } from "react-router-dom";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { QuoteVersionHistory } from "@/components/quotes/QuoteVersionHistory";
+import { QuoteChat } from "@/components/quotes/QuoteChat";
 import { fetchQuoteDetail, sendQuote, markQuoteViewed, acceptQuote, declineQuote } from "@/lib/api";
 import { Loader2, Send, Eye, CheckCircle2, XCircle, FileText, AlertCircle } from "lucide-react";
 import type { QuoteDetail as QuoteDetailType, QuoteStatus } from "@/types/quote";
@@ -66,9 +67,9 @@ const QuoteDetail = () => {
     setIsActionLoading(true);
     try {
       await sendQuote(quote.id);
-      toast({ 
-        title: "Quote sent successfully", 
-        description: "Customer has been notified via email." 
+      toast({
+        title: "Quote sent successfully",
+        description: "Customer has been notified via email."
       });
       fetchQuote();
     } catch (err) {
@@ -106,13 +107,13 @@ const QuoteDetail = () => {
     if (!signatureName) return;
     setIsActionLoading(true);
     try {
-      await acceptQuote(quote.id, { 
-        signature_name: signatureName, 
-        signature_email: quote.recipient_email 
+      await acceptQuote(quote.id, {
+        signature_name: signatureName,
+        signature_email: quote.recipient_email
       });
-      toast({ 
-        title: "Quote accepted", 
-        description: `Signed by ${signatureName}. Project can now begin.` 
+      toast({
+        title: "Quote accepted",
+        description: `Signed by ${signatureName}. Project can now begin.`
       });
       fetchQuote();
     } catch (err) {
@@ -132,9 +133,9 @@ const QuoteDetail = () => {
     setIsActionLoading(true);
     try {
       await declineQuote(quote.id);
-      toast({ 
-        title: "Quote declined", 
-        description: "Quote has been marked as declined." 
+      toast({
+        title: "Quote declined",
+        description: "Quote has been marked as declined."
       });
       fetchQuote();
     } catch (err) {
@@ -166,6 +167,30 @@ const QuoteDetail = () => {
         <div className="flex items-center justify-center min-h-[400px]">
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
         </div>
+      </AgentShell>
+    );
+  }
+
+  if (!quote) {
+    return (
+      <AgentShell>
+        <section className="py-10">
+          <div className="max-w-3xl mx-auto px-4">
+            {error ? (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            ) : (
+              <div className="text-sm text-muted-foreground">Unable to load quote.</div>
+            )}
+            <div className="mt-4">
+              <Button variant="outline" asChild>
+                <Link to="/quotes">Back to Quotes</Link>
+              </Button>
+            </div>
+          </div>
+        </section>
       </AgentShell>
     );
   }
@@ -260,17 +285,19 @@ const QuoteDetail = () => {
               </CardContent>
             </Card>
 
-            {quote && quote.timeline.length > 0 && (
+            {quote.timeline.length > 0 && (
               <QuoteVersionHistory timeline={quote.timeline} currentStatus={quote.status} />
             )}
+
+            <QuoteChat quoteId={quote.id} />
 
             <Card>
               <CardHeader><CardTitle>Quote Actions</CardTitle></CardHeader>
               <CardContent className="space-y-2">
                 {quote?.status === "draft" && (
-                  <Button 
-                    onClick={handleSend} 
-                    disabled={isActionLoading} 
+                  <Button
+                    onClick={handleSend}
+                    disabled={isActionLoading}
                     className="w-full"
                   >
                     {isActionLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
@@ -279,26 +306,26 @@ const QuoteDetail = () => {
                 )}
                 {(quote?.status === "sent" || quote?.status === "viewed") && (
                   <>
-                    <Button 
-                      variant="outline" 
-                      onClick={handleViewed} 
+                    <Button
+                      variant="outline"
+                      onClick={handleViewed}
                       disabled={isActionLoading}
                       className="w-full"
                     >
                       {isActionLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Eye className="w-4 h-4 mr-2" />}
                       Mark as Viewed
                     </Button>
-                    <Button 
-                      onClick={handleAccept} 
+                    <Button
+                      onClick={handleAccept}
                       disabled={isActionLoading}
                       className="w-full"
                     >
                       {isActionLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
                       Record Acceptance
                     </Button>
-                    <Button 
-                      variant="destructive" 
-                      onClick={handleDecline} 
+                    <Button
+                      variant="destructive"
+                      onClick={handleDecline}
                       disabled={isActionLoading}
                       className="w-full"
                     >

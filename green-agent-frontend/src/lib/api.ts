@@ -38,7 +38,7 @@ function withBase(url: string): string {
   return `${apiUrl}/api/${url}`;
 }
 
-async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const method = (init.method ?? "GET") as HttpMethod;
   const headers = new Headers(init.headers);
 
@@ -174,6 +174,12 @@ export async function fetchLeads(params: { status?: string; priority?: string; p
 export async function fetchRecentLeads(limit = 5): Promise<PaginatedResponse<Lead>> {
   const query = toQuery({ page_size: limit });
   return apiFetch<PaginatedResponse<Lead>>(`/api/leads/${query}`);
+}
+
+export async function initiateBuildRequest(leadId: string): Promise<{ request_id: string; lead: Lead }> {
+  return apiFetch<{ request_id: string; lead: Lead }>(`/api/leads/${leadId}/initiate_build_request/`, {
+    method: "POST",
+  });
 }
 
 export async function fetchLeadDetail(id: string): Promise<Lead> {
@@ -524,3 +530,33 @@ export async function refreshAccessToken(refreshToken: string): Promise<{ access
     body: JSON.stringify({ refresh: refreshToken }),
   });
 }
+
+function getWsBaseUrl() {
+  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  try {
+    const url = new URL(apiUrl);
+    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const host = window.location.host;
+    return `${protocol}://${host}`;
+  }
+}
+
+export const quoteChatApi = {
+  listMessages: (quoteId: string): Promise<ProjectChatMessage[]> =>
+    apiFetch<ProjectChatMessage[]>(`/api/quotes/${quoteId}/messages/`),
+
+  sendMessage: (quoteId: string, payload: { body: string }): Promise<ProjectChatMessage> =>
+    apiFetch<ProjectChatMessage>(`/api/quotes/${quoteId}/messages/`, {
+      method: "POST",
+      body: JSON.stringify({ body: payload.body }),
+    }),
+
+  createQuoteChatSocket: (quoteId: string): WebSocket => {
+    const token = localStorage.getItem('gta_agent_token');
+    const tokenParam = token ? `?token=${encodeURIComponent(token)}` : "";
+    return new WebSocket(`${getWsBaseUrl()}/ws/quotes/${quoteId}/chat/${tokenParam}`);
+  },
+};

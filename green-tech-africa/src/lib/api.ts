@@ -5,7 +5,7 @@ type RefreshResponse = {
   refresh?: string;
 };
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+export const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
 async function refreshAccessToken(): Promise<string | null> {
   const state = loadAuthState();
@@ -62,7 +62,7 @@ export async function apiFetch<T = any>(path: string, options: RequestInit = {},
 
   const contentType = res.headers.get("content-type");
   const isJson = contentType && contentType.includes("application/json");
-  
+
   if (!isJson && !res.ok) {
     // Log non-JSON responses for debugging
     const textResponse = await res.text();
@@ -74,7 +74,7 @@ export async function apiFetch<T = any>(path: string, options: RequestInit = {},
     });
     throw new Error(`API returned ${res.status}: ${res.statusText}`);
   }
-  
+
   const data = isJson ? await res.json() : (await res.text());
 
   if (res.status === 401 && retry && authState?.refreshToken) {
@@ -161,19 +161,19 @@ export interface CustomerNotifications {
 }
 
 export const dashboardApi = {
-  getCustomerDashboard: (): Promise<CustomerDashboardMetrics> => 
+  getCustomerDashboard: (): Promise<CustomerDashboardMetrics> =>
     api.get<CustomerDashboardMetrics>('/api/dashboard/customer/'),
-  
-  getCustomerNotifications: (): Promise<CustomerNotifications> => 
+
+  getCustomerNotifications: (): Promise<CustomerNotifications> =>
     api.get<CustomerNotifications>('/api/dashboard/notifications/'),
-  
-  updateNotificationPreferences: (preferences: CustomerNotifications['preferences']): Promise<{ preferences: CustomerNotifications['preferences']; message: string }> => 
+
+  updateNotificationPreferences: (preferences: CustomerNotifications['preferences']): Promise<{ preferences: CustomerNotifications['preferences']; message: string }> =>
     api.patch('/api/dashboard/notifications/', { preferences }),
-  
-  markNotificationAsRead: (notificationId: string): Promise<void> => 
+
+  markNotificationAsRead: (notificationId: string): Promise<void> =>
     api.patch(`/api/dashboard/notifications/${notificationId}/read/`),
-  
-  markAllNotificationsAsRead: (): Promise<void> => 
+
+  markAllNotificationsAsRead: (): Promise<void> =>
     api.patch('/api/dashboard/notifications/mark-all-read/'),
 };
 
@@ -367,7 +367,7 @@ async function publicApiFetch<T = any>(path: string, options: RequestInit = {}):
 
   const contentType = res.headers.get("content-type");
   const isJson = contentType && contentType.includes("application/json");
-  
+
   if (!isJson && !res.ok) {
     const textResponse = await res.text();
     console.error("Non-JSON API response:", {
@@ -378,7 +378,7 @@ async function publicApiFetch<T = any>(path: string, options: RequestInit = {}):
     });
     throw new Error(`API returned ${res.status}: ${res.statusText}`);
   }
-  
+
   const data = isJson ? await res.json() : (await res.text());
 
   if (!res.ok) {
@@ -397,23 +397,23 @@ export const publicApi = {
     if (params?.status) searchParams.append('status', params.status);
     if (params?.search) searchParams.append('search', params.search);
     if (params?.page) searchParams.append('page', params.page.toString());
-    
+
     const queryString = searchParams.toString();
     const url = `/api/construction/public/projects/${queryString ? `?${queryString}` : ''}`;
-    
+
     return publicApiFetch<PaginatedProjectsResponse>(url);
   },
-  
+
   // Get featured projects for homepage
-  getFeaturedProjects: (): Promise<PublicProject[]> => 
+  getFeaturedProjects: (): Promise<PublicProject[]> =>
     publicApiFetch<PublicProject[]>('/api/construction/public/projects/featured/'),
-  
+
   // Get project statistics
-  getProjectStats: (): Promise<ProjectStats> => 
+  getProjectStats: (): Promise<ProjectStats> =>
     publicApiFetch<ProjectStats>('/api/construction/public/projects/stats/'),
-  
+
   // Get single project by ID
-  getProject: (id: number): Promise<PublicProject> => 
+  getProject: (id: number): Promise<PublicProject> =>
     publicApiFetch<PublicProject>(`/api/construction/public/projects/${id}/`),
 };
 
@@ -424,27 +424,27 @@ export const constructionRequestsApi = {
     const searchParams = new URLSearchParams();
     if (params?.status) searchParams.append('status', params.status);
     if (params?.page) searchParams.append('page', params.page.toString());
-    
+
     const queryString = searchParams.toString();
     const url = `/api/construction/construction-requests/${queryString ? `?${queryString}` : ''}`;
-    
+
     return api.get<PaginatedConstructionRequestsResponse>(url);
   },
-  
+
   // Get single construction request by ID
-  getConstructionRequest: (id: number): Promise<ConstructionRequest> => 
+  getConstructionRequest: (id: number): Promise<ConstructionRequest> =>
     api.get<ConstructionRequest>(`/api/construction/construction-requests/${id}/`),
-  
+
   // Create a new construction request
-  createConstructionRequest: (data: Partial<ConstructionRequest>): Promise<ConstructionRequest> => 
+  createConstructionRequest: (data: Partial<ConstructionRequest>): Promise<ConstructionRequest> =>
     api.post<ConstructionRequest>('/api/construction/construction-requests/', data),
-  
+
   // Update a construction request
-  updateConstructionRequest: (id: number, data: Partial<ConstructionRequest>): Promise<ConstructionRequest> => 
+  updateConstructionRequest: (id: number, data: Partial<ConstructionRequest>): Promise<ConstructionRequest> =>
     api.patch<ConstructionRequest>(`/api/construction/construction-requests/${id}/`, data),
-  
+
   // Delete a construction request
-  deleteConstructionRequest: (id: number): Promise<void> => 
+  deleteConstructionRequest: (id: number): Promise<void> =>
     api.delete<void>(`/api/construction/construction-requests/${id}/`),
 };
 

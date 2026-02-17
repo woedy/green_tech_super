@@ -25,6 +25,7 @@ import ViewingAppointments from "./pages/agent/ViewingAppointments";
 
 // Reuse existing account components for quotes/projects/messages/profile
 import Quotes from "./pages/agent/Quotes";
+import QuoteBuilder from "./pages/agent/QuoteBuilder";
 import QuoteDetail from "./pages/account/QuoteDetail";
 import Projects from "./pages/agent/Projects";
 import ProjectDetail from "./pages/agent/ProjectDetail";
@@ -32,7 +33,6 @@ import Messages from "./pages/account/Messages";
 import MessageThread from "./pages/agent/MessageThread";
 import Profile from "./pages/account/Profile";
 import NotificationSettings from "./pages/account/NotificationSettings";
-import QuoteBuilder from "./pages/agent/QuoteBuilder";
 import ScrollToTop from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();

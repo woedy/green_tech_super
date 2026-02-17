@@ -17,5 +17,6 @@ router.register('admin/transactions', PropertyTransactionAdminViewSet, basename=
 
 urlpatterns = [
     path('properties/inquiries/', PropertyInquiryView.as_view(), name='property-inquiry'),
+    path('inquiries/', PropertyInquiryView.as_view(), name='inquiry'),
     path('', include(router.urls)),
 ]

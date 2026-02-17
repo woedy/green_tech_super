@@ -13,7 +13,7 @@ router.register('admin/plans', PlanAdminViewSet, basename='admin-plans')
 router.register('admin/build-requests', BuildRequestAdminViewSet, basename='admin-build-requests')
 
 urlpatterns = [
-    path('', include(router.urls)),
     path('build-requests/uploads/', BuildRequestUploadView.as_view(), name='build-request-upload'),
     path('build-requests/uploads/direct/', BuildRequestDirectUploadView.as_view(), name='build-request-direct-upload'),
+    path('', include(router.urls)),
 ]

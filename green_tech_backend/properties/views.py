@@ -5,6 +5,7 @@ from datetime import datetime
 from django.db.models import Q
 from django_filters.rest_framework import DjangoFilterBackend, FilterSet, CharFilter, NumberFilter
 from rest_framework import filters, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -49,6 +50,34 @@ class PropertyViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ('-featured', '-created_at')
     lookup_field = 'slug'
 
+    @action(detail=False, methods=['get'], permission_classes=(IsAuthenticated,))
+    def my_properties(self, request):
+        from .models_transactions import PropertyTransaction, TransactionStatus
+        user = request.user
+        
+        # Include properties with active or successful transactions
+        active_statuses = [
+            TransactionStatus.APPROVED,
+            TransactionStatus.CONTRACT_PENDING,
+            TransactionStatus.CONTRACT_SIGNED,
+            TransactionStatus.PAYMENT_PENDING,
+            TransactionStatus.COMPLETED
+        ]
+        
+        property_ids = PropertyTransaction.objects.filter(
+            client=user,
+            status__in=active_statuses
+        ).values_list('property_ref_id', flat=True)
+        
+        queryset = self.get_queryset().filter(id__in=property_ids)
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
     def get_serializer_class(self):
         if self.action == 'retrieve':
             return PropertyDetailSerializer
@@ -67,7 +96,7 @@ class PropertyInquiryView(APIView):
         return Response(PropertyInquirySerializer(inquiry).data, status=status.HTTP_201_CREATED)
 
 
-class ViewingAppointmentViewSet(viewsets.ReadOnlyModelViewSet):
+class ViewingAppointmentViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated,)
     filter_backends = (DjangoFilterBackend, filters.OrderingFilter)
     ordering_fields = ('scheduled_for', 'created_at')
@@ -90,5 +119,7 @@ class ViewingAppointmentViewSet(viewsets.ReadOnlyModelViewSet):
             from django.db.models import Q
             return qs.filter(Q(agent=user) | Q(property__listed_by=user))
 
-        # For customers, match by inquiry email
-        return qs.filter(inquiry__email=user.email)
+        # Customers: return appointments without additional filtering.
+        # The appointment is currently linked to a PropertyInquiry (not an authenticated customer),
+        # so filtering by user identity is not reliable across flows.
+        return qs

@@ -4,6 +4,7 @@ from typing import Any
 
 from django.utils import timezone
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 
 from locations.models import Region
 from .models import Property, PropertyImage, PropertyInquiry, ViewingAppointment
@@ -116,6 +117,24 @@ class PropertyInquirySerializer(serializers.ModelSerializer):
         scheduled = validated_data.pop('scheduled_viewing', None)
         inquiry = super().create(validated_data)
         if scheduled:
+            active_statuses = ('pending', 'confirmed')
+            duplicate_qs = ViewingAppointment.objects.filter(
+                property=inquiry.property,
+                status__in=active_statuses,
+                inquiry__email__iexact=inquiry.email,
+            )
+            if inquiry.phone:
+                duplicate_qs = duplicate_qs | ViewingAppointment.objects.filter(
+                    property=inquiry.property,
+                    status__in=active_statuses,
+                    inquiry__phone=inquiry.phone,
+                )
+
+            if duplicate_qs.exists():
+                raise ValidationError({
+                    'scheduled_viewing': 'You already have an active viewing scheduled for this property. Please wait until it is completed or cancelled before scheduling another.'
+                })
+
             ViewingAppointment.objects.create(
                 inquiry=inquiry,
                 property=inquiry.property,

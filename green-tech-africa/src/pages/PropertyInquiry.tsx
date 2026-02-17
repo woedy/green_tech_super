@@ -61,7 +61,7 @@ const PropertyInquiry = () => {
         message: data.message,
         scheduled_viewing: data.scheduled_viewing || null,
       };
-      return api.post("/api/properties/properties/inquiries/", payload);
+      return api.post("/api/inquiries/", payload);
     },
     onSuccess: () => {
       toast({
@@ -72,9 +72,9 @@ const PropertyInquiry = () => {
     },
     onError: (error: any) => {
       console.error("Inquiry error:", error);
-      const errorMessage = error.response?.data?.detail 
-        || error.response?.data?.message 
-        || error.message 
+      const errorMessage = error.response?.data?.detail
+        || error.response?.data?.message
+        || error.message
         || "Please try again later.";
       toast({
         title: "Failed to submit inquiry",
@@ -124,7 +124,7 @@ const PropertyInquiry = () => {
                 <Info className="h-4 w-4" />
                 <AlertDescription>
                   You're logged in! For better tracking and status updates, we recommend using the{" "}
-                  <Link 
+                  <Link
                     to={`/account/property-transactions/new?property=${id}&type=${transactionType}`}
                     className="font-medium underline"
                   >
@@ -138,7 +138,7 @@ const PropertyInquiry = () => {
               <CardHeader>
                 <CardTitle className="text-2xl">{getTitle()}</CardTitle>
                 <p className="text-muted-foreground">
-                  {transactionType 
+                  {transactionType
                     ? "Submit your request and our team will contact you shortly."
                     : "Fill out the form below to inquire about this property or schedule a viewing."
                   }

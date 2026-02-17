@@ -9,7 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { QuoteBuilderForm } from "@/components/quotes/QuoteBuilderForm";
 import { EcoFeatureTemplates } from "@/components/quotes/EcoFeatureTemplates";
-import { createQuote } from "@/lib/api";
+import { apiFetch, createQuote } from "@/lib/api";
 import { Loader2, FileText, Sparkles } from "lucide-react";
 
 type BuilderRow = {
@@ -82,11 +82,7 @@ const QuoteBuilder = () => {
     if (!requestId) return;
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/build-requests/${requestId}/`);
-      if (!response.ok) {
-        throw new Error(`Unable to load build request (${response.status})`);
-      }
-      const data = (await response.json()) as BuildRequestDetail;
+      const data = await apiFetch<BuildRequestDetail>(`/api/build-requests/${requestId}/`);
       setBuildRequest(data);
       setRecipientName(data.contact_name);
       setRecipientEmail(data.contact_email);

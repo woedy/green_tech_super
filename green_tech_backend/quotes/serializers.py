@@ -231,10 +231,11 @@ class QuoteWriteSerializer(serializers.ModelSerializer):
             payload = dict(payload)
             payload.pop('id', None)
             payload.pop('calculated_total', None)
+            position = payload.pop('position', idx)
             metadata = payload.pop('metadata', {}) or {}
             QuoteLineItem.objects.create(
                 quote=quote,
-                position=payload.get('position', idx),
+                position=position,
                 metadata=metadata,
                 **payload,
             )

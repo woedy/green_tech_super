@@ -14,7 +14,9 @@ import {
   fetchLeadNotes,
   createLeadNote,
   fetchLeadActivity,
+  initiateBuildRequest,
 } from "@/lib/api";
+import { useNavigate } from "react-router-dom";
 import { Lead, LeadActivity, LeadNote, LeadPriority, LeadStatus } from "@/types/lead";
 
 const STATUS_OPTIONS: LeadStatus[] = ["new", "contacted", "qualified", "quoted", "closed"];
@@ -58,6 +60,46 @@ const LeadDetail = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savingNote, setSavingNote] = useState(false);
+  const navigate = useNavigate();
+
+  const fetchActivityData = useCallback(async () => {
+    if (!leadId) return;
+    try {
+      const data = await fetchLeadActivity(leadId);
+      setActivity(data);
+    } catch (err) {
+      console.error("Failed to fetch activity", err);
+    }
+  }, [leadId]);
+
+  const handleCreateQuote = useCallback(async () => {
+    if (!lead) return;
+
+    setLoading(true);
+    try {
+      let currentLead = lead;
+      if (lead.source_type !== "build_request") {
+        const result = await initiateBuildRequest(lead.id);
+        currentLead = result.lead;
+        setLead(currentLead);
+        fetchActivityData();
+      }
+
+      if (currentLead.source_type === "build_request") {
+        const params = new URLSearchParams({
+          lead: currentLead.id,
+          request: currentLead.source_id,
+        });
+        navigate(`/quotes/new?${params.toString()}`);
+      } else {
+        throw new Error("Unable to create a build request for this lead.");
+      }
+    } catch (err: any) {
+      setError(err.message ?? "Failed to initiate quote");
+    } finally {
+      setLoading(false);
+    }
+  }, [lead, navigate, fetchActivityData]);
 
   const quoteHref = useMemo(() => {
     if (!lead) return "/quotes/new";
@@ -96,16 +138,6 @@ const LeadDetail = () => {
       setNotes(data);
     } catch (err) {
       console.error("Failed to fetch notes", err);
-    }
-  }, [leadId]);
-
-  const fetchActivityData = useCallback(async () => {
-    if (!leadId) return;
-    try {
-      const data = await fetchLeadActivity(leadId);
-      setActivity(data);
-    } catch (err) {
-      console.error("Failed to fetch activity", err);
     }
   }, [leadId]);
 
@@ -197,11 +229,11 @@ const LeadDetail = () => {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Button asChild variant="outline">
+            <Button variant="outline" asChild>
               <Link to="/leads">Back</Link>
             </Button>
-            <Button asChild>
-              <Link to={quoteHref}>Create Quote</Link>
+            <Button onClick={handleCreateQuote} disabled={loading}>
+              {loading ? "Preparing…" : "Create Quote"}
             </Button>
           </div>
         </div>

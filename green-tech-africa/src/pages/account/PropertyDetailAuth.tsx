@@ -189,6 +189,11 @@ const PropertyDetailAuth = () => {
                   )}
                 </>
               )}
+              <Button variant="outline" size="lg" className="w-full lg:w-auto" asChild>
+                <Link to={`/properties/${property.slug}/inquire`}>
+                  Schedule Viewing
+                </Link>
+              </Button>
               <div className="flex gap-2">
                 <Button
                   variant="outline"
