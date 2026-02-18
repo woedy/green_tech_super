@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { MapPin, Leaf, UserPlus, Mail } from "lucide-react";
@@ -23,6 +23,9 @@ const Register = () => {
   const { register } = useAuth();
   const { toast } = useToast();
 
+  const [searchParams] = useSearchParams();
+  const roleParam = searchParams.get('type');
+
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -32,7 +35,7 @@ const Register = () => {
       first_name: "",
       last_name: "",
       phone_number: "",
-      user_type: "AGENT"
+      user_type: (roleParam === 'BUILDER' ? 'BUILDER' : 'AGENT') as "AGENT" | "BUILDER",
     },
   });
 
@@ -46,15 +49,15 @@ const Register = () => {
         phone_number: data.phone_number || undefined,
         user_type: data.user_type
       });
-      
+
       toast({
         title: "Account created successfully",
         description: "Please check your email to verify your account before signing in.",
       });
-      
+
     } catch (error) {
-      toast({ 
-        title: "Registration failed", 
+      toast({
+        title: "Registration failed",
         description: error instanceof Error ? error.message : "Please check your information and try again",
         variant: "destructive"
       });
@@ -84,7 +87,7 @@ const Register = () => {
               Register as an agent or builder to access the professional portal
             </CardDescription>
           </CardHeader>
-          
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
               <CardContent className="space-y-4">
@@ -102,7 +105,7 @@ const Register = () => {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="last_name"
@@ -218,15 +221,15 @@ const Register = () => {
                   </div>
                 </div>
 
-                <Button 
-                  type="submit" 
-                  className="w-full" 
+                <Button
+                  type="submit"
+                  className="w-full"
                   disabled={form.formState.isSubmitting}
                 >
                   {form.formState.isSubmitting ? 'Creating Account...' : 'Create Account'}
                 </Button>
 
-                <div className="text-center text-sm text-muted-foreground">
+                <div className="text-center text-sm text-muted-foreground pt-2">
                   Already have an account?{' '}
                   <Link to="/login" className="text-green-600 hover:underline font-medium">
                     Sign in here

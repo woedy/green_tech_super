@@ -28,21 +28,35 @@ export default function Properties() {
         try {
           const response = await adminApi.listProperties();
           if (!cancelled) {
-            setItems(response);
-            setError(null);
+            // Ensure response is an array
+            if (Array.isArray(response)) {
+              setItems(response);
+              setError(null);
+            } else {
+              console.error('API returned non-array response:', response);
+              setItems([]);
+              // Fallback to local data
+              const localData = db.listProperties();
+              setLocalProperties(localData);
+            }
           }
         } catch (apiError) {
+          console.error('API error, falling back to local data:', apiError);
           // Fallback to local data
           const localData = db.listProperties();
           if (!cancelled) {
             setLocalProperties(localData);
-            setError(null);
+            setItems([]);
+            const errorMessage = apiError instanceof Error ? apiError.message : 'API unavailable, showing local data.';
+            setError(errorMessage);
           }
         }
       } catch (err) {
         console.error('Failed to load properties', err);
         if (!cancelled) {
           setError('Unable to load properties. Please try again.');
+          setItems([]);
+          setLocalProperties([]);
         }
       } finally {
         if (!cancelled) {
@@ -123,7 +137,7 @@ export default function Properties() {
                   </TableHeader>
                   <TableBody>
                     {/* API Properties */}
-                    {items.map((property) => (
+                    {Array.isArray(items) && items.map((property) => (
                       <TableRow
                         key={`api-${property.id}`}
                         className="cursor-pointer"
@@ -146,7 +160,7 @@ export default function Properties() {
                     ))}
                     
                     {/* Local Properties */}
-                    {localProperties.map((property) => (
+                    {Array.isArray(localProperties) && localProperties.map((property) => (
                       <TableRow
                         key={`local-${property.id}`}
                         className="cursor-pointer"

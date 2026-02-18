@@ -1,38 +1,38 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
-from django.urls import reverse
-from django.utils.encoding import force_bytes
-from django.utils.http import urlsafe_base64_encode
 from celery import shared_task
+import random
 
 User = get_user_model()
 
 
 @shared_task
 def send_verification_email(user_id: int) -> None:
+    """Send OTP verification email to user."""
     try:
         user = User.objects.get(pk=user_id)
     except User.DoesNotExist:
         return
 
-    uid = urlsafe_base64_encode(force_bytes(user.pk))
-    token = default_token_generator.make_token(user)
+    # Import here to avoid circular imports
+    from .models import EmailVerificationOTP
 
-    backend_verify_path = reverse('v1:accounts:verify-email')
-    api_link = f"{settings.SITE_URL.rstrip('/')}{backend_verify_path}"
-    frontend_link = (
-        f"{settings.FRONTEND_URL.rstrip('/')}/auth/verify?uid={uid}&token={token}"
-    )
+    # Generate 4-digit OTP
+    otp_code = ''.join([str(random.randint(0, 9)) for _ in range(4)])
 
-    subject = 'Verify your Green Tech Africa account'
+    # Invalidate any existing unused OTPs for this user
+    EmailVerificationOTP.objects.filter(user=user, is_used=False).update(is_used=True)
+
+    # Create new OTP
+    EmailVerificationOTP.objects.create(user=user, otp_code=otp_code)
+
+    subject = 'Your Green Tech Africa Verification Code'
     message = (
-        'Welcome to Green Tech Africa!\n\n'
-        'To activate your account, confirm your email using one of the options below:\n'
-        f'- Visit the API verification endpoint: {api_link}\n'
-        f'- Or click the link in your browser: {frontend_link}\n\n'
-        'If you did not create an account, no action is required.'
+        f'Welcome to Green Tech Africa!\n\n'
+        f'Your verification code is: {otp_code}\n\n'
+        f'This code will expire in 10 minutes.\n\n'
+        f'If you did not create an account, please ignore this email.'
     )
 
     send_mail(

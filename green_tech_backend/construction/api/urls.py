@@ -15,13 +15,21 @@ from .project_views import (
     ProjectUpdateViewSet,
     ProjectTaskViewSet,
     ProjectChatMessageViewSet,
+    ChangeOrderViewSet,
 )
 
 # Import public views
 from .public_views import PublicProjectViewSet
 
+# Import admin views
+from .admin_views import (
+    ProjectAdminViewSet,
+    ProjectMilestoneAdminViewSet,
+    ConstructionRequestAdminViewSet,
+)
+
 # Import API views
-from ..api_views import ConstructionRequestViewSet, EcoFeatureSelectionViewSet
+from ..api_views import ConstructionRequestViewSet, EcoFeatureSelectionViewSet, EcoFeatureViewSet
 
 # Create a router and register our viewsets with it
 router = DefaultRouter()
@@ -30,9 +38,15 @@ router.register(r'construction-requests', ConstructionRequestViewSet,
                 basename='construction-request')
 router.register(r'eco-feature-selections', EcoFeatureSelectionViewSet, 
                 basename='eco-feature-selection')
+router.register(r'eco-features', EcoFeatureViewSet, 
+                basename='eco-feature')
 
 # Project and Milestone endpoints
 router.register(r'projects', ProjectViewSet, basename='project')
+
+# Admin endpoints (admin authentication required)
+router.register(r'admin/projects', ProjectAdminViewSet, basename='admin-project')
+router.register(r'admin/construction-requests', ConstructionRequestAdminViewSet, basename='admin-construction-request')
 
 # Public endpoints (no authentication required)
 router.register(r'public/projects', PublicProjectViewSet, basename='public-project')
@@ -49,6 +63,14 @@ project_router.register(r'tasks', ProjectTaskViewSet,
                        basename='project-task')
 project_router.register(r'chat-messages', ProjectChatMessageViewSet,
                        basename='project-chat-message')
+project_router.register(r'change-orders', ChangeOrderViewSet,
+                       basename='change-order')
+
+
+# Admin nested router for project milestones
+admin_project_router = SimpleRouter()
+admin_project_router.register(r'milestones', ProjectMilestoneAdminViewSet,
+                              basename='admin-project-milestone')
 
 # Quote endpoints now handled by quotes app
 # quote_router = SimpleRouter()
@@ -60,12 +82,15 @@ project_router.register(r'chat-messages', ProjectChatMessageViewSet,
 
 # The API URLs are now determined automatically by the router
 urlpatterns = [
-    path('analytics/agent-dashboard', AgentAnalyticsDashboardView.as_view(), name='agent-analytics-dashboard'),
+    path('analytics/agent-dashboard/', AgentAnalyticsDashboardView.as_view(), name='agent-analytics-dashboard'),
     # Main API endpoints
     path('', include(router.urls)),
     
     # Project nested routes
     path('projects/<int:project_pk>/', include(project_router.urls)),
+    
+    # Admin project nested routes
+    path('admin/projects/<int:project_pk>/', include(admin_project_router.urls)),
     
     # Quote URLs now handled by quotes app
     # path('', include(quote_router.urls)),

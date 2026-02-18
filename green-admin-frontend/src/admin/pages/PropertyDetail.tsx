@@ -1,387 +1,25 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+﻿﻿import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { 
+  MapPin, 
+  Bed, 
+  Bath, 
+  Ruler, 
+  Calendar,
+  DollarSign,
+  Leaf,
+  Zap,
+  Droplets,
+  Home,
+  Star,
+  Edit,
+  Trash2
+} from 'lucide-react';
 import { adminApi } from '../api';
-import type { PropertyPayload, PropertyResponse, RegionResponse } from '../types/api';
-
-interface PropertyFormState {
-  title: string;
-  summary: string;
-  description: string;
-  propertyType: string;
-  listingType: string;
-  status: string;
-  price: number;
-  currency: string;
-  bedrooms: number;
-  bathrooms: number;
-  areaSqM: number;
-  plotSqM: number | null;
-  yearBuilt: number | null;
-  heroImageUrl: string;
-  sustainabilityScore: number;
-  energyRating: number;
-  waterRating: number;
-  ecoFeatures: string;
-  amenities: string;
-  highlights: string;
-  city: string;
-  country: string;
-  region: string;
-  address: string;
-  latitude: string;
-  longitude: string;
-  featured: boolean;
-}
-
-const defaultForm: PropertyFormState = {
-  title: '',
-  summary: '',
-  description: '',
-  propertyType: 'house',
-  listingType: 'sale',
-  status: 'draft',
-  price: 0,
-  currency: 'USD',
-  bedrooms: 0,
-  bathrooms: 0,
-  areaSqM: 0,
-  plotSqM: null,
-  yearBuilt: null,
-  heroImageUrl: '',
-  sustainabilityScore: 60,
-  energyRating: 3,
-  waterRating: 3,
-  ecoFeatures: '',
-  amenities: '',
-  highlights: '',
-  city: '',
-  country: '',
-  region: '',
-  address: '',
-  latitude: '',
-  longitude: '',
-  featured: false,
-};
-
-function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)+/g, '');
-}
-
-function splitList(input: string): string[] {
-  return input
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function toPayload(form: PropertyFormState, template: PropertyResponse | null): PropertyPayload {
-  const slugCandidate = slugify(form.title);
-  return {
-    slug: template?.slug ?? (slugCandidate || `property-${Date.now()}`),
-    title: form.title,
-    summary: form.summary,
-    description: form.description,
-    property_type: form.propertyType,
-    listing_type: form.listingType,
-    status: form.status,
-    price: form.price.toString(),
-    currency: form.currency,
-    bedrooms: form.bedrooms,
-    bathrooms: form.bathrooms,
-    area_sq_m: form.areaSqM.toString(),
-    plot_sq_m: form.plotSqM !== null ? form.plotSqM.toString() : null,
-    year_built: form.yearBuilt ?? null,
-    hero_image_url: form.heroImageUrl,
-    sustainability_score: form.sustainabilityScore,
-    energy_rating: form.energyRating,
-    water_rating: form.waterRating,
-    eco_features: splitList(form.ecoFeatures),
-    amenities: splitList(form.amenities),
-    highlights: splitList(form.highlights),
-    city: form.city,
-    country: form.country,
-    region: form.region,
-    address: form.address,
-    latitude: form.latitude || null,
-    longitude: form.longitude || null,
-    featured: form.featured,
-    listed_by: template?.listed_by ?? null,
-    images: template?.images ?? [],
-  };
-}
-
-function fillForm(property: PropertyResponse | null): PropertyFormState {
-  if (!property) return { ...defaultForm };
-  return {
-    title: property.title,
-    summary: property.summary,
-    description: property.description,
-    propertyType: property.property_type,
-    listingType: property.listing_type,
-    status: property.status,
-    price: Number(property.price),
-    currency: property.currency,
-    bedrooms: property.bedrooms,
-    bathrooms: property.bathrooms,
-    areaSqM: Number(property.area_sq_m),
-    plotSqM: property.plot_sq_m ? Number(property.plot_sq_m) : null,
-    yearBuilt: property.year_built ?? null,
-    heroImageUrl: property.hero_image_url,
-    sustainabilityScore: property.sustainability_score,
-    energyRating: property.energy_rating,
-    waterRating: property.water_rating,
-    ecoFeatures: property.eco_features.join(', '),
-    amenities: property.amenities.join(', '),
-    highlights: property.highlights.join(', '),
-    city: property.city,
-    country: property.country,
-    region: property.region,
-    address: property.address,
-    latitude: property.latitude ?? '',
-    longitude: property.longitude ?? '',
-    featured: property.featured,
-  };
-}
-
-export function PropertyForm() {
-  const { id } = useParams();
-  const editing = Boolean(id);
-  const navigate = useNavigate();
-  const [form, setForm] = useState<PropertyFormState>({ ...defaultForm });
-  const [template, setTemplate] = useState<PropertyResponse | null>(null);
-  const [regions, setRegions] = useState<RegionResponse[]>([]);
-  const [loading, setLoading] = useState(editing);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function loadRegions() {
-      try {
-        const data = await adminApi.listRegions();
-        if (!cancelled) setRegions(data);
-      } catch (err) {
-        console.error('Failed to load regions', err);
-      }
-    }
-    loadRegions();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!editing) return;
-    let cancelled = false;
-    async function load() {
-      try {
-        setLoading(true);
-        const property = await adminApi.getProperty(Number(id));
-        if (!cancelled) {
-          setTemplate(property);
-          setForm(fillForm(property));
-        }
-      } catch (err) {
-        console.error('Failed to load property', err);
-        if (!cancelled) setError('Unable to load property.');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [editing, id]);
-
-  const handleChange = (patch: Partial<PropertyFormState>) => {
-    setForm((prev) => ({ ...prev, ...patch }));
-  };
-
-  const submit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!form.title || !form.region) {
-      setError('Title and region are required.');
-      return;
-    }
-    try {
-      setSaving(true);
-      const payload = toPayload(form, template);
-      const response = editing
-        ? await adminApi.updateProperty(Number(id), payload)
-        : await adminApi.createProperty(payload);
-      navigate(`/admin/properties/${response.id}`);
-    } catch (err) {
-      console.error('Failed to save property', err);
-      setError('Unable to save property. Please review the data and try again.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (loading) {
-    return <div className="py-6 text-sm text-muted-foreground">Loading property…</div>;
-  }
-
-  return (
-    <Card>
-      <CardHeader><CardTitle>{editing ? 'Edit Property' : 'New Property'}</CardTitle></CardHeader>
-      <CardContent>
-        <form onSubmit={submit} className="grid gap-3 max-w-3xl">
-          {error && <div className="text-sm text-destructive">{error}</div>}
-          <div>
-            <Label>Title</Label>
-            <Input value={form.title} onChange={(e) => handleChange({ title: e.target.value })} required />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Summary</Label>
-              <Input value={form.summary} onChange={(e) => handleChange({ summary: e.target.value })} />
-            </div>
-            <div>
-              <Label>Hero Image URL</Label>
-              <Input value={form.heroImageUrl} onChange={(e) => handleChange({ heroImageUrl: e.target.value })} />
-            </div>
-          </div>
-          <div>
-            <Label>Description</Label>
-            <Textarea value={form.description} onChange={(e) => handleChange({ description: e.target.value })} rows={4} />
-          </div>
-          <div className="grid grid-cols-4 gap-3">
-            <div>
-              <Label>Property Type</Label>
-              <Input value={form.propertyType} onChange={(e) => handleChange({ propertyType: e.target.value })} />
-            </div>
-            <div>
-              <Label>Listing Type</Label>
-              <Input value={form.listingType} onChange={(e) => handleChange({ listingType: e.target.value })} />
-            </div>
-            <div>
-              <Label>Status</Label>
-              <Input value={form.status} onChange={(e) => handleChange({ status: e.target.value })} />
-            </div>
-            <div className="flex items-center gap-2 pt-6">
-              <Switch checked={form.featured} onCheckedChange={(checked) => handleChange({ featured: checked })} />
-              <span className="text-sm">Featured</span>
-            </div>
-          </div>
-          <div className="grid grid-cols-4 gap-3">
-            <div>
-              <Label>Price</Label>
-              <Input type="number" value={form.price} onChange={(e) => handleChange({ price: Number(e.target.value) })} />
-            </div>
-            <div>
-              <Label>Currency</Label>
-              <Input value={form.currency} onChange={(e) => handleChange({ currency: e.target.value.toUpperCase() })} />
-            </div>
-            <div>
-              <Label>Bedrooms</Label>
-              <Input type="number" value={form.bedrooms} onChange={(e) => handleChange({ bedrooms: Number(e.target.value) })} />
-            </div>
-            <div>
-              <Label>Bathrooms</Label>
-              <Input type="number" value={form.bathrooms} onChange={(e) => handleChange({ bathrooms: Number(e.target.value) })} />
-            </div>
-          </div>
-          <div className="grid grid-cols-4 gap-3">
-            <div>
-              <Label>Area (sqm)</Label>
-              <Input type="number" value={form.areaSqM} onChange={(e) => handleChange({ areaSqM: Number(e.target.value) })} />
-            </div>
-            <div>
-              <Label>Plot (sqm)</Label>
-              <Input type="number" value={form.plotSqM ?? ''} onChange={(e) => handleChange({ plotSqM: e.target.value ? Number(e.target.value) : null })} />
-            </div>
-            <div>
-              <Label>Year Built</Label>
-              <Input type="number" value={form.yearBuilt ?? ''} onChange={(e) => handleChange({ yearBuilt: e.target.value ? Number(e.target.value) : null })} />
-            </div>
-            <div>
-              <Label>Region</Label>
-              <select
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                value={form.region}
-                onChange={(e) => handleChange({ region: e.target.value })}
-                required
-              >
-                <option value="" disabled>Select region</option>
-                {regions.map((region) => (
-                  <option key={region.id} value={region.slug}>{region.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <Label>City</Label>
-              <Input value={form.city} onChange={(e) => handleChange({ city: e.target.value })} />
-            </div>
-            <div>
-              <Label>Country</Label>
-              <Input value={form.country} onChange={(e) => handleChange({ country: e.target.value })} />
-            </div>
-            <div>
-              <Label>Address</Label>
-              <Input value={form.address} onChange={(e) => handleChange({ address: e.target.value })} />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Latitude</Label>
-              <Input value={form.latitude} onChange={(e) => handleChange({ latitude: e.target.value })} />
-            </div>
-            <div>
-              <Label>Longitude</Label>
-              <Input value={form.longitude} onChange={(e) => handleChange({ longitude: e.target.value })} />
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <Label>Eco Features (comma separated)</Label>
-              <Textarea value={form.ecoFeatures} onChange={(e) => handleChange({ ecoFeatures: e.target.value })} rows={2} />
-            </div>
-            <div>
-              <Label>Amenities (comma separated)</Label>
-              <Textarea value={form.amenities} onChange={(e) => handleChange({ amenities: e.target.value })} rows={2} />
-            </div>
-            <div>
-              <Label>Highlights (comma separated)</Label>
-              <Textarea value={form.highlights} onChange={(e) => handleChange({ highlights: e.target.value })} rows={2} />
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <Label>Sustainability Score</Label>
-              <Input type="number" value={form.sustainabilityScore} onChange={(e) => handleChange({ sustainabilityScore: Number(e.target.value) })} />
-            </div>
-            <div>
-              <Label>Energy Rating</Label>
-              <Input type="number" value={form.energyRating} onChange={(e) => handleChange({ energyRating: Number(e.target.value) })} />
-            </div>
-            <div>
-              <Label>Water Rating</Label>
-              <Input type="number" value={form.waterRating} onChange={(e) => handleChange({ waterRating: Number(e.target.value) })} />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button type="submit" disabled={saving}>{saving ? 'Saving…' : editing ? 'Save' : 'Create'}</Button>
-            <Button type="button" variant="outline" onClick={() => navigate('/admin/properties')} disabled={saving}>Cancel</Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
-  );
-}
+import type { PropertyResponse, RegionResponse } from '../types/api';
 
 export function PropertyDetail() {
   const { id } = useParams();
@@ -443,37 +81,395 @@ export function PropertyDetail() {
 
   const regionName = regions.find((region) => region.slug === property.region)?.name ?? property.region;
 
+  const getStatusBadge = (status: string) => {
+    const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+      'published': 'default',
+      'draft': 'secondary',
+      'sold': 'destructive',
+      'rented': 'outline'
+    };
+    return (
+      <Badge variant={variants[status.toLowerCase()] || 'outline'}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </Badge>
+    );
+  };
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">{property.title}</h2>
+    <div className="space-y-6 max-w-6xl mx-auto pb-8">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold">{property.title}</h1>
+            {property.featured && (
+              <Badge variant="default" className="bg-yellow-500">
+                <Star className="h-3 w-3 mr-1" />
+                Featured
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <MapPin className="h-4 w-4" />
+            <span>{property.city}, {property.country}</span>
+            <span className="mx-2">•</span>
+            {getStatusBadge(property.status)}
+          </div>
+        </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate(`/admin/properties/${property.id}/edit`)}>Edit</Button>
-          <Button variant="destructive" onClick={remove}>Delete</Button>
+          <Button 
+            variant="outline" 
+            onClick={() => navigate(`/admin/properties/${property.id}/edit`)}
+          >
+            <Edit className="h-4 w-4 mr-2" />
+            Edit
+          </Button>
+          <Button variant="destructive" onClick={remove}>
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete
+          </Button>
         </div>
       </div>
+
+      {/* Hero Image */}
+      {property.hero_image_url && (
+        <Card className="overflow-hidden">
+          <img
+            src={property.hero_image_url}
+            alt={property.title}
+            className="w-full h-96 object-cover"
+          />
+        </Card>
+      )}
+
+      {/* Summary */}
+      {property.summary && (
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-lg text-muted-foreground">{property.summary}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Price & Key Details */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Pricing */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              Pricing
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-lg bg-green-500/10">
+                <DollarSign className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  {property.listing_type === 'sale' ? 'Sale Price' : 'Rental Price'}
+                </p>
+                <p className="text-2xl font-bold">
+                  {property.currency} {Number(property.price).toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Property Type */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Home className="h-5 w-5" />
+              Property Type
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-lg bg-primary/10">
+                <Home className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Type</p>
+                <p className="text-2xl font-bold capitalize">{property.property_type}</p>
+                <p className="text-sm text-muted-foreground capitalize">For {property.listing_type}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Specifications */}
       <Card>
-        <CardContent className="space-y-2 text-sm">
-          <div><strong>Status:</strong> {property.status}</div>
-          <div><strong>Type:</strong> {property.property_type}</div>
-          <div><strong>Listing Type:</strong> {property.listing_type}</div>
-          <div><strong>Price:</strong> ${Number(property.price).toLocaleString()} {property.currency}</div>
-          <div><strong>Bedrooms:</strong> {property.bedrooms}</div>
-          <div><strong>Bathrooms:</strong> {property.bathrooms}</div>
-          <div><strong>Area:</strong> {property.area_sq_m} sqm</div>
-          {property.plot_sq_m && <div><strong>Plot:</strong> {property.plot_sq_m} sqm</div>}
-          {property.year_built && <div><strong>Year Built:</strong> {property.year_built}</div>}
-          <div><strong>Region:</strong> {regionName}</div>
-          <div><strong>Location:</strong> {property.city}, {property.country}</div>
-          <div><strong>Address:</strong> {property.address || '-'}</div>
-          <div><strong>Featured:</strong> {property.featured ? 'Yes' : 'No'}</div>
-          <div><strong>Sustainability Score:</strong> {property.sustainability_score}</div>
-          <div><strong>Energy Rating:</strong> {property.energy_rating}</div>
-          <div><strong>Water Rating:</strong> {property.water_rating}</div>
-          <div><strong>Eco Features:</strong> {property.eco_features.join(', ') || '-'}</div>
-          <div><strong>Amenities:</strong> {property.amenities.join(', ') || '-'}</div>
-          <div><strong>Highlights:</strong> {property.highlights.join(', ') || '-'}</div>
-          <div><strong>Description:</strong> {property.description || '-'}</div>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Ruler className="h-5 w-5" />
+            Specifications
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Bed className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Bedrooms</p>
+                <p className="text-lg font-semibold">{property.bedrooms}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Bath className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Bathrooms</p>
+                <p className="text-lg font-semibold">{property.bathrooms}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Ruler className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Area</p>
+                <p className="text-lg font-semibold">{property.area_sq_m} sqm</p>
+              </div>
+            </div>
+            {property.plot_sq_m && (
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Ruler className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Plot Size</p>
+                  <p className="text-lg font-semibold">{property.plot_sq_m} sqm</p>
+                </div>
+              </div>
+            )}
+            {property.year_built && (
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Calendar className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Year Built</p>
+                  <p className="text-lg font-semibold">{property.year_built}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Location */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5" />
+            Location
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Region</p>
+              <p className="font-medium">{regionName}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">City</p>
+              <p className="font-medium">{property.city}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Country</p>
+              <p className="font-medium">{property.country}</p>
+            </div>
+            {property.address && (
+              <div>
+                <p className="text-sm text-muted-foreground">Address</p>
+                <p className="font-medium">{property.address}</p>
+              </div>
+            )}
+          </div>
+          {(property.latitude && property.longitude) && (
+            <div className="pt-2 border-t">
+              <p className="text-sm text-muted-foreground mb-1">Coordinates</p>
+              <p className="font-mono text-sm">
+                {property.latitude}, {property.longitude}
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Sustainability */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Leaf className="h-5 w-5" />
+            Sustainability Ratings
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium flex items-center gap-2">
+                  <Leaf className="h-4 w-4 text-green-600" />
+                  Sustainability Score
+                </span>
+                <span className="text-lg font-bold">{property.sustainability_score}/100</span>
+              </div>
+              <div className="w-full bg-secondary rounded-full h-2">
+                <div 
+                  className="bg-green-600 h-2 rounded-full transition-all" 
+                  style={{ width: `${property.sustainability_score}%` }}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-yellow-600" />
+                  Energy Rating
+                </span>
+                <span className="text-lg font-bold">{property.energy_rating}/5</span>
+              </div>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <div 
+                    key={star}
+                    className={`h-2 flex-1 rounded-full ${
+                      star <= property.energy_rating ? 'bg-yellow-600' : 'bg-secondary'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium flex items-center gap-2">
+                  <Droplets className="h-4 w-4 text-blue-600" />
+                  Water Rating
+                </span>
+                <span className="text-lg font-bold">{property.water_rating}/5</span>
+              </div>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <div 
+                    key={star}
+                    className={`h-2 flex-1 rounded-full ${
+                      star <= property.water_rating ? 'bg-blue-600' : 'bg-secondary'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Features & Amenities */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Eco Features */}
+        {property.eco_features.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Leaf className="h-5 w-5 text-green-600" />
+                Eco Features
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {property.eco_features.map((feature, index) => (
+                  <Badge key={index} variant="outline" className="bg-green-50">
+                    {feature}
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Amenities */}
+        {property.amenities.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Amenities</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {property.amenities.map((amenity, index) => (
+                  <Badge key={index} variant="outline">
+                    {amenity}
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Highlights */}
+      {property.highlights.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Star className="h-5 w-5" />
+              Highlights
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {property.highlights.map((highlight, index) => (
+                <Badge key={index} variant="secondary">
+                  {highlight}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Description */}
+      {property.description && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Description</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground whitespace-pre-wrap">{property.description}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Metadata */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Property Information</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <p className="text-muted-foreground">Property ID</p>
+              <p className="font-medium">{property.id}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Slug</p>
+              <p className="font-medium font-mono text-xs">{property.slug}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Created</p>
+              <p className="font-medium">{new Date(property.created_at).toLocaleDateString()}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Last Updated</p>
+              <p className="font-medium">{new Date(property.updated_at).toLocaleDateString()}</p>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

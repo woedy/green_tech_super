@@ -15,6 +15,9 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Building2,
+  Home,
+  FileCheck,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -48,9 +51,19 @@ const Sidebar = ({ isCollapsed, onToggleCollapse }: SidebarProps) => {
       icon: FileSpreadsheet,
     },
     {
-      name: "Projects",
-      path: "/account/projects",
-      icon: ClipboardList,
+      name: "My Properties",
+      path: "/account/my-properties",
+      icon: Home,
+    },
+    {
+      name: "My Projects",
+      path: "/account/my-projects",
+      icon: Building2,
+    },
+    {
+      name: "Property Requests",
+      path: "/account/property-transactions",
+      icon: FileCheck,
     },
     {
       name: "Appointments",

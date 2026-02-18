@@ -6,7 +6,8 @@ from django.db import transaction
 from rest_framework import serializers
 
 from locations.models import Region
-from .models import Property, PropertyImage, PropertyStatus
+from construction.ghana.models import EcoFeature
+from .models import Property, PropertyImage, PropertyStatus, PropertyEcoFeature
 
 
 class PropertyImageAdminSerializer(serializers.ModelSerializer):
@@ -18,8 +19,14 @@ class PropertyImageAdminSerializer(serializers.ModelSerializer):
 
 
 class PropertyAdminSerializer(serializers.ModelSerializer):
+    slug = serializers.SlugField(required=False)
     images = PropertyImageAdminSerializer(many=True, required=False)
     region = serializers.SlugRelatedField(slug_field='slug', queryset=Region.objects.all())
+    eco_features = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text='List of eco feature names'
+    )
 
     class Meta:
         model = Property
@@ -73,19 +80,24 @@ class PropertyAdminSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         images = validated_data.pop('images', [])
+        eco_features = validated_data.pop('eco_features', [])
         with transaction.atomic():
             property_obj = Property.objects.create(**validated_data)
             self._sync_images(property_obj, images)
+            self._sync_eco_features(property_obj, eco_features)
         return property_obj
 
     def update(self, instance, validated_data):
         images = validated_data.pop('images', None)
+        eco_features = validated_data.pop('eco_features', None)
         with transaction.atomic():
             for field, value in validated_data.items():
                 setattr(instance, field, value)
             instance.save()
             if images is not None:
                 self._sync_images(instance, images)
+            if eco_features is not None:
+                self._sync_eco_features(instance, eco_features)
         return instance
 
     def _sync_images(self, property_obj: Property, payload: Sequence[dict]) -> None:
@@ -106,3 +118,36 @@ class PropertyAdminSerializer(serializers.ModelSerializer):
         for image_id, image in existing.items():
             if image_id not in keep:
                 image.delete()
+
+    def _sync_eco_features(self, property_obj: Property, feature_names: list[str]) -> None:
+        """Sync eco features for the property based on feature names."""
+        # Clear existing relationships first
+        property_obj.property_eco_features.all().delete()
+        
+        if not feature_names:
+            return
+        
+        # Remove duplicates and empty strings
+        unique_names = set()
+        for name in feature_names:
+            if name and name.strip():
+                unique_names.add(name.strip())
+        
+        # Get or create eco features by name (case-insensitive)
+        for name in unique_names:
+            # Try to find existing feature (case-insensitive)
+            feature = EcoFeature.objects.filter(name__iexact=name).first()
+            if not feature:
+                # Create new eco feature if it doesn't exist
+                feature = EcoFeature.objects.create(
+                    name=name,
+                    category=EcoFeature.FeatureCategory.MATERIALS,  # Default category
+                    description=f'Auto-created eco feature: {name}'
+                )
+            
+            # Create relationship (use get_or_create to avoid duplicates)
+            PropertyEcoFeature.objects.get_or_create(
+                property=property_obj,
+                eco_feature=feature
+            )
+

@@ -19,12 +19,23 @@ export default function Regions() {
         setLoading(true);
         const response = await adminApi.listRegions();
         if (!cancelled) {
-          setItems(response);
-          setError(null);
+          // Ensure response is an array
+          if (Array.isArray(response)) {
+            setItems(response);
+            setError(null);
+          } else {
+            console.error('API returned non-array response:', response);
+            setItems([]);
+            setError('Invalid response format from server.');
+          }
         }
       } catch (err) {
         console.error('Failed to load regions', err);
-        if (!cancelled) setError('Unable to load regions.');
+        if (!cancelled) {
+          const errorMessage = err instanceof Error ? err.message : 'Unable to load regions.';
+          setError(errorMessage);
+          setItems([]);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -48,7 +59,7 @@ export default function Regions() {
             <div className="py-6 text-sm text-muted-foreground">Loading regions…</div>
           ) : error ? (
             <div className="py-6 text-sm text-destructive">{error}</div>
-          ) : items.length === 0 ? (
+          ) : !Array.isArray(items) || items.length === 0 ? (
             <div className="py-6 text-sm text-muted-foreground">No regions configured.</div>
           ) : (
             <Table>

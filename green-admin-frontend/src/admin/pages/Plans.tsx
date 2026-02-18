@@ -19,13 +19,22 @@ export default function Plans() {
         setLoading(true);
         const response = await adminApi.listPlans();
         if (!cancelled) {
-          setItems(response);
-          setError(null);
+          // Ensure response is an array
+          if (Array.isArray(response)) {
+            setItems(response);
+            setError(null);
+          } else {
+            console.error('API returned non-array response:', response);
+            setItems([]);
+            setError('Invalid response format from server.');
+          }
         }
       } catch (err) {
         console.error('Failed to load plans', err);
         if (!cancelled) {
-          setError('Unable to load plans. Please try again.');
+          const errorMessage = err instanceof Error ? err.message : 'Unable to load plans. Please try again.';
+          setError(errorMessage);
+          setItems([]);
         }
       } finally {
         if (!cancelled) {
@@ -52,7 +61,7 @@ export default function Plans() {
             <div className="py-6 text-sm text-muted-foreground">Loading plans…</div>
           ) : error ? (
             <div className="py-6 text-sm text-destructive">{error}</div>
-          ) : items.length === 0 ? (
+          ) : !Array.isArray(items) || items.length === 0 ? (
             <div className="py-6 text-sm text-muted-foreground">No plans found.</div>
           ) : (
             <Table>

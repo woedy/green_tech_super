@@ -16,6 +16,7 @@ from construction.serializers import (
     ConstructionRequestSerializer, ConstructionRequestEcoFeatureSerializer
 )
 from construction.ghana.models import EcoFeature, GhanaRegion
+from construction.ghana.serializers import EcoFeatureSerializer
 from construction.permissions import IsOwnerOrAdmin, CanEditConstructionRequest
 
 
@@ -325,3 +326,44 @@ class EcoFeatureSelectionViewSet(
         
         serializer = self.get_serializer(created_features, many=True)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+
+class EcoFeatureViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    API endpoint for listing available eco-features.
+    Read-only endpoint accessible to authenticated users.
+    """
+    queryset = EcoFeature.objects.filter(is_available=True)
+    serializer_class = EcoFeatureSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """Return available eco-features, optionally filtered by category."""
+        queryset = self.queryset
+        
+        # Filter by category if provided
+        category = self.request.query_params.get('category', None)
+        if category:
+            queryset = queryset.filter(category=category)
+        
+        return queryset.order_by('category', 'name')
+    
+    @action(detail=False, methods=['get'])
+    def categories(self, request):
+        """Get all available eco-feature categories."""
+        from construction.ghana.models import EcoFeature
+        
+        categories = [
+            {
+                'value': choice[0],
+                'label': choice[1],
+                'count': EcoFeature.objects.filter(
+                    category=choice[0],
+                    is_available=True
+                ).count()
+            }
+            for choice in EcoFeature.FeatureCategory.choices
+        ]
+        
+        return Response(categories)

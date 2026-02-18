@@ -1,34 +1,41 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import { Users, Clock, Activity, TrendingUp } from 'lucide-react';
-import type { UserActivityMetrics } from '../../types';
-import { AnalyticsService } from '../../data/analytics';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
+import { Users, Activity, TrendingUp, UserPlus } from 'lucide-react';
+import type { AdminDashboardMetrics } from '../../types/api';
 
 interface UserActivityReportProps {
-  metrics: UserActivityMetrics[];
+  metrics: AdminDashboardMetrics;
 }
 
 export function UserActivityReport({ metrics }: UserActivityReportProps) {
-  const totalUsers = metrics.reduce((sum, m) => sum + m.total_users, 0);
-  const totalActiveUsers = metrics.reduce((sum, m) => sum + m.active_users, 0);
-  const overallActivityRate = totalUsers > 0 ? (totalActiveUsers / totalUsers) * 100 : 0;
+  const formatNumber = (value: number) => new Intl.NumberFormat('en-GH').format(value);
+  const formatPercentage = (value: number) => `${value.toFixed(1)}%`;
 
-  // Prepare data for charts
-  const userDistributionData = metrics.map(m => ({
-    role: m.role.charAt(0).toUpperCase() + m.role.slice(1),
-    total: m.total_users,
-    active: m.active_users,
-    new: m.new_users_this_month
-  }));
+  const totalUsers = metrics.overview.total_users;
+  const activeUsers = metrics.overview.active_users;
+  const newUsers = metrics.overview.new_users;
+  const overallActivityRate = totalUsers > 0 ? (activeUsers / totalUsers) * 100 : 0;
 
-  const sessionDurationData = metrics.map(m => ({
-    role: m.role.charAt(0).toUpperCase() + m.role.slice(1),
-    duration: m.avg_session_duration
-  }));
-
-  const COLORS = ['#16a34a', '#0ea5e9', '#f59e0b', '#8b5cf6'];
+  // Prepare data for leads/quotes/projects chart
+  const activityData = [
+    {
+      category: 'Leads',
+      total: metrics.leads.total,
+      recent: metrics.leads.recent,
+    },
+    {
+      category: 'Quotes',
+      total: metrics.quotes.total,
+      recent: metrics.quotes.recent,
+    },
+    {
+      category: 'Projects',
+      total: metrics.projects.total,
+      recent: metrics.projects.recent,
+    }
+  ];
 
   return (
     <div className="space-y-6">
@@ -39,7 +46,7 @@ export function UserActivityReport({ metrics }: UserActivityReportProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Users</p>
-                <p className="text-2xl font-bold">{AnalyticsService.formatNumber(totalUsers)}</p>
+                <p className="text-2xl font-bold">{formatNumber(totalUsers)}</p>
               </div>
               <Users className="h-8 w-8 text-blue-600" />
             </div>
@@ -51,14 +58,14 @@ export function UserActivityReport({ metrics }: UserActivityReportProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Active Users</p>
-                <p className="text-2xl font-bold">{AnalyticsService.formatNumber(totalActiveUsers)}</p>
+                <p className="text-2xl font-bold">{formatNumber(activeUsers)}</p>
               </div>
               <Activity className="h-8 w-8 text-green-600" />
             </div>
             <div className="mt-2">
               <Progress value={overallActivityRate} className="h-2" />
               <p className="text-xs text-muted-foreground mt-1">
-                {AnalyticsService.formatPercentage(overallActivityRate)} activity rate
+                {formatPercentage(overallActivityRate)} activity rate
               </p>
             </div>
           </CardContent>
@@ -68,13 +75,14 @@ export function UserActivityReport({ metrics }: UserActivityReportProps) {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">New This Month</p>
-                <p className="text-2xl font-bold">
-                  {AnalyticsService.formatNumber(metrics.reduce((sum, m) => sum + m.new_users_this_month, 0))}
-                </p>
+                <p className="text-sm text-muted-foreground">New Users</p>
+                <p className="text-2xl font-bold">{formatNumber(newUsers)}</p>
               </div>
-              <TrendingUp className="h-8 w-8 text-purple-600" />
+              <UserPlus className="h-8 w-8 text-purple-600" />
             </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              This period
+            </p>
           </CardContent>
         </Card>
 
@@ -82,111 +90,97 @@ export function UserActivityReport({ metrics }: UserActivityReportProps) {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Avg Session</p>
-                <p className="text-2xl font-bold">
-                  {Math.round(metrics.reduce((sum, m) => sum + m.avg_session_duration, 0) / metrics.length)}m
-                </p>
+                <p className="text-sm text-muted-foreground">Total Leads</p>
+                <p className="text-2xl font-bold">{formatNumber(metrics.leads.total)}</p>
               </div>
-              <Clock className="h-8 w-8 text-orange-600" />
+              <TrendingUp className="h-8 w-8 text-orange-600" />
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              {formatNumber(metrics.leads.recent)} recent
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Activity Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5" />
+            Platform Activity Overview
+          </CardTitle>
+        </CardHeader>
+        <CardContent style={{ height: 300 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={activityData}>
+              <XAxis dataKey="category" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="total" fill="#0ea5e9" name="Total" />
+              <Bar dataKey="recent" fill="#16a34a" name="Recent (7 days)" />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Status Breakdowns */}
+      <div className="grid gap-6 md:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Lead Status</span>
+              <Badge variant="outline">{metrics.leads.total} total</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {Object.entries(metrics.leads.status_breakdown).map(([status, count]) => (
+                <div key={status} className="flex justify-between items-center">
+                  <span className="text-sm capitalize">{status.replace(/_/g, ' ')}</span>
+                  <Badge variant="secondary">{count}</Badge>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
-      </div>
 
-      {/* Charts */}
-      <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              User Distribution by Role
+            <CardTitle className="flex items-center justify-between">
+              <span>Quote Status</span>
+              <Badge variant="outline">{metrics.quotes.total} total</Badge>
             </CardTitle>
           </CardHeader>
-          <CardContent style={{ height: 300 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={userDistributionData}>
-                <XAxis dataKey="role" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="total" fill="#0ea5e9" name="Total Users" />
-                <Bar dataKey="active" fill="#16a34a" name="Active Users" />
-                <Bar dataKey="new" fill="#f59e0b" name="New This Month" />
-              </BarChart>
-            </ResponsiveContainer>
+          <CardContent>
+            <div className="space-y-3">
+              {Object.entries(metrics.quotes.status_breakdown).map(([status, count]) => (
+                <div key={status} className="flex justify-between items-center">
+                  <span className="text-sm capitalize">{status.replace(/_/g, ' ')}</span>
+                  <Badge variant="secondary">{count}</Badge>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Average Session Duration
+            <CardTitle className="flex items-center justify-between">
+              <span>Project Status</span>
+              <Badge variant="outline">{metrics.projects.total} total</Badge>
             </CardTitle>
           </CardHeader>
-          <CardContent style={{ height: 300 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={sessionDurationData} layout="horizontal">
-                <XAxis type="number" />
-                <YAxis dataKey="role" type="category" />
-                <Tooltip formatter={(value) => [`${value} minutes`, 'Duration']} />
-                <Bar dataKey="duration" fill="#8b5cf6" />
-              </BarChart>
-            </ResponsiveContainer>
+          <CardContent>
+            <div className="space-y-3">
+              {Object.entries(metrics.projects.status_breakdown).map(([status, count]) => (
+                <div key={status} className="flex justify-between items-center">
+                  <span className="text-sm capitalize">{status.replace(/_/g, ' ')}</span>
+                  <Badge variant="secondary">{count}</Badge>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
-      </div>
-
-      {/* Role-specific Activity Details */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {metrics.map((roleMetrics, index) => (
-          <Card key={roleMetrics.role}>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span className="capitalize">{roleMetrics.role}s</span>
-                <Badge variant="outline" style={{ color: COLORS[index] }}>
-                  {roleMetrics.total_users} total
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-sm">
-                    <span>Active Rate</span>
-                    <span>{AnalyticsService.formatPercentage((roleMetrics.active_users / roleMetrics.total_users) * 100)}</span>
-                  </div>
-                  <Progress 
-                    value={(roleMetrics.active_users / roleMetrics.total_users) * 100} 
-                    className="h-2 mt-1"
-                  />
-                </div>
-
-                <div>
-                  <p className="text-sm font-medium mb-2">Top Actions</p>
-                  <div className="space-y-2">
-                    {roleMetrics.top_actions.slice(0, 3).map((action, actionIndex) => (
-                      <div key={action.action} className="flex justify-between text-xs">
-                        <span className="truncate">{action.action}</span>
-                        <span className="font-medium">{AnalyticsService.formatNumber(action.count)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="pt-2 border-t">
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Avg Session</span>
-                    <span>{roleMetrics.avg_session_duration}m</span>
-                  </div>
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>New This Month</span>
-                    <span>{roleMetrics.new_users_this_month}</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
       </div>
     </div>
   );

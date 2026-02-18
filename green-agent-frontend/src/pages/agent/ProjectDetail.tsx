@@ -18,6 +18,8 @@ import {
   updateProjectTask,
   fetchProjectChatMessages,
   postProjectChatMessage,
+  updateProjectMilestone,
+  createChangeOrder,
 } from "@/lib/api";
 import { asArray } from "@/types/api";
 import {
@@ -102,23 +104,28 @@ export default function ProjectDetail() {
   };
 
   const handleMilestoneUpdate = async (data: any) => {
-    // In real app, this would call an API to update the milestone
-    console.log("Updating milestone:", selectedMilestone?.id, data);
-    setSelectedMilestone(null);
-    // Refresh dashboard data
-    queryClient.invalidateQueries({
-      queryKey: ["project-dashboard", projectId],
-    });
+    if (!selectedMilestone) return;
+    try {
+      await updateProjectMilestone(projectId, selectedMilestone.id, data);
+      setSelectedMilestone(null);
+      queryClient.invalidateQueries({
+        queryKey: ["project-dashboard", projectId],
+      });
+    } catch (error) {
+      console.error("Failed to update milestone:", error);
+    }
   };
 
   const handleChangeOrderSubmit = async (data: any) => {
-    // In real app, this would call an API to create the change order
-    console.log("Creating change order:", data);
-    setShowChangeOrderForm(false);
-    // Refresh dashboard data
-    queryClient.invalidateQueries({
-      queryKey: ["project-dashboard", projectId],
-    });
+    try {
+      await createChangeOrder(projectId, data);
+      setShowChangeOrderForm(false);
+      queryClient.invalidateQueries({
+        queryKey: ["project-dashboard", projectId],
+      });
+    } catch (error) {
+      console.error("Failed to create change order:", error);
+    }
   };
 
   const handleSendMessage = async (
@@ -313,15 +320,15 @@ export default function ProjectDetail() {
                               milestone.is_overdue
                                 ? "destructive"
                                 : milestone.is_due_soon
-                                ? "default"
-                                : "secondary"
+                                  ? "default"
+                                  : "secondary"
                             }
                           >
                             {milestone.is_overdue
                               ? "Overdue"
                               : milestone.is_due_soon
-                              ? "Due soon"
-                              : milestone.status}
+                                ? "Due soon"
+                                : milestone.status}
                           </Badge>
                           <Button
                             size="sm"
@@ -347,7 +354,7 @@ export default function ProjectDetail() {
             <TabsContent value="communication">
               <ClientCommunication
                 projectId={projectId}
-                messages={messages}
+                initialMessages={messages}
                 currentUser={currentUser}
                 onSendMessage={handleSendMessage}
                 isLoading={isMessagesLoading}
@@ -427,8 +434,8 @@ export default function ProjectDetail() {
                       <div className="text-xs text-muted-foreground">
                         {doc.current_version
                           ? `Updated ${formatDateTime(
-                              doc.current_version.uploaded_at
-                            )}`
+                            doc.current_version.uploaded_at
+                          )}`
                           : "Awaiting upload"}
                       </div>
                     </div>

@@ -26,25 +26,30 @@ class RegionSerializer(serializers.ModelSerializer):
 
 
 class PlanImageSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(required=False)
+
     class Meta:
         model = PlanImage
         fields = ('id', 'image_url', 'caption', 'is_primary', 'order')
 
 
 class PlanFeatureSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(required=False)
+
     class Meta:
         model = PlanFeature
         fields = ('id', 'name', 'description', 'category', 'is_sustainable')
 
 
 class PlanOptionSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(required=False)
+
     class Meta:
         model = PlanOption
         fields = ('id', 'name', 'description', 'price_delta')
 
 
 class PlanListSerializer(serializers.ModelSerializer):
-    hero_image = serializers.CharField(source='hero_image_url', read_only=True)
     regional_estimates = serializers.SerializerMethodField()
 
     class Meta:
@@ -61,10 +66,13 @@ class PlanListSerializer(serializers.ModelSerializer):
             'area_sq_m',
             'base_price',
             'base_currency',
+            'hero_image_url',
             'hero_image',
             'sustainability_score',
             'regional_estimates',
         )
+
+    hero_image = serializers.URLField(source='hero_image_url', read_only=True)
 
     def get_regional_estimates(self, obj: Plan):
         return obj.regional_estimates()
@@ -86,7 +94,6 @@ class PlanListSerializer(serializers.ModelSerializer):
 
 
 class PlanDetailSerializer(serializers.ModelSerializer):
-    hero_image = serializers.CharField(source='hero_image_url')
     images = PlanImageSerializer(many=True)
     features = PlanFeatureSerializer(many=True)
     options = PlanOptionSerializer(many=True)
@@ -108,6 +115,7 @@ class PlanDetailSerializer(serializers.ModelSerializer):
             'area_sq_m',
             'base_price',
             'base_currency',
+            'hero_image_url',
             'hero_image',
             'has_garage',
             'energy_rating',
@@ -121,6 +129,8 @@ class PlanDetailSerializer(serializers.ModelSerializer):
             'regional_estimates',
             'regions',
         )
+
+    hero_image = serializers.URLField(source='hero_image_url', read_only=True)
 
     def get_regional_estimates(self, obj: Plan):
         return obj.regional_estimates()

@@ -13,6 +13,11 @@ import {
 } from "@/types/project";
 import { Lead } from "@/types/lead";
 import { QuoteSummary } from "@/types/quote";
+import {
+  Property,
+  PropertyTransaction,
+  ViewingAppointment,
+} from "@/types/property";
 
 type HttpMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
 
@@ -20,11 +25,11 @@ function withBase(url: string): string {
   if (url.startsWith("http")) {
     return url;
   }
-  
+
   const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
   console.log('API URL from env:', import.meta.env.VITE_API_URL);
   console.log('Using API URL:', apiUrl);
-  
+
   if (url.startsWith("/")) {
     const fullUrl = `${apiUrl}${url}`;
     console.log('Full URL:', fullUrl);
@@ -33,14 +38,14 @@ function withBase(url: string): string {
   return `${apiUrl}/api/${url}`;
 }
 
-async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const method = (init.method ?? "GET") as HttpMethod;
   const headers = new Headers(init.headers);
 
   if (!headers.has("Accept")) {
     headers.set("Accept", "application/json");
   }
-  if (method !== "GET" && method !== "HEAD" && !headers.has("Content-Type")) {
+  if (method !== "GET" && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -161,9 +166,130 @@ export async function postProjectChatMessage(
   });
 }
 
+export async function fetchLeads(params: { status?: string; priority?: string; page_size?: number } = {}): Promise<PaginatedResponse<Lead>> {
+  const query = toQuery({ status: params.status, priority: params.priority, page_size: params.page_size });
+  return apiFetch<PaginatedResponse<Lead>>(`/api/leads/${query}`);
+}
+
 export async function fetchRecentLeads(limit = 5): Promise<PaginatedResponse<Lead>> {
   const query = toQuery({ page_size: limit });
   return apiFetch<PaginatedResponse<Lead>>(`/api/leads/${query}`);
+}
+
+export async function initiateBuildRequest(leadId: string): Promise<{ request_id: string; lead: Lead }> {
+  return apiFetch<{ request_id: string; lead: Lead }>(`/api/leads/${leadId}/initiate_build_request/`, {
+    method: "POST",
+  });
+}
+
+export async function fetchLeadDetail(id: string): Promise<Lead> {
+  return apiFetch<Lead>(`/api/leads/${id}/`);
+}
+
+export async function updateLead(id: string, payload: Partial<Pick<Lead, "status" | "priority" | "is_unread">>): Promise<Lead> {
+  return apiFetch<Lead>(`/api/leads/${id}/`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function fetchLeadNotes(id: string): Promise<import("@/types/lead").LeadNote[]> {
+  return apiFetch<import("@/types/lead").LeadNote[]>(`/api/leads/${id}/notes/`);
+}
+
+export async function createLeadNote(id: string, body: string): Promise<import("@/types/lead").LeadNote> {
+  return apiFetch<import("@/types/lead").LeadNote>(`/api/leads/${id}/notes/`, {
+    method: "POST",
+    body: JSON.stringify({ body }),
+  });
+}
+
+export async function fetchLeadActivity(id: string): Promise<import("@/types/lead").LeadActivity[]> {
+  return apiFetch<import("@/types/lead").LeadActivity[]>(`/api/leads/${id}/activity/`);
+}
+
+// Property Management
+export async function fetchProperties(params: { type?: string; status?: string; region?: string } = {}): Promise<PaginatedResponse<Property>> {
+  const query = toQuery(params);
+  return apiFetch<PaginatedResponse<Property>>(`/api/admin/properties/${query}`);
+}
+
+export async function fetchPropertyDetails(idOrSlug: string): Promise<Property> {
+  return apiFetch<Property>(`/api/admin/properties/${idOrSlug}/`);
+}
+
+export async function createProperty(data: any): Promise<Property> {
+  return apiFetch<Property>(`/api/admin/properties/`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateProperty(id: string, data: any): Promise<Property> {
+  return apiFetch<Property>(`/api/admin/properties/${id}/`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteProperty(idOrSlug: string): Promise<void> {
+  await apiFetch(`/api/admin/properties/${idOrSlug}/`, {
+    method: "DELETE",
+  });
+}
+
+export async function uploadPropertyImage(file: File): Promise<{ url: string; filename: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  // Use withBase to get the correct absolute URL
+  const url = withBase("/api/admin/properties/upload-image/");
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('gta_agent_token')}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to upload image');
+  }
+
+  return response.json();
+}
+
+export async function fetchPropertyTransactions(params: { status?: string; type?: string } = {}): Promise<PaginatedResponse<PropertyTransaction>> {
+  const query = toQuery(params);
+  return apiFetch<PaginatedResponse<PropertyTransaction>>(`/api/transactions/${query}`);
+}
+
+export async function updatePropertyTransaction(id: string, payload: Partial<Pick<PropertyTransaction, "status" | "admin_notes">>): Promise<PropertyTransaction> {
+  return apiFetch<PropertyTransaction>(`/api/transactions/${id}/`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function addTransactionNote(id: string, content: string): Promise<any> {
+  return apiFetch<any>(`/api/transactions/${id}/add_note/`, {
+    method: "POST",
+    body: JSON.stringify({ content }),
+  });
+}
+
+// Viewing Appointments
+export async function fetchAppointments(): Promise<PaginatedResponse<ViewingAppointment>> {
+  return apiFetch<PaginatedResponse<ViewingAppointment>>(`/api/appointments/`);
+}
+
+export async function updateAppointment(id: string, payload: Partial<Pick<ViewingAppointment, "status" | "notes">>): Promise<ViewingAppointment> {
+  return apiFetch<ViewingAppointment>(`/api/appointments/${id}/`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function fetchRecentQuotes(limit = 5): Promise<PaginatedResponse<QuoteSummary>> {
@@ -270,12 +396,12 @@ export async function updateProjectMilestone(
   }
 ): Promise<ProjectMilestoneItem> {
   const formData = new FormData();
-  
+
   if (payload.title) formData.append('title', payload.title);
   if (payload.status) formData.append('status', payload.status);
   if (payload.progress !== undefined) formData.append('progress', payload.progress.toString());
   if (payload.notes) formData.append('notes', payload.notes);
-  
+
   if (payload.photos) {
     payload.photos.forEach((photo, index) => {
       formData.append(`photos[${index}]`, photo);
@@ -364,6 +490,13 @@ export async function getUserProfile(): Promise<UserProfile> {
   return apiFetch<UserProfile>('/api/auth/profile/');
 }
 
+export async function updateUserProfile(data: Partial<UserProfile>): Promise<UserProfile> {
+  return apiFetch<UserProfile>('/api/auth/profile/update/', {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
 export interface RegisterRequest {
   email: string;
   password: string;
@@ -384,9 +517,46 @@ export async function registerUser(userData: RegisterRequest): Promise<RegisterR
     body: JSON.stringify(userData),
   });
 }
+
+export async function verifyEmail(data: { email: string; otp_code: string }): Promise<{ message: string }> {
+  return apiFetch<{ message: string }>('/api/auth/verify-email/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
 export async function refreshAccessToken(refreshToken: string): Promise<{ access: string }> {
   return apiFetch<{ access: string }>('/api/auth/token/refresh/', {
     method: 'POST',
     body: JSON.stringify({ refresh: refreshToken }),
   });
 }
+
+function getWsBaseUrl() {
+  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  try {
+    const url = new URL(apiUrl);
+    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const host = window.location.host;
+    return `${protocol}://${host}`;
+  }
+}
+
+export const quoteChatApi = {
+  listMessages: (quoteId: string): Promise<ProjectChatMessage[]> =>
+    apiFetch<ProjectChatMessage[]>(`/api/quotes/${quoteId}/messages/`),
+
+  sendMessage: (quoteId: string, payload: { body: string }): Promise<ProjectChatMessage> =>
+    apiFetch<ProjectChatMessage>(`/api/quotes/${quoteId}/messages/`, {
+      method: "POST",
+      body: JSON.stringify({ body: payload.body }),
+    }),
+
+  createQuoteChatSocket: (quoteId: string): WebSocket => {
+    const token = localStorage.getItem('gta_agent_token');
+    const tokenParam = token ? `?token=${encodeURIComponent(token)}` : "";
+    return new WebSocket(`${getWsBaseUrl()}/ws/quotes/${quoteId}/chat/${tokenParam}`);
+  },
+};

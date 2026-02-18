@@ -1,6 +1,10 @@
 from __future__ import annotations
+from django.db import models
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+
+from django.conf import settings
+from django.core.mail import send_mail
 
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
@@ -23,6 +27,7 @@ from .services import handle_quote_event
 
 class QuoteViewSet(viewsets.ModelViewSet):
     permission_classes = (AllowAny,)
+    authentication_classes = []
     http_method_names = ['get', 'post', 'patch', 'put']
     queryset = Quote.objects.select_related(
         'build_request__plan', 'build_request__region', 'region'
@@ -45,8 +50,23 @@ class QuoteViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(status=status_param)
         if build_request:
             queryset = queryset.filter(build_request_id=build_request)
+
+        user = getattr(request, 'user', None)
+        if user and user.is_authenticated and not (user.is_staff or user.is_superuser):
+            if getattr(user, 'user_type', None) == 'AGENT':
+                return queryset
+            email = getattr(user, 'email', None)
+            query = models.Q(build_request__user=user)
+            if email:
+                query |= models.Q(build_request__contact_email__iexact=email)
+                query |= models.Q(recipient_email__iexact=email)
+            queryset = queryset.filter(query)
+
         if customer_email:
-            queryset = queryset.filter(build_request__contact_email__iexact=customer_email)
+            queryset = queryset.filter(
+                models.Q(build_request__contact_email__iexact=customer_email)
+                | models.Q(recipient_email__iexact=customer_email)
+            )
         return queryset
 
     def create(self, request, *args, **kwargs):
@@ -79,6 +99,37 @@ class QuoteViewSet(viewsets.ModelViewSet):
         quote.recalculate_totals()
         quote.mark_sent()
         handle_quote_event(quote, 'sent')
+
+        build_request = getattr(quote, 'build_request', None)
+        recipients: list[str] = []
+        if build_request is not None:
+            contact_email = getattr(build_request, 'contact_email', None)
+            if contact_email:
+                recipients.append(contact_email)
+            account_email = getattr(getattr(build_request, 'user', None), 'email', None)
+            if account_email:
+                recipients.append(account_email)
+        recipients = list(dict.fromkeys([email.strip() for email in recipients if email and email.strip()]))
+
+        if recipients:
+            base_url = getattr(settings, 'FRONTEND_PUBLIC_URL', None) or getattr(settings, 'FRONTEND_URL', None) or 'http://localhost:5173'
+            quote_url = f"{str(base_url).rstrip('/')}/account/quotes/{quote.id}"
+            subject = f"Your quote {quote.reference} is ready"
+            message = (
+                f"Hello,\n\n"
+                f"Your quote {quote.reference} has been sent.\n"
+                f"Total: {quote.currency_code} {quote.total_amount}\n\n"
+                f"View your quote: {quote_url}\n\n"
+                f"Thank you,\nGreen Tech Africa"
+            )
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
+                recipient_list=recipients,
+                fail_silently=False,
+            )
+
         return Response(QuoteDetailSerializer(quote, context=self.get_serializer_context()).data)
 
     @action(detail=True, methods=['post'], url_path='view')

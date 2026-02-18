@@ -1,11 +1,31 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { 
+  Home, 
+  Bed, 
+  Bath, 
+  Layers, 
+  Ruler, 
+  DollarSign, 
+  Leaf, 
+  Zap, 
+  Droplets,
+  Upload,
+  X,
+  ArrowLeft,
+  Edit,
+  Trash2,
+  Check
+} from 'lucide-react';
 import { adminApi } from '../api';
 import type { PlanPayload, PlanResponse } from '../types/api';
 
@@ -27,11 +47,17 @@ interface PlanFormState {
   isPublished: boolean;
 }
 
+interface UploadState {
+  uploading: boolean;
+  progress: number;
+  error: string | null;
+}
+
 const defaultForm: PlanFormState = {
   name: '',
   summary: '',
   description: '',
-  style: '',
+  style: 'modern',
   bedrooms: 3,
   bathrooms: 2,
   floors: 1,
@@ -44,6 +70,27 @@ const defaultForm: PlanFormState = {
   heroImageUrl: '',
   isPublished: false,
 };
+
+const PLAN_STYLES = [
+  { value: 'modern', label: 'Modern' },
+  { value: 'contemporary', label: 'Contemporary' },
+  { value: 'bungalow', label: 'Bungalow' },
+  { value: 'villa', label: 'Villa' },
+  { value: 'townhouse', label: 'Townhouse' },
+  { value: 'traditional', label: 'Traditional' },
+] as const;
+
+const CURRENCIES = [
+  { value: 'USD', label: 'USD - US Dollar' },
+  { value: 'ZAR', label: 'ZAR - South African Rand' },
+  { value: 'KES', label: 'KES - Kenyan Shilling' },
+  { value: 'NGN', label: 'NGN - Nigerian Naira' },
+  { value: 'GHS', label: 'GHS - Ghanaian Cedi' },
+  { value: 'TZS', label: 'TZS - Tanzanian Shilling' },
+  { value: 'UGX', label: 'UGX - Ugandan Shilling' },
+  { value: 'EUR', label: 'EUR - Euro' },
+  { value: 'GBP', label: 'GBP - British Pound' },
+] as const;
 
 function slugify(value: string): string {
   return value
@@ -112,6 +159,11 @@ export function PlanForm() {
   const [loading, setLoading] = useState(editing);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadState, setUploadState] = useState<UploadState>({
+    uploading: false,
+    progress: 0,
+    error: null,
+  });
 
   useEffect(() => {
     if (!editing) return;
@@ -141,112 +193,480 @@ export function PlanForm() {
     setForm((prev) => ({ ...prev, ...patch }));
   };
 
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setUploadState({
+        uploading: false,
+        progress: 0,
+        error: 'Invalid file type. Please upload a JPEG, PNG, or WebP image.',
+      });
+      return;
+    }
+
+    // Validate file size (5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setUploadState({
+        uploading: false,
+        progress: 0,
+        error: 'File size exceeds 5MB limit.',
+      });
+      return;
+    }
+
+    try {
+      setUploadState({ uploading: true, progress: 0, error: null });
+      const response = await adminApi.uploadPlanImage(file);
+      
+      // Construct full URL if it's a relative path
+      const fullUrl = response.url.startsWith('http') 
+        ? response.url 
+        : `${import.meta.env.VITE_API_URL}${response.url}`;
+      
+      handleChange({ heroImageUrl: fullUrl });
+      setUploadState({ uploading: false, progress: 100, error: null });
+    } catch (err: any) {
+      console.error('Failed to upload image', err);
+      setUploadState({
+        uploading: false,
+        progress: 0,
+        error: err?.message || 'Failed to upload image. Please try again.',
+      });
+    }
+  };
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+    
+    // Client-side validation
     if (!form.name || !form.style) {
       setError('Name and style are required.');
       return;
     }
+    
+    if (form.areaSqM < 10) {
+      setError('Area must be at least 10 square meters.');
+      return;
+    }
+    
+    if (form.basePrice < 1000) {
+      setError('Base price must be at least 1000.');
+      return;
+    }
+    
+    if (form.energyRating < 1 || form.energyRating > 5) {
+      setError('Energy rating must be between 1 and 5.');
+      return;
+    }
+    
+    if (form.waterRating < 1 || form.waterRating > 5) {
+      setError('Water rating must be between 1 and 5.');
+      return;
+    }
+    
+    if (form.sustainabilityScore < 0 || form.sustainabilityScore > 100) {
+      setError('Sustainability score must be between 0 and 100.');
+      return;
+    }
+    
+    if (form.isPublished && !form.heroImageUrl) {
+      setError('Published plans require a hero image URL.');
+      return;
+    }
+    
     try {
       setSaving(true);
+      setError(null);
       const payload = toPayload(form, template);
       const response = editing
         ? await adminApi.updatePlan(Number(id), payload)
         : await adminApi.createPlan(payload);
       navigate(`/admin/plans/${response.id}`);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to save plan', err);
-      setError('Unable to save plan. Please review the data and try again.');
+      const errorMessage = err?.message || 'Unable to save plan. Please review the data and try again.';
+      setError(errorMessage);
     } finally {
       setSaving(false);
     }
   };
 
   if (loading) {
-    return <div className="py-6 text-sm text-muted-foreground">Loading plan…</div>;
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center space-y-3">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-sm text-muted-foreground">Loading plan...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <Card>
-      <CardHeader><CardTitle>{editing ? 'Edit Plan' : 'New Plan'}</CardTitle></CardHeader>
-      <CardContent>
-        <form onSubmit={submit} className="grid gap-3 max-w-2xl">
-          {error && <div className="text-sm text-destructive">{error}</div>}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Name</Label>
-              <Input value={form.name} onChange={(e) => handleChange({ name: e.target.value })} required />
+    <div className="max-w-4xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" onClick={() => navigate('/admin/plans')}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div className="flex-1">
+          <h1 className="text-2xl font-bold">{editing ? 'Edit Plan' : 'New Plan'}</h1>
+          <p className="text-sm text-muted-foreground">
+            {editing ? 'Update plan details and specifications' : 'Create a new architectural plan'}
+          </p>
+        </div>
+      </div>
+
+      {error && (
+        <Card className="border-destructive">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-destructive">
+              <X className="h-4 w-4" />
+              <p className="text-sm">{error}</p>
             </div>
-            <div>
-              <Label>Style</Label>
-              <Input value={form.style} onChange={(e) => handleChange({ style: e.target.value })} required />
+          </CardContent>
+        </Card>
+      )}
+
+      <form onSubmit={submit} className="space-y-6">
+        {/* Basic Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Home className="h-5 w-5" />
+              Basic Information
+            </CardTitle>
+            <CardDescription>Essential details about the plan</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Plan Name *</Label>
+                <Input 
+                  id="name"
+                  value={form.name} 
+                  onChange={(e) => handleChange({ name: e.target.value })} 
+                  placeholder="e.g., Modern Villa"
+                  required 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="style">Style *</Label>
+                <Select value={form.style} onValueChange={(value) => handleChange({ style: value })}>
+                  <SelectTrigger id="style">
+                    <SelectValue placeholder="Select a style" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PLAN_STYLES.map((style) => (
+                      <SelectItem key={style.value} value={style.value}>
+                        {style.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </div>
-          <div>
-            <Label>Summary</Label>
-            <Input value={form.summary} onChange={(e) => handleChange({ summary: e.target.value })} />
-          </div>
-          <div>
-            <Label>Description</Label>
-            <Textarea value={form.description} onChange={(e) => handleChange({ description: e.target.value })} rows={4} />
-          </div>
-          <div className="grid grid-cols-4 gap-3">
-            <div>
-              <Label>Bedrooms</Label>
-              <Input type="number" value={form.bedrooms} onChange={(e) => handleChange({ bedrooms: Number(e.target.value) })} />
+            
+            <div className="space-y-2">
+              <Label htmlFor="summary">Summary</Label>
+              <Input 
+                id="summary"
+                value={form.summary} 
+                onChange={(e) => handleChange({ summary: e.target.value })} 
+                placeholder="Brief one-line description"
+              />
             </div>
-            <div>
-              <Label>Bathrooms</Label>
-              <Input type="number" value={form.bathrooms} onChange={(e) => handleChange({ bathrooms: Number(e.target.value) })} />
+            
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea 
+                id="description"
+                value={form.description} 
+                onChange={(e) => handleChange({ description: e.target.value })} 
+                rows={4}
+                placeholder="Detailed description of the plan..."
+              />
             </div>
-            <div>
-              <Label>Floors</Label>
-              <Input type="number" value={form.floors} onChange={(e) => handleChange({ floors: Number(e.target.value) })} />
+          </CardContent>
+        </Card>
+
+        {/* Specifications */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Ruler className="h-5 w-5" />
+              Specifications
+            </CardTitle>
+            <CardDescription>Physical characteristics and dimensions</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="bedrooms" className="flex items-center gap-2">
+                  <Bed className="h-4 w-4" />
+                  Bedrooms
+                </Label>
+                <Input 
+                  id="bedrooms"
+                  type="number" 
+                  min="0" 
+                  value={form.bedrooms} 
+                  onChange={(e) => handleChange({ bedrooms: Number(e.target.value) })} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bathrooms" className="flex items-center gap-2">
+                  <Bath className="h-4 w-4" />
+                  Bathrooms
+                </Label>
+                <Input 
+                  id="bathrooms"
+                  type="number" 
+                  min="0" 
+                  value={form.bathrooms} 
+                  onChange={(e) => handleChange({ bathrooms: Number(e.target.value) })} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="floors" className="flex items-center gap-2">
+                  <Layers className="h-4 w-4" />
+                  Floors
+                </Label>
+                <Input 
+                  id="floors"
+                  type="number" 
+                  min="1" 
+                  value={form.floors} 
+                  onChange={(e) => handleChange({ floors: Number(e.target.value) })} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="area">Area (sqm)</Label>
+                <Input 
+                  id="area"
+                  type="number" 
+                  min="10" 
+                  step="0.01" 
+                  value={form.areaSqM} 
+                  onChange={(e) => handleChange({ areaSqM: Number(e.target.value) })} 
+                />
+              </div>
             </div>
-            <div>
-              <Label>Area (sqm)</Label>
-              <Input type="number" value={form.areaSqM} onChange={(e) => handleChange({ areaSqM: Number(e.target.value) })} />
+          </CardContent>
+        </Card>
+
+        {/* Pricing */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              Pricing
+            </CardTitle>
+            <CardDescription>Base pricing information</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="basePrice">Base Price</Label>
+                <Input 
+                  id="basePrice"
+                  type="number" 
+                  min="1000" 
+                  step="0.01" 
+                  value={form.basePrice} 
+                  onChange={(e) => handleChange({ basePrice: Number(e.target.value) })} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="currency">Currency</Label>
+                <Select value={form.baseCurrency} onValueChange={(value) => handleChange({ baseCurrency: value })}>
+                  <SelectTrigger id="currency">
+                    <SelectValue placeholder="Select currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CURRENCIES.map((currency) => (
+                      <SelectItem key={currency.value} value={currency.value}>
+                        {currency.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <Label>Base Price</Label>
-              <Input type="number" value={form.basePrice} onChange={(e) => handleChange({ basePrice: Number(e.target.value) })} />
+          </CardContent>
+        </Card>
+
+        {/* Sustainability */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Leaf className="h-5 w-5" />
+              Sustainability Ratings
+            </CardTitle>
+            <CardDescription>Environmental and efficiency metrics</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="sustainability" className="flex items-center gap-2">
+                  <Leaf className="h-4 w-4" />
+                  Sustainability Score (0-100)
+                </Label>
+                <Input 
+                  id="sustainability"
+                  type="number" 
+                  min="0" 
+                  max="100" 
+                  value={form.sustainabilityScore} 
+                  onChange={(e) => handleChange({ sustainabilityScore: Number(e.target.value) })} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="energy" className="flex items-center gap-2">
+                  <Zap className="h-4 w-4" />
+                  Energy Rating (1-5)
+                </Label>
+                <Input 
+                  id="energy"
+                  type="number" 
+                  min="1" 
+                  max="5" 
+                  value={form.energyRating} 
+                  onChange={(e) => handleChange({ energyRating: Number(e.target.value) })} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="water" className="flex items-center gap-2">
+                  <Droplets className="h-4 w-4" />
+                  Water Rating (1-5)
+                </Label>
+                <Input 
+                  id="water"
+                  type="number" 
+                  min="1" 
+                  max="5" 
+                  value={form.waterRating} 
+                  onChange={(e) => handleChange({ waterRating: Number(e.target.value) })} 
+                />
+              </div>
             </div>
-            <div>
-              <Label>Currency</Label>
-              <Input value={form.baseCurrency} onChange={(e) => handleChange({ baseCurrency: e.target.value.toUpperCase() })} />
+          </CardContent>
+        </Card>
+
+        {/* Hero Image */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5" />
+              Hero Image
+            </CardTitle>
+            <CardDescription>Main image for the plan (JPEG, PNG, or WebP, max 5MB)</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Input 
+                type="file" 
+                accept="image/jpeg,image/jpg,image/png,image/webp"
+                onChange={handleFileUpload}
+                disabled={uploadState.uploading || saving}
+                className="cursor-pointer"
+              />
+              {uploadState.uploading && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                  <span>Uploading...</span>
+                </div>
+              )}
+              {uploadState.error && (
+                <div className="flex items-center gap-2 text-sm text-destructive">
+                  <X className="h-4 w-4" />
+                  <span>{uploadState.error}</span>
+                </div>
+              )}
+              {form.heroImageUrl && (
+                <div className="space-y-3">
+                  <div className="relative rounded-lg border overflow-hidden">
+                    <img 
+                      src={form.heroImageUrl} 
+                      alt="Hero preview" 
+                      className="w-full h-64 object-cover"
+                    />
+                  </div>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleChange({ heroImageUrl: '' })}
+                    disabled={saving}
+                    className="w-full"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Remove Image
+                  </Button>
+                </div>
+              )}
             </div>
-            <div className="flex items-center gap-2 pt-6">
-              <Switch checked={form.isPublished} onCheckedChange={(checked) => handleChange({ isPublished: checked })} />
-              <span className="text-sm">Published</span>
+          </CardContent>
+        </Card>
+
+        {/* Publishing */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Publishing</CardTitle>
+            <CardDescription>Control plan visibility</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="published">Published Status</Label>
+                <p className="text-sm text-muted-foreground">
+                  Make this plan visible to the public
+                </p>
+              </div>
+              <Switch 
+                id="published"
+                checked={form.isPublished} 
+                onCheckedChange={(checked) => handleChange({ isPublished: checked })} 
+              />
             </div>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <Label>Sustainability Score</Label>
-              <Input type="number" value={form.sustainabilityScore} onChange={(e) => handleChange({ sustainabilityScore: Number(e.target.value) })} />
-            </div>
-            <div>
-              <Label>Energy Rating</Label>
-              <Input type="number" value={form.energyRating} onChange={(e) => handleChange({ energyRating: Number(e.target.value) })} />
-            </div>
-            <div>
-              <Label>Water Rating</Label>
-              <Input type="number" value={form.waterRating} onChange={(e) => handleChange({ waterRating: Number(e.target.value) })} />
-            </div>
-          </div>
-          <div>
-            <Label>Hero Image URL</Label>
-            <Input value={form.heroImageUrl} onChange={(e) => handleChange({ heroImageUrl: e.target.value })} />
-          </div>
-          <div className="flex gap-2">
-            <Button type="submit" disabled={saving}>{saving ? 'Saving…' : editing ? 'Save' : 'Create'}</Button>
-            <Button type="button" variant="outline" onClick={() => navigate('/admin/plans')} disabled={saving}>Cancel</Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+          </CardContent>
+        </Card>
+
+        {/* Actions */}
+        <div className="flex items-center gap-3 sticky bottom-0 bg-background py-4 border-t">
+          <Button 
+            type="submit" 
+            disabled={saving}
+            className="min-w-32"
+          >
+            {saving ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Saving...
+              </>
+            ) : (
+              <>
+                <Check className="h-4 w-4 mr-2" />
+                {editing ? 'Save Changes' : 'Create Plan'}
+              </>
+            )}
+          </Button>
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => navigate('/admin/plans')} 
+            disabled={saving}
+          >
+            Cancel
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 }
 
@@ -289,7 +709,7 @@ export function PlanDetail() {
 
   const remove = async () => {
     if (!plan) return;
-    if (!confirm('Delete this plan?')) return;
+    if (!confirm('Delete this plan? This action cannot be undone.')) return;
     try {
       await adminApi.deletePlan(plan.id);
       navigate('/admin/plans');
@@ -300,36 +720,281 @@ export function PlanDetail() {
   };
 
   if (loading) {
-    return <div className="py-6 text-sm text-muted-foreground">Loading plan…</div>;
-  }
-  if (error) {
-    return <div className="text-sm text-destructive">{error}</div>;
-  }
-  if (!plan) return <div>Plan not found.</div>;
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">{plan.name}</h2>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate(`/admin/plans/${plan.id}/edit`)}>Edit</Button>
-          <Button variant="destructive" onClick={remove}>Delete</Button>
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center space-y-3">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-sm text-muted-foreground">Loading plan...</p>
         </div>
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="border-destructive">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-2 text-destructive">
+            <X className="h-4 w-4" />
+            <p className="text-sm">{error}</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!plan) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">Plan not found.</p>
+        <Button variant="outline" onClick={() => navigate('/admin/plans')} className="mt-4">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Plans
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-5xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/admin/plans')}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold">{plan.name}</h1>
+              <div className="flex items-center gap-2 mt-1">
+                <Badge variant={plan.is_published ? 'default' : 'secondary'}>
+                  {plan.is_published ? 'Published' : 'Draft'}
+                </Badge>
+                <Badge variant="outline">{plan.style}</Badge>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => navigate(`/admin/plans/${plan.id}/edit`)}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit
+          </Button>
+          <Button variant="destructive" onClick={remove}>
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete
+          </Button>
+        </div>
+      </div>
+
+      {/* Hero Image */}
+      {plan.hero_image_url && (
+        <Card className="overflow-hidden">
+          <img 
+            src={plan.hero_image_url} 
+            alt={plan.name}
+            className="w-full h-96 object-cover"
+          />
+        </Card>
+      )}
+
+      {/* Summary */}
+      {plan.summary && (
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-lg text-muted-foreground">{plan.summary}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Specifications */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Ruler className="h-5 w-5" />
+              Specifications
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Bed className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Bedrooms</p>
+                  <p className="text-lg font-semibold">{plan.bedrooms}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Bath className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Bathrooms</p>
+                  <p className="text-lg font-semibold">{plan.bathrooms}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Layers className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Floors</p>
+                  <p className="text-lg font-semibold">{plan.floors}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Ruler className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Area</p>
+                  <p className="text-lg font-semibold">{plan.area_sq_m} sqm</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Pricing */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              Pricing
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-lg bg-green-500/10">
+                <DollarSign className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Base Price</p>
+                <p className="text-2xl font-bold">
+                  {plan.base_currency} {Number(plan.base_price).toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Sustainability */}
       <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Leaf className="h-5 w-5" />
+            Sustainability Ratings
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium flex items-center gap-2">
+                  <Leaf className="h-4 w-4 text-green-600" />
+                  Sustainability Score
+                </span>
+                <span className="text-lg font-bold">{plan.sustainability_score}/100</span>
+              </div>
+              <div className="w-full bg-secondary rounded-full h-2">
+                <div 
+                  className="bg-green-600 h-2 rounded-full transition-all" 
+                  style={{ width: `${plan.sustainability_score}%` }}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-yellow-600" />
+                  Energy Rating
+                </span>
+                <span className="text-lg font-bold">{plan.energy_rating}/5</span>
+              </div>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <div 
+                    key={star}
+                    className={`h-2 flex-1 rounded-full ${
+                      star <= plan.energy_rating ? 'bg-yellow-600' : 'bg-secondary'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium flex items-center gap-2">
+                  <Droplets className="h-4 w-4 text-blue-600" />
+                  Water Rating
+                </span>
+                <span className="text-lg font-bold">{plan.water_rating}/5</span>
+              </div>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <div 
+                    key={star}
+                    className={`h-2 flex-1 rounded-full ${
+                      star <= plan.water_rating ? 'bg-blue-600' : 'bg-secondary'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Description */}
+      {plan.description && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Description</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground whitespace-pre-wrap">{plan.description}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Metadata */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Metadata</CardTitle>
+        </CardHeader>
         <CardContent className="space-y-2 text-sm">
-          <div><strong>Status:</strong> {plan.is_published ? 'Published' : 'Draft'}</div>
-          <div><strong>Style:</strong> {plan.style}</div>
-          <div><strong>Bedrooms:</strong> {plan.bedrooms}</div>
-          <div><strong>Bathrooms:</strong> {plan.bathrooms}</div>
-          <div><strong>Floors:</strong> {plan.floors}</div>
-          <div><strong>Area:</strong> {plan.area_sq_m} sqm</div>
-          <div><strong>Base Price:</strong> ${Number(plan.base_price).toLocaleString()} {plan.base_currency}</div>
-          <div><strong>Sustainability Score:</strong> {plan.sustainability_score}</div>
-          <div><strong>Energy Rating:</strong> {plan.energy_rating}</div>
-          <div><strong>Water Rating:</strong> {plan.water_rating}</div>
-          <div><strong>Summary:</strong> {plan.summary || '-'}</div>
-          <div><strong>Description:</strong> {plan.description || '-'}</div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Plan ID</span>
+            <span className="font-mono">{plan.id}</span>
+          </div>
+          <Separator />
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Slug</span>
+            <span className="font-mono">{plan.slug}</span>
+          </div>
+          <Separator />
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Created</span>
+            <span>{new Date(plan.created_at).toLocaleDateString()}</span>
+          </div>
+          <Separator />
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Last Updated</span>
+            <span>{new Date(plan.updated_at).toLocaleDateString()}</span>
+          </div>
+          {plan.published_at && (
+            <>
+              <Separator />
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Published</span>
+                <span>{new Date(plan.published_at).toLocaleDateString()}</span>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>

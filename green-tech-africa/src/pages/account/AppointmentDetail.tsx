@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Loader2, ArrowLeft, Calendar as CalendarIcon, MapPin } from "lucide-react";
-import { appointmentsApi, type ViewingAppointmentDetail } from "@/lib/api";
+import { useToast } from "@/components/ui/use-toast";
+import { api, appointmentsApi, type ViewingAppointmentDetail } from "@/lib/api";
 
 const badgeVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   pending: 'secondary',
@@ -24,6 +25,7 @@ const formatDateTime = (value: string) => {
 
 const AppointmentDetail = () => {
   const { id } = useParams();
+  const { toast } = useToast();
 
   const { data, isLoading, error } = useQuery<ViewingAppointmentDetail>({
     queryKey: ['appointments', 'detail', id],
@@ -39,6 +41,19 @@ const AppointmentDetail = () => {
     return [data.city, data.region, data.country].filter(Boolean).join(', ');
   }, [data]);
 
+  const handleCancel = async () => {
+    if (!id) return;
+    try {
+      await api.patch(`/api/appointments/${id}/`, { status: "cancelled" });
+      toast({ title: "Appointment Cancelled", description: "The appointment has been cancelled successfully." });
+      // Optionally refetch or redirect
+    } catch (err: any) {
+      toast({ title: "Failed to cancel", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const canCancel = ['pending', 'confirmed'].includes(status);
+
   return (
     <Layout>
       <section className="py-10 bg-gradient-to-br from-background via-accent/30 to-background">
@@ -52,11 +67,16 @@ const AppointmentDetail = () => {
               </div>
             )}
           </div>
-          <Button variant="outline" asChild>
-            <Link to="/account/appointments">
-              <ArrowLeft className="w-4 h-4 mr-1" /> Back
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            {data && canCancel && (
+              <Button variant="destructive" onClick={handleCancel}>Cancel Appointment</Button>
+            )}
+            <Button variant="outline" asChild>
+              <Link to="/account/appointments">
+                <ArrowLeft className="w-4 h-4 mr-1" /> Back
+              </Link>
+            </Button>
+          </div>
         </div>
       </section>
 

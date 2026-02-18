@@ -8,6 +8,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  fetchLeadDetail,
+  updateLead,
+  fetchLeadNotes,
+  createLeadNote,
+  fetchLeadActivity,
+  initiateBuildRequest,
+} from "@/lib/api";
+import { useNavigate } from "react-router-dom";
 import { Lead, LeadActivity, LeadNote, LeadPriority, LeadStatus } from "@/types/lead";
 
 const STATUS_OPTIONS: LeadStatus[] = ["new", "contacted", "qualified", "quoted", "closed"];
@@ -51,6 +60,46 @@ const LeadDetail = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savingNote, setSavingNote] = useState(false);
+  const navigate = useNavigate();
+
+  const fetchActivityData = useCallback(async () => {
+    if (!leadId) return;
+    try {
+      const data = await fetchLeadActivity(leadId);
+      setActivity(data);
+    } catch (err) {
+      console.error("Failed to fetch activity", err);
+    }
+  }, [leadId]);
+
+  const handleCreateQuote = useCallback(async () => {
+    if (!lead) return;
+
+    setLoading(true);
+    try {
+      let currentLead = lead;
+      if (lead.source_type !== "build_request") {
+        const result = await initiateBuildRequest(lead.id);
+        currentLead = result.lead;
+        setLead(currentLead);
+        fetchActivityData();
+      }
+
+      if (currentLead.source_type === "build_request") {
+        const params = new URLSearchParams({
+          lead: currentLead.id,
+          request: currentLead.source_id,
+        });
+        navigate(`/quotes/new?${params.toString()}`);
+      } else {
+        throw new Error("Unable to create a build request for this lead.");
+      }
+    } catch (err: any) {
+      setError(err.message ?? "Failed to initiate quote");
+    } finally {
+      setLoading(false);
+    }
+  }, [lead, navigate, fetchActivityData]);
 
   const quoteHref = useMemo(() => {
     if (!lead) return "/quotes/new";
@@ -61,30 +110,20 @@ const LeadDetail = () => {
     return `/quotes/new?${params.toString()}`;
   }, [lead]);
 
-  const fetchLead = useCallback(async () => {
+  const fetchLeadData = useCallback(async () => {
     if (!leadId) return;
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`/api/leads/${leadId}/`);
-      if (!response.ok) throw new Error("Lead not found");
-      const payload: Lead = await response.json();
-      let resolvedLead = payload;
+      let payload = await fetchLeadDetail(leadId);
       if (payload.is_unread) {
         try {
-          const markResponse = await fetch(`/api/leads/${leadId}/`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ is_unread: false }),
-          });
-          if (markResponse.ok) {
-            resolvedLead = await markResponse.json();
-          }
+          payload = await updateLead(leadId, { is_unread: false });
         } catch (err) {
           console.warn("Failed to mark lead as read", err);
         }
       }
-      setLead(resolvedLead);
+      setLead(payload);
     } catch (err: any) {
       setError(err.message ?? "Unable to load lead");
     } finally {
@@ -92,66 +131,50 @@ const LeadDetail = () => {
     }
   }, [leadId]);
 
-  const fetchNotes = useCallback(async () => {
+  const fetchNotesData = useCallback(async () => {
     if (!leadId) return;
-    const response = await fetch(`/api/leads/${leadId}/notes/`);
-    if (response.ok) {
-      const data: LeadNote[] = await response.json();
+    try {
+      const data = await fetchLeadNotes(leadId);
       setNotes(data);
-    }
-  }, [leadId]);
-
-  const fetchActivity = useCallback(async () => {
-    if (!leadId) return;
-    const response = await fetch(`/api/leads/${leadId}/activity/`);
-    if (response.ok) {
-      const data: LeadActivity[] = await response.json();
-      setActivity(data);
+    } catch (err) {
+      console.error("Failed to fetch notes", err);
     }
   }, [leadId]);
 
   useEffect(() => {
-    fetchLead();
-    fetchNotes();
-    fetchActivity();
-  }, [fetchActivity, fetchLead, fetchNotes]);
+    fetchLeadData();
+    fetchNotesData();
+    fetchActivityData();
+  }, [fetchActivityData, fetchLeadData, fetchNotesData]);
 
-  const updateLead = useCallback(
+  const handleUpdateLead = useCallback(
     async (patch: Partial<Pick<Lead, "status" | "priority">>) => {
       if (!leadId) return;
-      const response = await fetch(`/api/leads/${leadId}/`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch),
-      });
-      if (!response.ok) throw new Error("Failed to update lead");
-      const payload: Lead = await response.json();
-      setLead(payload);
-      fetchActivity();
+      try {
+        const payload = await updateLead(leadId, patch);
+        setLead(payload);
+        fetchActivityData();
+      } catch (err) {
+        console.error("Failed to update lead", err);
+      }
     },
-    [fetchActivity, leadId],
+    [fetchActivityData, leadId],
   );
 
   const handleAddNote = useCallback(async () => {
     if (!noteDraft.trim() || !leadId) return;
     try {
       setSavingNote(true);
-      const response = await fetch(`/api/leads/${leadId}/notes/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: noteDraft.trim() }),
-      });
-      if (!response.ok) throw new Error("Unable to save note");
-      const created: LeadNote = await response.json();
+      const created = await createLeadNote(leadId, noteDraft.trim());
       setNotes((current) => [created, ...current]);
       setNoteDraft("");
-      fetchActivity();
+      fetchActivityData();
     } catch (err) {
-      console.error(err);
+      console.error("Failed to add note", err);
     } finally {
       setSavingNote(false);
     }
-  }, [fetchActivity, leadId, noteDraft]);
+  }, [fetchActivityData, leadId, noteDraft]);
 
   const metadataItems = useMemo(() => {
     if (!lead) return [] as { label: string; value: string }[];
@@ -206,11 +229,11 @@ const LeadDetail = () => {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Button asChild variant="outline">
+            <Button variant="outline" asChild>
               <Link to="/leads">Back</Link>
             </Button>
-            <Button asChild>
-              <Link to={quoteHref}>Create Quote</Link>
+            <Button onClick={handleCreateQuote} disabled={loading}>
+              {loading ? "Preparing…" : "Create Quote"}
             </Button>
           </div>
         </div>
@@ -236,7 +259,7 @@ const LeadDetail = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <div className="text-xs text-muted-foreground uppercase mb-1">Status</div>
-                        <Select value={lead.status} onValueChange={(value) => void updateLead({ status: value as LeadStatus }).catch(console.error)}>
+                        <Select value={lead.status} onValueChange={(value) => void handleUpdateLead({ status: value as LeadStatus }).catch(console.error)}>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
@@ -251,7 +274,7 @@ const LeadDetail = () => {
                       </div>
                       <div>
                         <div className="text-xs text-muted-foreground uppercase mb-1">Priority</div>
-                        <Select value={lead.priority} onValueChange={(value) => void updateLead({ priority: value as LeadPriority }).catch(console.error)}>
+                        <Select value={lead.priority} onValueChange={(value) => void handleUpdateLead({ priority: value as LeadPriority }).catch(console.error)}>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>

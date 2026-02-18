@@ -1,53 +1,76 @@
 # Technology Stack
 
-## Backend (Django)
-- **Framework**: Django 4.x with Django REST Framework (DRF)
+## Backend
+
+- **Framework**: Django with Django REST Framework
+- **Language**: Python
+- **ASGI Server**: Daphne (for WebSocket support)
 - **Database**: PostgreSQL (production), SQLite (development)
-- **Authentication**: JWT tokens via `djangorestframework-simplejwt`
-- **Async Tasks**: Celery with Redis broker
-- **Real-time**: Django Channels (WebSockets) for chat and live updates
-- **File Storage**: S3-compatible storage with django-storages
+- **Caching/Message Broker**: Redis
+- **Task Queue**: Celery
+- **Real-time**: Django Channels for WebSocket connections
+- **Authentication**: JWT via djangorestframework-simplejwt
 - **API Documentation**: drf-yasg (Swagger/OpenAPI)
 
-## Frontend (React)
+### Backend Apps Structure
+- `accounts`: User management and authentication
+- `construction`: Project tracking, milestones, documents
+- `plans`: Building plans and templates
+- `properties`: Property listings and management
+- `quotes`: Quote requests and responses
+- `notifications`: Real-time notification system
+- `finances`: Financial tracking
+- `leads`: Lead management
+- `locations`: Location data (regions, cities)
+- `sitecontent`: CMS functionality
+- `dashboard`: Analytics and reporting
+
+## Frontend
+
 - **Framework**: React 18 with TypeScript
 - **Build Tool**: Vite
-- **Styling**: Tailwind CSS with shadcn/ui components
-- **State Management**: TanStack Query for server state
+- **UI Library**: Radix UI primitives
+- **Styling**: Tailwind CSS
 - **Forms**: React Hook Form with Zod validation
-- **Routing**: React Router DOM
-- **Charts**: Recharts for analytics dashboards
+- **Routing**: React Router v6
+- **State Management**: TanStack Query (React Query)
+- **Icons**: Lucide React
 
-## Infrastructure
-- **Containerization**: Docker with docker-compose for local development
-- **Database**: PostgreSQL 16 (production), SQLite (development)
-- **Cache/Broker**: Redis 7 for Celery and caching
-- **Web Server**: Nginx (production), Vite dev server (development)
+### Frontend Apps
+1. **green-tech-africa** (port 5173): Public website
+2. **green-agent-frontend** (port 5174): Agent portal
+3. **green-admin-frontend** (port 5175): Admin dashboard
 
-## Development Tools
-- **Code Quality**: ESLint, Black (Python), Flake8, isort
-- **Testing**: Vitest (frontend), pytest (backend)
-- **Package Management**: npm/Node 20 (frontend), pip/venv (backend)
+## Development Environment
 
-## Common Commands
+### Local Development with Docker Compose
 
-### Backend Development
+Start all services:
 ```bash
-# Setup virtual environment
+docker-compose -f docker-compose.local.yml up
+```
+
+Services:
+- Backend API: http://localhost:8000
+- Public Frontend: http://localhost:5173
+- Agent Frontend: http://localhost:5174
+- Admin Frontend: http://localhost:5175
+- PostgreSQL: localhost:5432
+- Redis: localhost:6379
+
+### Backend Commands
+
+```bash
+# Navigate to backend directory
 cd green_tech_backend
-python -m venv venv
-venv\Scripts\activate  # Windows
-source venv/bin/activate  # Linux/Mac
 
-# Install dependencies
-pip install -r requirements.txt
-
-# Database operations
-python manage.py makemigrations
+# Run migrations
 python manage.py migrate
+
+# Create superuser
 python manage.py createsuperuser
 
-# Run development server
+# Run development server (without Docker)
 python manage.py runserver
 
 # Run Celery worker
@@ -55,15 +78,23 @@ celery -A core worker -l info
 
 # Run tests
 pytest
+
+# Code formatting
+black .
+isort .
+flake8
 ```
 
-### Frontend Development
+### Frontend Commands
+
 ```bash
-# Install dependencies (any frontend)
-cd green-tech-africa  # or green-agent-frontend, green-admin-frontend
+# Navigate to any frontend directory
+cd green-admin-frontend  # or green-agent-frontend or green-tech-africa
+
+# Install dependencies
 npm install
 
-# Development server
+# Run development server
 npm run dev
 
 # Build for production
@@ -71,30 +102,30 @@ npm run build
 
 # Run tests
 npm run test
-npm run test:run  # Single run without watch mode
 
-# Linting
+# Lint code
 npm run lint
 ```
 
-### Docker Development
-```bash
-# Full stack local development
-docker compose -f docker-compose.local.yml up --build
+## Testing
 
-# Production-like build
-docker compose --env-file .env.coolify -f docker-compose.coolify.yml up --build
-```
+- **Backend**: pytest with pytest-django, factory-boy for fixtures
+- **Frontend**: Vitest with React Testing Library, jsdom
 
-## Environment Configuration
-- Use `.env` files for environment-specific configuration
-- Backend uses `python-dotenv` for environment variable loading
-- Frontend uses Vite's built-in environment variable support (`VITE_` prefix)
-- Docker compose configurations handle service orchestration
+## Deployment
 
-## API Conventions
-- RESTful endpoints under `/api/` prefix
-- JWT authentication for protected endpoints
-- Pagination using DRF's PageNumberPagination (20 items per page)
-- CORS configured for all frontend origins in development
-- OpenAPI documentation available at `/swagger/` and `/redoc/`
+Production deployment uses Coolify with separate Docker containers for each service. See `docker-compose.coolify.yml` for production configuration.
+
+## Environment Variables
+
+Backend requires:
+- `DJANGO_SECRET_KEY`
+- `POSTGRES_*` (database credentials)
+- `REDIS_URL`
+- `DJANGO_ALLOWED_HOSTS`
+- `DJANGO_CORS_ALLOWED_ORIGINS`
+- `FRONTEND_URL`, `SITE_URL`
+
+Frontend requires:
+- `VITE_API_URL`: Backend API endpoint
+- `VITE_APP_ENV`: Environment (local/production)

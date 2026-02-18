@@ -38,6 +38,7 @@ services:
     command: daphne -b 0.0.0.0 -p 8000 core.asgi:application
     volumes:
       - ./green_tech_backend:/app
+      - media_files:/app/media
     environment:
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-secret-key}
       DJANGO_DEBUG: ${DJANGO_DEBUG:-1}
@@ -71,6 +72,7 @@ services:
     command: celery -A core worker -l info
     volumes:
       - ./green_tech_backend:/app
+      - media_files:/app/media
     environment:
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-secret-key}
       DJANGO_DEBUG: ${DJANGO_DEBUG:-1}
@@ -99,6 +101,7 @@ services:
   frontend_public:
     image: node:20-alpine
     working_dir: /app
+    shm_size: 1g
     command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
     environment:
       VITE_API_URL: ${PUBLIC_API_URL:-http://localhost:8000}
@@ -115,6 +118,7 @@ services:
   frontend_agent:
     image: node:20-alpine
     working_dir: /app
+    shm_size: 1g
     command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5174"
     environment:
       VITE_API_URL: ${PUBLIC_API_URL:-http://localhost:8000}
@@ -131,6 +135,7 @@ services:
   frontend_admin:
     image: node:20-alpine
     working_dir: /app
+    shm_size: 1g
     command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5175"
     environment:
       VITE_API_URL: ${PUBLIC_API_URL:-http://localhost:8000}
@@ -148,6 +153,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  media_files:
   frontend_public_node_modules:
   frontend_agent_node_modules:
   frontend_admin_node_modules:

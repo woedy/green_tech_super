@@ -20,7 +20,7 @@ export const ValidationMessages = {
     format: 'Name can only contain letters, spaces, hyphens, and apostrophes'
   },
   agent: {
-    userType: 'Please select whether you are registering as an Agent or Builder',
+    userType: 'Please select whether you are registering as an Agent, Builder, or Admin',
     experience: 'Please specify your years of experience in the field',
     specialization: 'Please select your area of specialization'
   },

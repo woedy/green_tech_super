@@ -18,14 +18,24 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const navItems = [
-    { name: "Dashboard", path: "/dashboard" },
-    { name: "Leads", path: "/leads" },
-    { name: "Quotes", path: "/quotes" },
-    { name: "Projects", path: "/projects" },
-    { name: "Calendar", path: "/calendar" },
-    { name: "Messages", path: "/messages" },
+  // Public navigation items (when not authenticated)
+  const publicNavItems = [
+    { name: "Home", path: "/" },
+    { name: "About", path: "/about" },
+    { name: "Services", path: "/services" },
+    { name: "Contact", path: "/contact" },
   ];
+
+  // Authenticated navigation items (in-app features)
+  const authNavItems = [
+    { name: "Dashboard", path: "/dashboard" },
+    { name: "Properties", path: "/properties" },
+    { name: "Projects", path: "/projects" },
+    { name: "Quotes", path: "/quotes" },
+    { name: "Leads", path: "/leads" },
+  ];
+
+  const navItems = authUser ? authNavItems : publicNavItems;
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -193,43 +203,8 @@ const Navbar = () => {
                 ) : (
                   <>
                     <Button variant="outline" className="w-full" asChild>
-                      <Link to="/dashboard" onClick={() => setIsOpen(false)}>
-                        Dashboard
-                      </Link>
-                    </Button>
-                    <Button variant="ghost" className="w-full" asChild>
-                      <Link to="/leads" onClick={() => setIsOpen(false)}>
-                        Requests
-                      </Link>
-                    </Button>
-                    <Button variant="ghost" className="w-full" asChild>
-                      <Link to="/quotes" onClick={() => setIsOpen(false)}>
-                        Quotes
-                      </Link>
-                    </Button>
-                    <Button variant="ghost" className="w-full" asChild>
-                      <Link to="/projects" onClick={() => setIsOpen(false)}>
-                        Projects
-                      </Link>
-                    </Button>
-                    <Button variant="ghost" className="w-full" asChild>
-                      <Link to="/calendar" onClick={() => setIsOpen(false)}>
-                        Appointments
-                      </Link>
-                    </Button>
-                    <Button variant="ghost" className="w-full" asChild>
-                      <Link to="/messages" onClick={() => setIsOpen(false)}>
-                        Messages
-                      </Link>
-                    </Button>
-                    <Button variant="ghost" className="w-full" asChild>
                       <Link to="/profile" onClick={() => setIsOpen(false)}>
                         Profile
-                      </Link>
-                    </Button>
-                    <Button variant="ghost" className="w-full" asChild>
-                      <Link to="/notifications" onClick={() => setIsOpen(false)}>
-                        Notifications
                       </Link>
                     </Button>
                     <Button variant="outline" className="w-full" onClick={() => { setIsOpen(false); onSignOut(); }}>

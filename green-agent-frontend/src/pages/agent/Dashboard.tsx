@@ -15,7 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 const Dashboard = () => {
   const { user } = useAuth();
-  
+
   const { data: analytics } = useQuery({
     queryKey: ["agent-analytics"],
     queryFn: () => fetchAgentAnalytics(),
@@ -41,7 +41,7 @@ const Dashboard = () => {
   const quotesSent = recentQuotes.filter((quote) => quote.status === "sent" || quote.status === "viewed" || quote.status === "accepted").length;
   const activeProjects = analytics?.projects.active ?? analytics?.projects.total ?? 0;
   const conversionRate = analytics?.conversion_rates?.lead_to_quote ?? 0;
-  
+
   // Ghana-specific metrics
   const totalRevenue = recentQuotes.reduce((sum, q) => sum + (q.total_amount || 0), 0);
   const avgQuoteValue = quotesSent > 0 ? totalRevenue / quotesSent : 0;
@@ -84,13 +84,17 @@ const Dashboard = () => {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <h1 className="text-3xl font-bold">Welcome back, {user?.name?.split(' ')[0] || 'Agent'}</h1>
+                <h1 className="text-3xl font-bold">
+                  Welcome back, {user?.first_name || (user?.role === 'builder' ? 'Builder' : 'Agent')}
+                </h1>
                 <Badge variant="outline" className="text-xs">
                   <MapPin className="w-3 h-3 mr-1" />
                   {user?.location || 'Ghana'}
                 </Badge>
               </div>
-              <p className="text-muted-foreground">Manage your leads, quotes, and sustainable building projects</p>
+              <p className="text-muted-foreground">
+                Manage your leads, quotes, and sustainable building projects
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <Button asChild>
@@ -113,7 +117,7 @@ const Dashboard = () => {
           {kpis.map((kpi) => {
             const Icon = kpi.icon;
             const TrendIcon = kpi.trend === "up" ? TrendingUp : kpi.trend === "down" ? TrendingDown : null;
-            
+
             return (
               <Card key={kpi.label} className="hover:shadow-md transition-shadow">
                 <CardContent className="p-6">

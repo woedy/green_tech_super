@@ -5,6 +5,7 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.core.validators import MinValueValidator
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
@@ -188,3 +189,14 @@ class PropertyEcoFeature(models.Model):
 
     def __str__(self):
         return f"{self.property.title} - {self.eco_feature.name}"
+
+
+# Property Transaction Models are now in models_transactions.py
+# Import them here for backward compatibility
+from .models_transactions import (
+    TransactionType,
+    TransactionStatus,
+    PropertyTransaction,
+    TransactionDocument,
+    TransactionNote
+)

@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
+import { QuoteChat } from "@/components/quotes/QuoteChat";
 import type { QuoteDetail as QuoteDetailType, QuoteStatus } from "@/types/quote";
 
 const STATUS_BADGES: Record<string, { label: string; variant: "default" | "outline" | "secondary" | "destructive" }> = {
@@ -205,6 +206,8 @@ const QuoteDetail = () => {
                     ))}
                   </CardContent>
                 </Card>
+
+                <QuoteChat quoteId={quote.id} />
               </div>
 
               <div className="space-y-6">

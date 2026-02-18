@@ -8,6 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { fetchLeads, updateLead } from "@/lib/api";
+import { asArray } from "@/types/api";
 import { Lead, LeadPriority, LeadStatus } from "@/types/lead";
 
 const STATUS_OPTIONS: { value: LeadStatus | "all"; label: string }[] = [
@@ -78,27 +80,28 @@ const Leads = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchLeads = useCallback(async () => {
+  const fetchLeadsData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch("/api/leads/?page_size=200");
-      if (!response.ok) {
-        throw new Error("Unable to load leads");
-      }
-      const payload = await response.json();
-      const records: Lead[] = payload.results ?? payload;
+
+      const payload = await fetchLeads({
+        status: statusFilter === "all" ? undefined : statusFilter,
+        priority: priorityFilter === "all" ? undefined : priorityFilter,
+        page_size: 200,
+      });
+      const records = asArray(payload);
       setLeads(sortLeads(records));
     } catch (err: any) {
       setError(err.message ?? "Failed to load leads");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [statusFilter, priorityFilter]);
 
   useEffect(() => {
-    fetchLeads();
-  }, [fetchLeads]);
+    fetchLeadsData();
+  }, [fetchLeadsData]);
 
   useEffect(() => {
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
@@ -121,18 +124,15 @@ const Leads = () => {
     };
   }, []);
 
-  const updateLead = useCallback(async (id: string, patch: Partial<Pick<Lead, "status" | "priority" | "is_unread">>) => {
-    const response = await fetch(`/api/leads/${id}/`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(patch),
-    });
-    if (!response.ok) {
-      throw new Error("Unable to update lead");
+  const handleUpdateLead = useCallback(async (id: string, patch: Partial<Pick<Lead, "status" | "priority" | "is_unread">>) => {
+    try {
+      const payload = await updateLead(id, patch);
+      setLeads((current) => sortLeads([...current.filter((item) => item.id !== payload.id), payload]));
+      return payload;
+    } catch (err: any) {
+      console.error("Failed to update lead", err);
+      throw err;
     }
-    const payload: Lead = await response.json();
-    setLeads((current) => sortLeads([...current.filter((item) => item.id !== payload.id), payload]));
-    return payload;
   }, []);
 
   const filteredLeads = useMemo(() => {
@@ -276,7 +276,7 @@ const Leads = () => {
                                   key={status}
                                   size="xs"
                                   variant="outline"
-                                  onClick={() => void updateLead(lead.id, { status }).catch((err) => console.error(err))}
+                                  onClick={() => void handleUpdateLead(lead.id, { status }).catch((err) => console.error(err))}
                                 >
                                   {statusTitle[status]}
                                 </Button>
@@ -325,7 +325,7 @@ const Leads = () => {
                                 key={status}
                                 size="xs"
                                 variant="outline"
-                                onClick={() => void updateLead(card.id, { status }).catch((err) => console.error(err))}
+                                onClick={() => void handleUpdateLead(card.id, { status }).catch((err) => console.error(err))}
                               >
                                 Move to {statusTitle[status]}
                               </Button>

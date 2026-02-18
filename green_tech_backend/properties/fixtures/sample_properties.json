@@ -21,9 +21,15 @@
       "sustainability_score": 90,
       "energy_rating": 5,
       "water_rating": 4,
-      "eco_features": ["Solar PV", "Grey water recycling", "EV charger"],
-      "amenities": ["Infinity pool", "Home office", "Smart security"],
-      "highlights": ["Net-zero ready", "Walkable community"],
+      "amenities": [
+        "Infinity pool",
+        "Home office",
+        "Smart security"
+      ],
+      "highlights": [
+        "Net-zero ready",
+        "Walkable community"
+      ],
       "city": "Accra",
       "country": "Ghana",
       "region": 1,
@@ -58,9 +64,14 @@
       "sustainability_score": 84,
       "energy_rating": 4,
       "water_rating": 5,
-      "eco_features": ["Solar pergola", "Rain garden", "Low-VOC materials"],
-      "amenities": ["Community co-working", "Shared playground"],
-      "highlights": ["5 minute walk to BRT", "24/7 security"],
+      "amenities": [
+        "Community co-working",
+        "Shared playground"
+      ],
+      "highlights": [
+        "5 minute walk to BRT",
+        "24/7 security"
+      ],
       "city": "Kumasi",
       "country": "Ghana",
       "region": 2,

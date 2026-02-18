@@ -41,6 +41,17 @@ class LeadViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Updat
             )
         ).order_by('priority_rank', '-last_activity_at')
 
+        user = self.request.user
+        if not user or not user.is_authenticated:
+            return qs
+
+        if hasattr(user, 'user_type') and user.user_type == 'AGENT' and not user.is_staff:
+            from properties.models import Property
+            property_ids = Property.objects.filter(listed_by=user).values_list('id', flat=True)
+            qs = qs.filter(Q(assigned_to=user) | Q(metadata__property__id__in=list(property_ids)))
+        elif not user.is_staff and not user.is_superuser:
+            qs = qs.filter(assigned_to=user)
+
         status_param = self.request.query_params.get('status')
         priority_param = self.request.query_params.get('priority')
         search = self.request.query_params.get('search')
@@ -132,3 +143,72 @@ class LeadViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Updat
     def activity(self, request, pk=None):
         lead = self.get_object()
         return Response(LeadActivitySerializer(lead.activities.all(), many=True).data)
+
+    @action(detail=True, methods=['post'], permission_classes=[AllowAny])
+    def initiate_build_request(self, request, pk=None):
+        """Convert a lead to a BuildRequest to allow quote creation."""
+        lead = self.get_object()
+        
+        if lead.source_type == 'build_request':
+            return Response({'detail': 'Lead is already a build request.', 'request_id': lead.source_id})
+
+        from plans.models import BuildRequest, Plan
+        from locations.models import Region
+        
+        # Try to get property from metadata
+        property_data = lead.metadata.get('property', {})
+        region = None
+        if property_data.get('id'):
+            from properties.models import Property
+            try:
+                prop = Property.objects.get(id=property_data['id'])
+                region = prop.region
+            except Property.DoesNotExist:
+                pass
+        
+        if not region:
+            # Fallback to first region or specific one
+            region = Region.objects.first()
+            
+        if not region:
+            return Response({'detail': 'No region found to create request.'}, status=status.HTTP_400_BAD_VALUE)
+
+        # Get plan from request or metadata
+        plan_id = request.data.get('plan_id') or lead.metadata.get('plan', {}).get('id')
+        plan = None
+        if plan_id:
+            plan = Plan.objects.filter(id=plan_id).first()
+        
+        if not plan:
+            plan = Plan.objects.first()
+            
+        if not plan:
+            return Response({'detail': 'No plan found to create request.'}, status=status.HTTP_400_BAD_VALUE)
+
+        # Create BuildRequest
+        build_request = BuildRequest.objects.create(
+            plan=plan,
+            region=region,
+            contact_name=lead.contact_name,
+            contact_email=lead.contact_email,
+            contact_phone=lead.contact_phone,
+            customizations=lead.metadata.get('message', ''),
+            status='new'
+        )
+        
+        # Update lead
+        lead.source_type = 'build_request'
+        lead.source_id = str(build_request.id)
+        lead.log_activity(
+            LeadActivityKind.UPDATED,
+            f'Lead converted to Build Request: {build_request.id}',
+            created_by=request.user if request.user.is_authenticated else None,
+            metadata={'build_request_id': str(build_request.id)}
+        )
+        lead.save(update_fields=('source_type', 'source_id', 'updated_at', 'last_activity_at'))
+        
+        return Response({
+            'detail': 'Lead successfully converted to build request.',
+            'request_id': str(build_request.id),
+            'lead': LeadSerializer(lead).data
+        })

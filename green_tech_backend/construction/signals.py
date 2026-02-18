@@ -61,7 +61,6 @@ def project_milestone_notification(sender, instance, created, **kwargs):
         recipients,
         subject,
         message,
-        template_name=None,
         content_object=project,
     )
 
