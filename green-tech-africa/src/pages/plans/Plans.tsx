@@ -74,11 +74,12 @@ const Plans = () => {
 
   return (
     <Layout>
-      <section className="relative py-16 bg-gradient-to-br from-background via-accent/30 to-background">
+      <section className="relative py-14 bg-gradient-to-br from-background via-accent/30 to-background border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Building Plans</h1>
-            <p className="text-muted-foreground text-lg">Explore modern, efficient designs. Start a request with one click.</p>
+          <div className="max-w-3xl">
+            <div className="mb-2 inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">Customer Plans Flow</div>
+            <h1 className="text-4xl md:text-5xl font-bold mb-3">Building Plans</h1>
+            <p className="text-muted-foreground text-lg">Explore modern, efficient designs and move directly to request-to-build.</p>
           </div>
         </div>
       </section>
@@ -157,7 +158,7 @@ const Plans = () => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {plans.map((plan) => (
-                    <Card key={plan.id} className="overflow-hidden shadow-medium hover-lift smooth-transition group">
+                    <Card key={plan.id} className="group overflow-hidden border-border/70 shadow-soft smooth-transition hover:-translate-y-0.5 hover:shadow-medium">
                       <div className="relative overflow-hidden">
                         <img src={plan.hero_image} alt={plan.name} className="w-full h-44 object-cover group-hover:scale-105 smooth-transition" />
                         <div className="absolute top-4 left-4">

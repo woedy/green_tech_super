@@ -1,5 +1,6 @@
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import AccountPageHeader from "@/components/account/AccountPageHeader";
 import { Button } from "@/components/ui/button";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -30,18 +31,15 @@ const Appointments = () => {
 
   return (
     <Layout>
-      <section className="py-10 bg-gradient-to-br from-background via-accent/30 to-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CalendarIcon className="w-6 h-6" />
-            <h1 className="text-2xl md:text-3xl font-bold">Appointments</h1>
-          </div>
-        </div>
-      </section>
+      <AccountPageHeader
+        title="Appointments"
+        description="Manage upcoming property viewings and review past appointments."
+        icon={<CalendarIcon className="h-3.5 w-3.5" />}
+      />
 
       <section className="py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="shadow-medium">
+          <Card className="border-border/70 shadow-soft">
             <CardHeader><CardTitle>Upcoming</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {isLoading && (
@@ -69,7 +67,7 @@ const Appointments = () => {
             </CardContent>
           </Card>
 
-          <Card className="shadow-medium">
+          <Card className="border-border/70 shadow-soft">
             <CardHeader><CardTitle>Past</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {!isLoading && !error && past.map((a) => (

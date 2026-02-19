@@ -3,11 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ClipboardList, Plus, Filter, Building2 } from "lucide-react";
+import { ClipboardList, Plus, Building2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { buildRequestsApi, BuildRequest, constructionRequestsApi, ConstructionRequest } from "@/lib/api";
 import { Loader2 } from "lucide-react";
+import AccountPageHeader from "@/components/account/AccountPageHeader";
 
 const buildRequestStatusLabel = (status: string) => {
   switch (status) {
@@ -164,28 +165,25 @@ const Requests = () => {
 
   return (
     <Layout>
-      <section className="py-10 bg-gradient-to-br from-background via-accent/30 to-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <ClipboardList className="w-6 h-6" />
-              <h1 className="text-2xl md:text-3xl font-bold">My Requests</h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/account/construction-requests/new">
-                  <Plus className="w-4 h-4 mr-1" /> New Construction Request
-                </Link>
-              </Button>
-              <Button variant="hero" size="sm" asChild>
-                <Link to="/plans">
-                  <Plus className="w-4 h-4 mr-1" /> Browse Plans
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
+      <AccountPageHeader
+        title="My Requests"
+        description="Track build and construction requests, status updates, and next actions."
+        icon={<ClipboardList className="h-3.5 w-3.5" />}
+        actions={
+          <>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/account/construction-requests/new">
+                <Plus className="mr-1 h-4 w-4" /> New Construction Request
+              </Link>
+            </Button>
+            <Button variant="hero" size="sm" asChild>
+              <Link to="/plans">
+                <Plus className="mr-1 h-4 w-4" /> Browse Plans
+              </Link>
+            </Button>
+          </>
+        }
+      />
 
       <section className="py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

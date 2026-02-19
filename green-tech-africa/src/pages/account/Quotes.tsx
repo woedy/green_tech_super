@@ -1,13 +1,14 @@
 import Layout from "@/components/layout/Layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileSpreadsheet, Filter } from "lucide-react";
+import { FileSpreadsheet, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
-import type { QuoteSummary, QuoteStatus } from "@/types/quote";
+import type { QuoteSummary } from "@/types/quote";
+import AccountPageHeader from "@/components/account/AccountPageHeader";
 
 const STATUS_BADGES: Record<string, { label: string; variant: "default" | "outline" | "secondary" | "destructive" }> = {
   draft: { label: "Draft", variant: "outline" },
@@ -76,15 +77,18 @@ const Quotes = () => {
 
   return (
     <Layout>
-      <section className="py-10 bg-gradient-to-br from-background via-accent/30 to-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <FileSpreadsheet className="w-6 h-6" />
-            <h1 className="text-2xl md:text-3xl font-bold">Quotes</h1>
-          </div>
-          <Button variant="outline" size="sm"><Filter className="w-4 h-4 mr-1" /> Filters</Button>
-        </div>
-      </section>
+      <AccountPageHeader
+        title="Quotes"
+        description="Review estimates, monitor status changes, and open full quote details."
+        icon={<FileSpreadsheet className="h-3.5 w-3.5" />}
+        actions={
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/plans">
+              <Plus className="mr-1 h-4 w-4" /> Request New Quote
+            </Link>
+          </Button>
+        }
+      />
 
       <section className="py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-3">
@@ -93,7 +97,7 @@ const Quotes = () => {
           {!isLoading && !error && visibleQuotes.map((quote) => {
             const badge = STATUS_BADGES[quote.status] || { label: quote.status, variant: "outline" as const };
             return (
-              <Card key={quote.id} className="shadow-soft hover:shadow-medium smooth-transition">
+              <Card key={quote.id} className="border-border/70 shadow-soft smooth-transition hover:-translate-y-0.5 hover:shadow-medium">
                 <CardContent className="p-4 flex items-center justify-between">
                   <div>
                     <div className="font-medium">{quote.reference} • {formatCurrency(quote.currency_code, quote.total_amount)}</div>

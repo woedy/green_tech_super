@@ -1,7 +1,8 @@
 import Layout from "@/components/layout/Layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText } from "lucide-react";
+import AccountPageHeader from "@/components/account/AccountPageHeader";
 
 const DOCS = [
   { id: "DOC-1001", name: "Quote QUO-551.pdf", type: "Quote", uploadedAt: "2025-03-09" },
@@ -11,15 +12,15 @@ const DOCS = [
 const Documents = () => {
   return (
     <Layout>
-      <section className="py-10 bg-gradient-to-br from-background via-accent/30 to-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-2xl md:text-3xl font-bold">Documents</h1>
-        </div>
-      </section>
+      <AccountPageHeader
+        title="Documents"
+        description="Access quote files, permits, and supporting documents in one place."
+        icon={<FileText className="h-3.5 w-3.5" />}
+      />
       <section className="py-8">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-3">
           {DOCS.map((d) => (
-            <Card key={d.id} className="shadow-soft">
+            <Card key={d.id} className="border-border/70 shadow-soft">
               <CardContent className="p-4 flex items-center justify-between text-sm">
                 <div className="flex items-center gap-3">
                   <FileText className="w-4 h-4" />

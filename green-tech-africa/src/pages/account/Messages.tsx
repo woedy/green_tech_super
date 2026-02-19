@@ -1,8 +1,9 @@
 import Layout from "@/components/layout/Layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { MessageCircle } from "lucide-react";
+import AccountPageHeader from "@/components/account/AccountPageHeader";
 import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -93,17 +94,16 @@ const Messages = () => {
 
   return (
     <Layout>
-      <section className="py-10 bg-gradient-to-br from-background via-accent/30 to-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <MessageCircle className="w-6 h-6" />
-            <h1 className="text-2xl md:text-3xl font-bold">Messages</h1>
-          </div>
-          <div className="w-64">
+      <AccountPageHeader
+        title="Messages"
+        description="Stay in sync with agents and support teams across your quote threads."
+        icon={<MessageCircle className="h-3.5 w-3.5" />}
+        actions={
+          <div className="w-full sm:w-72">
             <Input placeholder="Search threads..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-        </div>
-      </section>
+        }
+      />
 
       <section className="py-8">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-3">
@@ -118,7 +118,7 @@ const Messages = () => {
             </Card>
           )}
           {filtered.map((t) => (
-            <Card key={t.id} className="shadow-soft hover:shadow-medium smooth-transition">
+            <Card key={t.id} className="border-border/70 shadow-soft smooth-transition hover:-translate-y-0.5 hover:shadow-medium">
               <CardContent className="p-4 flex items-center justify-between">
                 <div>
                   <div className="font-medium">{t.title}</div>

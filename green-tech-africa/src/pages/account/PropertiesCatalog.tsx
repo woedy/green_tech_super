@@ -3,19 +3,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, Filter, Heart, MapPin, Home, Bed, Bath, Square } from "lucide-react";
+import { Search, Heart, MapPin, Home, Bed, Bath, Square } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getFavorites, toggleFavorite } from "@/lib/favorites";
 import { useToast } from "@/components/ui/use-toast";
-import PropertyCard from "@/components/properties/PropertyCard";
 import PropertyFilters from "@/components/properties/PropertyFilters";
 import { useProperties } from "@/hooks/useProperties";
-import { useAuth } from "@/contexts/AuthContext";
+import AccountPageHeader from "@/components/account/AccountPageHeader";
 
 const PropertiesCatalog = () => {
   const { toast } = useToast();
-  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState("all");
@@ -51,22 +49,22 @@ const PropertiesCatalog = () => {
   return (
     <Layout>
       <div className="min-h-screen bg-background">
-        {/* Hero Section */}
-        <section className="py-12 bg-gradient-to-br from-primary/5 via-background to-background">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-8">
-              <Badge variant="outline" className="mb-4">
-                <Home className="w-3 h-3 mr-1" />
-                Property Catalog
-              </Badge>
-              <h1 className="text-4xl font-bold mb-4">Browse Available Properties</h1>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Explore our curated selection of properties. Click "Request This Property" to submit your interest.
-              </p>
-            </div>
+        <AccountPageHeader
+          title="Properties Catalog"
+          description="Explore listings, compare options, and request a property directly from your account."
+          icon={<Home className="h-3.5 w-3.5" />}
+          actions={
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/account/favorites">
+                <Heart className="mr-2 h-4 w-4" /> View Favorites
+              </Link>
+            </Button>
+          }
+        />
 
-            {/* Search and Filters */}
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <section className="border-b py-6">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
                 <Input
@@ -96,12 +94,7 @@ const PropertiesCatalog = () => {
               <h2 className="text-2xl font-semibold">
                 {filteredProperties.length} {filteredProperties.length === 1 ? 'Property' : 'Properties'} Available
               </h2>
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/account/favorites">
-                  <Heart className="w-4 h-4 mr-2" />
-                  View Favorites
-                </Link>
-              </Button>
+              <div className="text-sm text-muted-foreground">Use filters to refine your shortlist.</div>
             </div>
 
             {isLoading && (
@@ -125,7 +118,7 @@ const PropertiesCatalog = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredProperties.map((property) => (
                 <div key={property.id} className="relative">
-                  <Card className="group hover:shadow-elegant smooth-transition overflow-hidden">
+                  <Card className="group overflow-hidden border-border/70 shadow-soft smooth-transition hover:-translate-y-0.5 hover:shadow-medium">
                     <div className="relative overflow-hidden">
                       {property.featured_image && (
                         <img

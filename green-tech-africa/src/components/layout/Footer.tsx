@@ -1,160 +1,80 @@
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { 
-  Leaf, 
-  MapPin, 
-  Phone, 
-  Mail, 
-  Facebook, 
-  Twitter, 
-  Instagram, 
-  Linkedin,
-  MessageCircle
-} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Facebook, Instagram, Leaf, Linkedin, Mail, MapPin, MessageCircle, Phone, Twitter } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Footer = () => {
   return (
-    <footer className="bg-professional text-professional-foreground">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* Company Info */}
-          <div className="space-y-4">
-            <Link to="/" className="flex items-center space-x-2">
-              <div className="flex items-center justify-center w-10 h-10 hero-gradient rounded-lg">
-                <Leaf className="w-6 h-6 text-primary-foreground" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xl font-bold text-professional-foreground">
-                  Green Tech
-                </span>
-                <span className="text-xs text-professional-foreground/70 -mt-1">
-                  Africa
-                </span>
-              </div>
-            </Link>
-            <p className="text-professional-foreground/80 text-sm leading-relaxed">
-              Leading construction and real estate company in Africa, 
-              committed to sustainable development and innovative green technology.
-            </p>
-            <div className="flex space-x-3">
-              <Button size="icon" variant="ghost" className="text-professional-foreground/70 hover:text-success hover:bg-professional-foreground/10">
-                <Facebook className="h-4 w-4" />
-              </Button>
-              <Button size="icon" variant="ghost" className="text-professional-foreground/70 hover:text-success hover:bg-professional-foreground/10">
-                <Twitter className="h-4 w-4" />
-              </Button>
-              <Button size="icon" variant="ghost" className="text-professional-foreground/70 hover:text-success hover:bg-professional-foreground/10">
-                <Instagram className="h-4 w-4" />
-              </Button>
-              <Button size="icon" variant="ghost" className="text-professional-foreground/70 hover:text-success hover:bg-professional-foreground/10">
-                <Linkedin className="h-4 w-4" />
-              </Button>
+    <footer className="mt-16 border-t border-border/70 bg-background">
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 lg:grid-cols-12 lg:px-8">
+        <div className="space-y-4 lg:col-span-4">
+          <Link to="/" className="flex items-center gap-2">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl hero-gradient">
+              <Leaf className="h-5 w-5 text-primary-foreground" />
             </div>
-          </div>
-
-          {/* Quick Links */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Quick Links</h3>
-            <div className="space-y-2">
-              {[
-                { name: "About Us", path: "/about" },
-                { name: "Our Services", path: "/services" },
-                { name: "Projects", path: "/projects" },
-                { name: "Properties", path: "/properties" },
-                { name: "Contact", path: "/contact" },
-              ].map((link) => (
-                <Link
-                  key={link.name}
-                  to={link.path}
-                  className="block text-professional-foreground/80 hover:text-success smooth-transition text-sm"
-                >
-                  {link.name}
-                </Link>
-              ))}
+            <div className="leading-none">
+              <div className="text-lg font-bold">Green Tech</div>
+              <div className="text-xs text-muted-foreground">Africa</div>
             </div>
-          </div>
-
-          {/* Services */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Our Services</h3>
-            <div className="space-y-2">
-              {[
-                "Residential Construction",
-                "Commercial Development", 
-                "Property Management",
-                "Real Estate Sales",
-                "Green Building Consulting",
-                "Infrastructure Development"
-              ].map((service) => (
-                <div
-                  key={service}
-                  className="text-professional-foreground/80 text-sm"
-                >
-                  {service}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Contact Info */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Contact Us</h3>
-            <div className="space-y-3">
-              <div className="flex items-start space-x-3">
-                <MapPin className="h-4 w-4 text-success mt-1 flex-shrink-0" />
-                <div className="text-professional-foreground/80 text-sm">
-                  123 Green Tech Plaza<br />
-                  Nairobi, Kenya<br />
-                  P.O. Box 12345
-                </div>
-              </div>
-              <div className="flex items-center space-x-3">
-                <Phone className="h-4 w-4 text-success flex-shrink-0" />
-                <div className="text-professional-foreground/80 text-sm">
-                  +254 700 123 456
-                </div>
-              </div>
-              <div className="flex items-center space-x-3">
-                <Mail className="h-4 w-4 text-success flex-shrink-0" />
-                <div className="text-professional-foreground/80 text-sm">
-                  info@greentechafrica.com
-                </div>
-              </div>
-              <Button 
-                variant="success" 
-                size="sm" 
-                className="w-full mt-4"
-                asChild
-              >
-                <a href="https://wa.me/254700123456" target="_blank" rel="noopener noreferrer">
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  WhatsApp Us
-                </a>
+          </Link>
+          <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
+            End-to-end construction and real estate services designed for modern African cities, with a deep focus on sustainability.
+          </p>
+          <div className="flex items-center gap-2">
+            {[Facebook, Twitter, Instagram, Linkedin].map((Icon, idx) => (
+              <Button key={idx} size="icon" variant="outline" className="h-9 w-9 rounded-full">
+                <Icon className="h-4 w-4" />
               </Button>
-            </div>
+            ))}
           </div>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="border-t border-professional-foreground/20 mt-8 pt-8">
-          <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <div className="text-professional-foreground/70 text-sm">
-              © 2025 Green Tech Africa. All rights reserved.
-            </div>
-            <div className="flex space-x-6 text-sm">
-              <Link 
-                to="/privacy" 
-                className="text-professional-foreground/70 hover:text-success smooth-transition"
-              >
-                Privacy Policy
+        <div className="lg:col-span-2">
+          <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-foreground">Company</h3>
+          <div className="space-y-2 text-sm">
+            {[
+              ["About Us", "/about"],
+              ["Services", "/services"],
+              ["Projects", "/projects"],
+              ["Properties", "/properties"],
+            ].map(([label, path]) => (
+              <Link key={label} to={path} className="block text-muted-foreground hover:text-primary">
+                {label}
               </Link>
-              <Link 
-                to="/terms" 
-                className="text-professional-foreground/70 hover:text-success smooth-transition"
-              >
-                Terms of Service
-              </Link>
-            </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="lg:col-span-3">
+          <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-foreground">Contact</h3>
+          <div className="space-y-3 text-sm text-muted-foreground">
+            <div className="flex gap-2"><MapPin className="mt-0.5 h-4 w-4 text-primary" /> Nairobi, Kenya</div>
+            <div className="flex gap-2"><Phone className="mt-0.5 h-4 w-4 text-primary" /> +254 700 123 456</div>
+            <div className="flex gap-2"><Mail className="mt-0.5 h-4 w-4 text-primary" /> info@greentechafrica.com</div>
+          </div>
+          <Button variant="outline" size="sm" className="mt-4" asChild>
+            <a href="https://wa.me/254700123456" target="_blank" rel="noopener noreferrer">
+              <MessageCircle className="mr-2 h-4 w-4" /> WhatsApp us
+            </a>
+          </Button>
+        </div>
+
+        <div className="lg:col-span-3">
+          <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-foreground">Stay Updated</h3>
+          <p className="mb-3 text-sm text-muted-foreground">Get new property alerts and project updates.</p>
+          <div className="flex gap-2">
+            <Input placeholder="Your email" className="h-10" />
+            <Button variant="hero" className="h-10">Join</Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t border-border/70">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-4 text-xs text-muted-foreground sm:px-6 md:flex-row lg:px-8">
+          <div>© 2025 Green Tech Africa. All rights reserved.</div>
+          <div className="flex gap-4">
+            <Link to="/privacy" className="hover:text-primary">Privacy Policy</Link>
+            <Link to="/terms" className="hover:text-primary">Terms of Service</Link>
           </div>
         </div>
       </div>
