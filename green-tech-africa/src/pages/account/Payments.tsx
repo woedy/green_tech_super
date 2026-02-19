@@ -1,6 +1,8 @@
 import Layout from "@/components/layout/Layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { CreditCard } from "lucide-react";
+import AccountPageHeader from "@/components/account/AccountPageHeader";
 
 const INVOICES = [
   { id: "INV-9001", quoteId: "QUO-551", amount: 25000, currency: "USD", status: "unpaid" },
@@ -10,15 +12,15 @@ const INVOICES = [
 const Payments = () => {
   return (
     <Layout>
-      <section className="py-10 bg-gradient-to-br from-background via-accent/30 to-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-2xl md:text-3xl font-bold">Payments</h1>
-        </div>
-      </section>
+      <AccountPageHeader
+        title="Payments"
+        description="Track invoice statuses and complete pending payments securely."
+        icon={<CreditCard className="h-3.5 w-3.5" />}
+      />
       <section className="py-8">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-3">
           {INVOICES.map((inv) => (
-            <Card key={inv.id} className="shadow-soft">
+            <Card key={inv.id} className="border-border/70 shadow-soft">
               <CardContent className="p-4 flex items-center justify-between text-sm">
                 <div>
                   <div className="font-medium">{inv.id} • {inv.currency} {inv.amount.toLocaleString()}</div>

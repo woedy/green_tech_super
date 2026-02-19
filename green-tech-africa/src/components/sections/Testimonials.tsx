@@ -39,9 +39,9 @@ const Testimonials = () => {
   ];
 
   return (
-    <section className="py-20 bg-accent/20">
+    <section className="py-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
+        <div className="text-center mb-14">
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6">
             What Our Clients Say
           </h2>
@@ -54,7 +54,7 @@ const Testimonials = () => {
         {/* Testimonials Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
           {testimonials.map((testimonial, index) => (
-            <Card key={index} className="shadow-medium hover-lift smooth-transition">
+            <Card key={index} className="border-border/70 shadow-soft smooth-transition hover:-translate-y-1 hover:shadow-medium">
               <CardContent className="p-6">
                 <div className="flex items-center mb-4">
                   <Quote className="w-8 h-8 text-primary/30 mr-2" />
@@ -99,7 +99,7 @@ const Testimonials = () => {
             {clients.map((client, index) => (
               <div 
                 key={index} 
-                className="bg-background rounded-lg p-4 shadow-soft hover-lift smooth-transition"
+                className="rounded-lg border border-border/70 bg-background p-4 shadow-soft smooth-transition hover:-translate-y-0.5"
               >
                 <div className="text-center text-sm font-medium text-muted-foreground">
                   {client}

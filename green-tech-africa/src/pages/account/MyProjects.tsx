@@ -1,9 +1,10 @@
 import Layout from "@/components/layout/Layout";
+import AccountPageHeader from "@/components/account/AccountPageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Building2, MapPin, Calendar, Loader2, TrendingUp, AlertCircle } from "lucide-react";
+import { Building2, Calendar, Loader2, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -14,13 +15,10 @@ interface Project {
   status: string;
   current_phase: string;
   progress_percentage: number;
-  property: any;
-  planned_start_date?: string;
   planned_end_date?: string;
   estimated_budget: string;
   currency: string;
   is_behind_schedule: boolean;
-  created_at: string;
 }
 
 const statusConfig = {
@@ -35,8 +33,8 @@ const statusConfig = {
 
 const MyProjects = () => {
   const { data, isLoading, error } = useQuery({
-    queryKey: ['my-projects'],
-    queryFn: () => api.get<{ results: Project[] }>('/api/construction/projects/').then(res => res.results || []),
+    queryKey: ["my-projects"],
+    queryFn: () => api.get<{ results: Project[] }>("/api/construction/projects/").then((res) => res.results || []),
   });
 
   const projects = data || [];
@@ -44,7 +42,7 @@ const MyProjects = () => {
   if (isLoading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-96">
+        <div className="flex min-h-96 items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin" />
           <span className="ml-2">Loading projects...</span>
         </div>
@@ -55,7 +53,7 @@ const MyProjects = () => {
   if (error) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-96">
+        <div className="flex min-h-96 items-center justify-center">
           <div className="text-center">
             <h2 className="text-lg font-semibold text-red-600">Error loading projects</h2>
             <p className="text-muted-foreground">Please try again later.</p>
@@ -68,32 +66,27 @@ const MyProjects = () => {
   return (
     <Layout>
       <div className="min-h-screen bg-background">
-        <section className="py-10 bg-gradient-to-br from-background via-accent/30 to-background">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold mb-2">My Projects</h1>
-                <p className="text-muted-foreground">
-                  Track your construction projects and their progress
-                </p>
-              </div>
-              <Button variant="outline" asChild>
-                <Link to="/account/projects">Browse Project Catalog</Link>
-              </Button>
-            </div>
-          </div>
-        </section>
+        <AccountPageHeader
+          title="My Projects"
+          description="Track your construction projects, progress milestones, and due dates."
+          icon={<Building2 className="h-3.5 w-3.5" />}
+          actions={
+            <Button variant="outline" asChild>
+              <Link to="/account/projects">Browse Project Catalog</Link>
+            </Button>
+          }
+        />
 
         <section className="py-8">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             {projects.length === 0 ? (
-              <div className="text-center py-12">
-                <Building2 className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-xl font-semibold mb-2">No Projects Yet</h3>
-                <p className="text-muted-foreground mb-6">
-                  You don't have any active projects. Browse our plans to get started.
+              <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 py-12 text-center">
+                <Building2 className="mx-auto mb-4 h-16 w-16 text-muted-foreground" />
+                <h3 className="mb-2 text-xl font-semibold">No Projects Yet</h3>
+                <p className="mb-6 text-muted-foreground">
+                  You don't have active projects yet. Browse plans to get started.
                 </p>
-                <div className="flex gap-3 justify-center">
+                <div className="flex justify-center gap-3">
                   <Button asChild>
                     <Link to="/plans">Browse Plans</Link>
                   </Button>
@@ -103,49 +96,44 @@ const MyProjects = () => {
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {projects.map((project) => {
                   const statusInfo = statusConfig[project.status as keyof typeof statusConfig] || statusConfig.DRAFT;
-                  
+
                   return (
-                    <Card key={project.id} className="hover:shadow-lg smooth-transition">
+                    <Card key={project.id} className="border-border/70 shadow-soft smooth-transition hover:-translate-y-0.5 hover:shadow-medium">
                       <CardHeader>
-                        <div className="flex items-start justify-between mb-2">
-                          <CardTitle className="text-lg line-clamp-2">{project.title}</CardTitle>
+                        <div className="mb-2 flex items-start justify-between">
+                          <CardTitle className="line-clamp-2 text-lg">{project.title}</CardTitle>
                           <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
                         </div>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Building2 className="w-4 h-4" />
-                          <span>{project.current_phase?.replace(/_/g, ' ')}</span>
+                          <Building2 className="h-4 w-4" />
+                          <span>{project.current_phase?.replace(/_/g, " ")}</span>
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-4">
-                        {/* Progress */}
                         <div>
-                          <div className="flex items-center justify-between mb-2">
+                          <div className="mb-2 flex items-center justify-between">
                             <span className="text-sm font-medium">Progress</span>
                             <span className="text-sm font-semibold">{project.progress_percentage}%</span>
                           </div>
                           <Progress value={project.progress_percentage} className="h-2" />
                           {project.is_behind_schedule && (
-                            <div className="flex items-center gap-1 mt-2 text-xs text-orange-600">
-                              <AlertCircle className="w-3 h-3" />
+                            <div className="mt-2 flex items-center gap-1 text-xs text-orange-600">
+                              <AlertCircle className="h-3 w-3" />
                               <span>Behind schedule</span>
                             </div>
                           )}
                         </div>
 
-                        {/* Timeline */}
                         {project.planned_end_date && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Calendar className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-muted-foreground">
-                              Due: {new Date(project.planned_end_date).toLocaleDateString()}
-                            </span>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Calendar className="h-4 w-4" />
+                            <span>Due: {new Date(project.planned_end_date).toLocaleDateString()}</span>
                           </div>
                         )}
 
-                        {/* Budget */}
                         <div className="text-sm">
                           <span className="text-muted-foreground">Budget: </span>
                           <span className="font-semibold">
@@ -154,9 +142,7 @@ const MyProjects = () => {
                         </div>
 
                         <Button className="w-full" asChild>
-                          <Link to={`/account/my-projects/${project.id}`}>
-                            View Details
-                          </Link>
+                          <Link to={`/account/my-projects/${project.id}`}>View Details</Link>
                         </Button>
                       </CardContent>
                     </Card>

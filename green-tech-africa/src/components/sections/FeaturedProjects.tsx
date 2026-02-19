@@ -25,10 +25,10 @@ const FeaturedProjects = () => {
   // Show loading state
   if (isLoading) {
     return (
-      <section className="py-20 bg-background">
+      <section className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6">
+          <div className="mb-14 text-center">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4">
               Featured Projects
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -37,7 +37,7 @@ const FeaturedProjects = () => {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 mb-12">
             {[1, 2, 3].map((i) => (
               <Card key={i} className="overflow-hidden shadow-medium">
                 <div className="w-full h-48 bg-muted animate-pulse"></div>
@@ -92,12 +92,12 @@ const FeaturedProjects = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
           {projects.map((project) => (
-            <Card key={project.id} className="overflow-hidden shadow-medium hover-lift smooth-transition group">
+            <Card key={project.id} className="group overflow-hidden border-border/60 bg-card shadow-soft smooth-transition hover:-translate-y-1 hover:shadow-medium">
               <div className="relative overflow-hidden">
                 <img 
                   src={project.image} 
                   alt={project.title}
-                  className="w-full h-48 object-cover group-hover:scale-105 smooth-transition"
+                  className="h-48 w-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
                 <div className="absolute top-4 left-4">
                   <Badge className={getStatusColor(project.status)}>
@@ -143,7 +143,7 @@ const FeaturedProjects = () => {
                   )}
                 </div>
                 
-                <Button variant="ghost" className="w-full group/btn" asChild>
+                <Button variant="outline" className="w-full group/btn" asChild>
                   <Link to={`/projects/${project.id}`}>
                     View Details
                     <ArrowRight className="w-4 h-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />

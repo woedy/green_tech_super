@@ -1,29 +1,38 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ProjectStatusCard } from "@/components/dashboard/ProjectStatusCard";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
-import { NotificationCenter, type Notification, type NotificationPreferences } from "@/components/dashboard/NotificationCenter";
+import {
+  NotificationCenter,
+  type Notification,
+  type NotificationPreferences,
+} from "@/components/dashboard/NotificationCenter";
 import { SavedSearchesWidget } from "@/components/dashboard/SavedSearchesWidget";
-import { 
+import {
+  AlertTriangle,
+  Bell,
+  Building,
   ClipboardList,
   FileSpreadsheet,
-  Calendar,
-  TrendingUp,
-  Users,
-  Building,
-  CheckCircle2,
   Loader2,
-  AlertTriangle
+  MessageSquare,
+  Sparkles,
+  Users,
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import { api, dashboardApi, type CustomerDashboardMetrics, type CustomerNotifications } from "@/lib/api";
-import { getSavedSearches, toggleAlerts, deleteSavedSearch, type SavedSearch } from "@/lib/savedSearches";
+import { api, dashboardApi } from "@/lib/api";
+import {
+  deleteSavedSearch,
+  getSavedSearches,
+  toggleAlerts,
+  type SavedSearch,
+} from "@/lib/savedSearches";
 import type { ProjectSummary } from "@/types/project";
-import { useEffect, useState } from "react";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -31,17 +40,20 @@ const Dashboard = () => {
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(true);
 
-  // Dashboard data from API
-  const { data: dashboardData, isLoading: dashboardLoading, error: dashboardError } = useQuery({
-    queryKey: ['customer-dashboard'],
+  const {
+    data: dashboardData,
+    isLoading: dashboardLoading,
+    error: dashboardError,
+  } = useQuery({
+    queryKey: ["customer-dashboard"],
     queryFn: dashboardApi.getCustomerDashboard,
-    refetchInterval: 2 * 60 * 1000, // Refetch every 2 minutes
+    refetchInterval: 2 * 60 * 1000,
   });
 
   const { data: notificationData, isLoading: notificationsLoading } = useQuery({
-    queryKey: ['customer-notifications'],
+    queryKey: ["customer-notifications"],
     queryFn: dashboardApi.getCustomerNotifications,
-    refetchInterval: 30 * 1000, // Refetch every 30 seconds
+    refetchInterval: 30 * 1000,
   });
 
   useEffect(() => {
@@ -50,62 +62,48 @@ const Dashboard = () => {
 
   useEffect(() => {
     let cancelled = false;
-    async function load() {
+
+    const loadProjects = async () => {
       try {
         setProjectsLoading(true);
         const data = await api.get<ProjectSummary[]>("/api/construction/projects/");
-        if (!cancelled) {
-          setProjects(Array.isArray(data) ? data : []);
-        }
-      } catch (err) {
-        console.error("Failed to load projects:", err);
-        if (!cancelled) {
-          setProjects([]);
-        }
+        if (!cancelled) setProjects(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error("Failed to load projects:", error);
+        if (!cancelled) setProjects([]);
       } finally {
-        if (!cancelled) {
-          setProjectsLoading(false);
-        }
+        if (!cancelled) setProjectsLoading(false);
       }
-    }
-    load();
+    };
+
+    loadProjects();
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const handleToggleAlerts = (id: string) => {
-    setSavedSearches(toggleAlerts(id));
-  };
-
-  const handleDeleteSearch = (id: string) => {
-    setSavedSearches(deleteSavedSearch(id));
-  };
-
   const handleApplySearch = (search: SavedSearch) => {
     const params = new URLSearchParams();
-    const f = search.filters as any;
-    if (f.q) params.set("q", f.q);
-    if (f.type) params.set("type", f.type);
-    if (f.location) params.set("location", f.location);
+    const filters = search.filters as Record<string, string | undefined>;
+    if (filters.q) params.set("q", filters.q);
+    if (filters.type) params.set("type", filters.type);
+    if (filters.location) params.set("location", filters.location);
     navigate(`/properties?${params.toString()}`);
   };
 
   const handleMarkAsRead = async (id: string) => {
     try {
       await dashboardApi.markNotificationAsRead(id);
-      // Refetch notifications to update UI
     } catch (error) {
-      console.error('Failed to mark notification as read:', error);
+      console.error("Failed to mark notification as read:", error);
     }
   };
 
   const handleMarkAllAsRead = async () => {
     try {
       await dashboardApi.markAllNotificationsAsRead();
-      // Refetch notifications to update UI
     } catch (error) {
-      console.error('Failed to mark all notifications as read:', error);
+      console.error("Failed to mark all notifications as read:", error);
     }
   };
 
@@ -120,15 +118,15 @@ const Dashboard = () => {
         payment_reminders: preferences.paymentReminders,
         marketing_emails: preferences.marketingEmails,
       });
-      // Refetch notifications to update UI
     } catch (error) {
-      console.error('Failed to update preferences:', error);
+      console.error("Failed to update preferences:", error);
     }
   };
 
-  const activeProjects = Array.isArray(projects) ? projects.filter(p => 
-    p.status.toLowerCase() === 'in_progress' || p.status.toLowerCase() === 'planning'
-  ) : [];
+  const activeProjects = projects.filter(
+    (project) =>
+      project.status.toLowerCase() === "in_progress" || project.status.toLowerCase() === "planning",
+  );
 
   const unreadNotifications = notificationData?.unread_count || 0;
 
@@ -156,33 +154,18 @@ const Dashboard = () => {
   if (dashboardError) {
     return (
       <Layout>
-        <section className="py-10 bg-gradient-to-br from-background via-accent/30 to-background">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col gap-2">
-              <h1 className="text-3xl md:text-4xl font-bold">Welcome back</h1>
-              <p className="text-muted-foreground">Your projects, quotes, and requests at a glance.</p>
-            </div>
-          </div>
-        </section>
-        
-        <section className="py-8">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center text-red-600">
-                  <AlertTriangle className="h-8 w-8 mx-auto mb-2" />
-                  <p className="font-semibold">Failed to load dashboard</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {dashboardError instanceof Error ? dashboardError.message : 'Please try again later'}
-                  </p>
-                  <Button 
-                    variant="outline" 
-                    className="mt-4"
-                    onClick={() => window.location.reload()}
-                  >
-                    Retry
-                  </Button>
-                </div>
+        <section className="py-10">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <Card className="border-destructive/30">
+              <CardContent className="p-8 text-center">
+                <AlertTriangle className="mx-auto mb-3 h-8 w-8 text-destructive" />
+                <p className="text-lg font-semibold">Failed to load dashboard</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {dashboardError instanceof Error ? dashboardError.message : "Please try again later."}
+                </p>
+                <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>
+                  Retry
+                </Button>
               </CardContent>
             </Card>
           </div>
@@ -193,103 +176,90 @@ const Dashboard = () => {
 
   return (
     <Layout>
-      {/* Hero */}
-      <section className="py-10 bg-gradient-to-br from-background via-accent/30 to-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-2">
-            <h1 className="text-3xl md:text-4xl font-bold">Welcome back</h1>
-            <p className="text-muted-foreground">Your projects, quotes, and requests at a glance.</p>
+      <section className="border-b border-border/70 bg-gradient-to-b from-accent/30 to-background py-8">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                <Sparkles className="h-3.5 w-3.5" /> Customer Workspace
+              </div>
+              <h1 className="text-2xl font-bold md:text-4xl">Welcome back</h1>
+              <p className="mt-1 text-muted-foreground">Track projects, quotes, requests and communication in one place.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" asChild>
+                <Link to="/account/requests/new">
+                  <ClipboardList className="mr-2 h-4 w-4" /> New Request
+                </Link>
+              </Button>
+              <Button variant="hero" asChild>
+                <Link to="/account/messages">
+                  <MessageSquare className="mr-2 h-4 w-4" /> Open Messages
+                </Link>
+              </Button>
+            </div>
+          </div>
+
+          <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {[
+              {
+                label: "Active Projects",
+                value: dashboardData?.projects.active ?? 0,
+                icon: Building,
+                loading: dashboardLoading,
+              },
+              {
+                label: "Total Leads",
+                value: dashboardData?.leads.total ?? 0,
+                icon: Users,
+                loading: dashboardLoading,
+              },
+              {
+                label: "Pending Quotes",
+                value: dashboardData?.quotes.pending ?? 0,
+                icon: FileSpreadsheet,
+                loading: dashboardLoading,
+              },
+              {
+                label: "Unread Notifications",
+                value: unreadNotifications,
+                icon: Bell,
+                loading: notificationsLoading,
+              },
+            ].map((item) => {
+              const Icon = item.icon;
+              return (
+                <Card key={item.label} className="border-border/70 bg-card/80 shadow-soft">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">{item.label}</p>
+                        <div className="mt-1 text-2xl font-bold">
+                          {item.loading ? <Loader2 className="h-5 w-5 animate-spin" /> : item.value}
+                        </div>
+                      </div>
+                      <div className="rounded-lg bg-primary/10 p-2">
+                        <Icon className="h-5 w-5 text-primary" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* Content */}
       <section className="py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Quick stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <Card className="shadow-soft hover:shadow-medium smooth-transition">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm text-muted-foreground">Active Projects</div>
-                    {dashboardLoading ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span className="text-sm">Loading...</span>
-                      </div>
-                    ) : (
-                      <div className="text-2xl font-bold">{dashboardData?.projects.active || 0}</div>
-                    )}
-                  </div>
-                  <Building className="w-8 h-8 text-primary/20" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="shadow-soft hover:shadow-medium smooth-transition">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm text-muted-foreground">Total Leads</div>
-                    {dashboardLoading ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span className="text-sm">Loading...</span>
-                      </div>
-                    ) : (
-                      <div className="text-2xl font-bold">{dashboardData?.leads.total || 0}</div>
-                    )}
-                  </div>
-                  <Users className="w-8 h-8 text-primary/20" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="shadow-soft hover:shadow-medium smooth-transition">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm text-muted-foreground">Pending Quotes</div>
-                    {dashboardLoading ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span className="text-sm">Loading...</span>
-                      </div>
-                    ) : (
-                      <div className="text-2xl font-bold">{dashboardData?.quotes.pending || 0}</div>
-                    )}
-                  </div>
-                  <FileSpreadsheet className="w-8 h-8 text-primary/20" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="shadow-soft hover:shadow-medium smooth-transition">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm text-muted-foreground">Notifications</div>
-                    {notificationsLoading ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span className="text-sm">Loading...</span>
-                      </div>
-                    ) : (
-                      <div className="text-2xl font-bold">{unreadNotifications}</div>
-                    )}
-                  </div>
-                  <Calendar className="w-8 h-8 text-primary/20" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList>
+            <TabsList className="grid w-full grid-cols-3 md:w-auto">
               <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="activity">Activity Feed</TabsTrigger>
-              <TabsTrigger value="notifications">
+              <TabsTrigger value="activity">Activity</TabsTrigger>
+              <TabsTrigger value="notifications" className="relative">
                 Notifications
                 {unreadNotifications > 0 && (
-                  <Badge variant="destructive" className="ml-2 h-5 w-5 p-0 text-xs">
+                  <Badge variant="destructive" className="ml-2 h-5 min-w-5 px-1 text-xs">
                     {unreadNotifications}
                   </Badge>
                 )}
@@ -297,96 +267,77 @@ const Dashboard = () => {
             </TabsList>
 
             <TabsContent value="overview">
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                {/* Main content - 2 columns */}
-                <div className="xl:col-span-2 space-y-6">
-                  {/* Active Projects */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-xl font-semibold">Active Projects</h2>
-                      <Button variant="outline" size="sm" asChild>
-                        <Link to="/account/projects">View all</Link>
-                      </Button>
-                    </div>
-                    {projectsLoading ? (
-                      <Card>
-                        <CardContent className="p-6">
-                          <div className="flex items-center gap-2">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            <span className="text-sm text-muted-foreground">Loading projects...</span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ) : activeProjects.length === 0 ? (
-                      <Card>
-                        <CardContent className="p-6 text-sm text-muted-foreground text-center">
-                          <p>No active projects yet.</p>
-                          <Button variant="hero" className="mt-4" asChild>
-                            <Link to="/plans">Browse Plans to Request</Link>
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ) : (
-                      <div className="space-y-4">
-                        {activeProjects.slice(0, 3).map((project) => (
-                          <ProjectStatusCard key={project.id} project={project} />
-                        ))}
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+                <div className="space-y-6 xl:col-span-2">
+                  <Card className="border-border/70 shadow-soft">
+                    <CardContent className="p-5">
+                      <div className="mb-4 flex items-center justify-between">
+                        <h2 className="text-lg font-semibold">Active Projects</h2>
+                        <Button variant="outline" size="sm" asChild>
+                          <Link to="/account/my-projects">View all</Link>
+                        </Button>
                       </div>
-                    )}
-                  </div>
 
-                  {/* Recent Activity */}
-                  <div className="space-y-4">
-                    <h2 className="text-xl font-semibold">Recent Activity</h2>
-                    {dashboardLoading ? (
-                      <Card>
-                        <CardContent className="p-6">
-                          <div className="flex items-center gap-2">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            <span className="text-sm text-muted-foreground">Loading activities...</span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ) : (
-                      <ActivityFeed 
-                        activities={dashboardData?.recent_activities || []} 
-                        maxItems={5} 
-                      />
-                    )}
-                  </div>
+                      {projectsLoading ? (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin" /> Loading projects...
+                        </div>
+                      ) : activeProjects.length === 0 ? (
+                        <div className="rounded-xl border border-dashed p-6 text-center">
+                          <p className="text-sm text-muted-foreground">No active projects yet.</p>
+                          <Button variant="hero" className="mt-4" asChild>
+                            <Link to="/plans">Browse plans to request build</Link>
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {activeProjects.slice(0, 3).map((project) => (
+                            <ProjectStatusCard key={project.id} project={project} />
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-border/70 shadow-soft">
+                    <CardContent className="p-5">
+                      <h2 className="mb-4 text-lg font-semibold">Recent Activity</h2>
+                      {dashboardLoading ? (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin" /> Loading activity...
+                        </div>
+                      ) : (
+                        <ActivityFeed activities={dashboardData?.recent_activities || []} maxItems={5} />
+                      )}
+                    </CardContent>
+                  </Card>
                 </div>
 
-                {/* Sidebar - 1 column */}
                 <div className="space-y-6">
-                  {/* Saved Searches */}
                   <SavedSearchesWidget
                     searches={savedSearches}
-                    onToggleAlerts={handleToggleAlerts}
-                    onDelete={handleDeleteSearch}
+                    onToggleAlerts={(id) => setSavedSearches(toggleAlerts(id))}
+                    onDelete={(id) => setSavedSearches(deleteSavedSearch(id))}
                     onApply={handleApplySearch}
                     maxItems={3}
                   />
 
-                  {/* Quick Actions */}
-                  <Card className="shadow-medium">
-                    <CardContent className="p-4 space-y-3">
-                      <h3 className="font-semibold text-sm mb-3">Quick Actions</h3>
+                  <Card className="border-border/70 shadow-soft">
+                    <CardContent className="space-y-3 p-5">
+                      <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Quick Actions</h3>
                       <Button variant="outline" className="w-full justify-start" asChild>
-                        <Link to="/plans">
-                          <ClipboardList className="w-4 h-4 mr-2" />
-                          Request New Build
+                        <Link to="/account/requests/new">
+                          <ClipboardList className="mr-2 h-4 w-4" /> Request New Build
                         </Link>
                       </Button>
                       <Button variant="outline" className="w-full justify-start" asChild>
-                        <Link to="/properties">
-                          <FileSpreadsheet className="w-4 h-4 mr-2" />
-                          Browse Properties
+                        <Link to="/account/properties">
+                          <Building className="mr-2 h-4 w-4" /> Browse Properties
                         </Link>
                       </Button>
                       <Button variant="outline" className="w-full justify-start" asChild>
                         <Link to="/account/messages">
-                          <Calendar className="w-4 h-4 mr-2" />
-                          View Messages
+                          <MessageSquare className="mr-2 h-4 w-4" /> View Messages
                         </Link>
                       </Button>
                     </CardContent>
@@ -396,33 +347,26 @@ const Dashboard = () => {
             </TabsContent>
 
             <TabsContent value="activity">
-              <div className="max-w-4xl mx-auto">
-                {dashboardLoading ? (
-                  <Card>
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-center">
-                        <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                        <span className="text-muted-foreground">Loading activities...</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <ActivityFeed 
-                    activities={dashboardData?.recent_activities || []} 
-                    maxItems={20} 
-                  />
-                )}
-              </div>
+              <Card className="mx-auto max-w-5xl border-border/70 shadow-soft">
+                <CardContent className="p-5">
+                  {dashboardLoading ? (
+                    <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                      <Loader2 className="h-5 w-5 animate-spin" /> Loading activities...
+                    </div>
+                  ) : (
+                    <ActivityFeed activities={dashboardData?.recent_activities || []} maxItems={20} />
+                  )}
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="notifications">
-              <div className="max-w-4xl mx-auto">
+              <div className="mx-auto max-w-5xl">
                 {notificationsLoading ? (
-                  <Card>
+                  <Card className="border-border/70 shadow-soft">
                     <CardContent className="p-6">
-                      <div className="flex items-center justify-center">
-                        <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                        <span className="text-muted-foreground">Loading notifications...</span>
+                      <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                        <Loader2 className="h-5 w-5 animate-spin" /> Loading notifications...
                       </div>
                     </CardContent>
                   </Card>
@@ -435,11 +379,8 @@ const Dashboard = () => {
                     onUpdatePreferences={handleUpdatePreferences}
                   />
                 ) : (
-                  <Card>
-                    <CardContent className="p-6 text-center text-muted-foreground">
-                      <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p>No notifications available</p>
-                    </CardContent>
+                  <Card className="border-border/70 shadow-soft">
+                    <CardContent className="p-6 text-center text-muted-foreground">No notifications available.</CardContent>
                   </Card>
                 )}
               </div>
@@ -452,4 +393,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-

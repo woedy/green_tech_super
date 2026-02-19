@@ -5,22 +5,18 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { 
   Building2, 
-  Home, 
-  Factory, 
   MapPin, 
   Calendar, 
   Search,
-  Heart,
   Loader2
 } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { publicApi, type PaginatedProjectsResponse } from "@/lib/api";
-import { useToast } from "@/components/ui/use-toast";
+import AccountPageHeader from "@/components/account/AccountPageHeader";
 import { useState } from "react";
 
 const ProjectsCatalog = () => {
-  const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
@@ -71,22 +67,15 @@ const ProjectsCatalog = () => {
   return (
     <Layout>
       <div className="min-h-screen bg-background">
-        {/* Hero Section */}
-        <section className="py-12 bg-gradient-to-br from-primary/5 via-background to-background">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-8">
-              <Badge variant="outline" className="mb-4">
-                <Building2 className="w-3 h-3 mr-1" />
-                Projects Catalog
-              </Badge>
-              <h1 className="text-4xl font-bold mb-4">Browse Construction Projects</h1>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Explore our portfolio of sustainable construction projects. Click "Request Similar Project" to get started.
-              </p>
-            </div>
+        <AccountPageHeader
+          title="Projects Catalog"
+          description="Discover project references and request similar work from your account workspace."
+          icon={<Building2 className="h-3.5 w-3.5" />}
+        />
 
-            {/* Search and Category Filters */}
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <section className="py-6 border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col md:flex-row gap-4 mb-4">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
                 <Input
@@ -100,8 +89,7 @@ const ProjectsCatalog = () => {
               <Button onClick={handleSearch}>Search</Button>
             </div>
 
-            {/* Category Tabs */}
-            <div className="flex flex-wrap gap-2 justify-center">
+            <div className="flex flex-wrap gap-2">
               {['all', 'residential', 'commercial', 'industrial', 'infrastructure'].map((cat) => (
                 <Button
                   key={cat}
@@ -146,7 +134,7 @@ const ProjectsCatalog = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {projects.map((project) => (
-                <Card key={project.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                <Card key={project.id} className="overflow-hidden border-border/70 shadow-soft smooth-transition hover:-translate-y-0.5 hover:shadow-medium">
                   {project.featured_image && (
                     <div className="aspect-video relative overflow-hidden">
                       <img

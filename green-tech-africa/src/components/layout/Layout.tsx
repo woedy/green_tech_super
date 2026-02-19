@@ -13,7 +13,7 @@ const Layout = ({ children }: LayoutProps) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex min-h-screen flex-col bg-background">
       <Navbar />
       <div className="flex flex-1">
         {isAuthenticated && (
@@ -23,13 +23,11 @@ const Layout = ({ children }: LayoutProps) => {
           />
         )}
         <main
-          className={`flex-grow transition-all duration-300 ${isAuthenticated
-              ? sidebarCollapsed
-                ? "md:ml-16"
-                : "md:ml-64"
-              : ""
-            }`}
+          className={`flex-grow transition-all duration-300 ${
+            isAuthenticated ? (sidebarCollapsed ? "md:ml-16" : "md:ml-64") : ""
+          }`}
         >
+          {!isAuthenticated && <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top_right,theme(colors.primary/10),transparent_45%),radial-gradient(circle_at_bottom_left,theme(colors.accent/40),transparent_35%)]" />}
           {children}
         </main>
       </div>

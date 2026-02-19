@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { PROPERTIES } from "@/mocks/properties";
 import { getFavorites, toggleFavorite } from "@/lib/favorites";
 import { Heart } from "lucide-react";
+import AccountPageHeader from "@/components/account/AccountPageHeader";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -18,15 +19,15 @@ const Favorites = () => {
 
   return (
     <Layout>
-      <section className="py-10 bg-gradient-to-br from-background via-accent/30 to-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-2xl md:text-3xl font-bold">Saved Properties</h1>
-        </div>
-      </section>
+      <AccountPageHeader
+        title="Saved Properties"
+        description="Quickly revisit listings you bookmarked and continue your purchase journey."
+        icon={<Heart className="h-3.5 w-3.5" />}
+      />
       <section className="py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {items.map((p) => (
-            <Card key={p.id} className="overflow-hidden shadow-medium">
+            <Card key={p.id} className="overflow-hidden border-border/70 shadow-soft smooth-transition hover:-translate-y-1 hover:shadow-medium">
               <div className="relative">
                 <img src={p.image} alt={p.title} className="w-full h-44 object-cover" />
                 <div className="absolute top-4 left-4"><Badge variant="secondary">{p.type}</Badge></div>
